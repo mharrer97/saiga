@@ -32,7 +32,8 @@ VulkanDeferredRenderer::VulkanDeferredRenderer(VulkanWindow& window, VulkanParam
 
 VulkanDeferredRenderer::~VulkanDeferredRenderer()
 {
-    base().device.destroyRenderPass(renderPass);
+    base().device.destroyRenderPass(geometryPass);
+    //base().device.destroyRenderPass(lightingPass);
 }
 
 
@@ -46,7 +47,7 @@ void VulkanDeferredRenderer::createBuffers(int numImages, int w, int h)
     for (int i = 0; i < numImages; i++)
     {
         frameBuffers[i].createColorDepthStencil(w, h, swapChain.buffers[i].view, depthBuffer.location->data.view,
-                                                renderPass, base().device);
+                                                geometryPass, base().device);
     }
 
 
@@ -54,7 +55,7 @@ void VulkanDeferredRenderer::createBuffers(int numImages, int w, int h)
     drawCmdBuffers.clear();
     drawCmdBuffers = renderCommandPool.allocateCommandBuffers(numImages, vk::CommandBufferLevel::ePrimary);
 
-    if (imGui) imGui->initResources(base(), renderPass);
+    if (imGui) imGui->initResources(base(), geometryPass);
 }
 
 
@@ -127,7 +128,11 @@ void VulkanDeferredRenderer::setupRenderPass()
     renderPassInfo.dependencyCount        = 1;  // static_cast<uint32_t>(dependencies.size());
     renderPassInfo.pDependencies          = dependencies.data();
 
-    VK_CHECK_RESULT(vkCreateRenderPass(base().device, &renderPassInfo, nullptr, &renderPass));
+    //TODO use C++ version: VkRenderPass -> vk::RenderPass
+    //geometryPass = base().device.createRenderPass(&renderPassInfo, nullptr, &geometryPass);
+    VK_CHECK_RESULT(vkCreateRenderPass(base().device, &renderPassInfo, nullptr, &geometryPass));
+    //VK_CHECK_RESULT(vkCreateRenderPass(base().device, &renderPassInfo, nullptr, &lightingPass));
+
 }
 
 
@@ -161,7 +166,7 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage)
     clearValues[1].depthStencil = {1.0f, 0};
 
     VkRenderPassBeginInfo renderPassBeginInfo    = vks::initializers::renderPassBeginInfo();
-    renderPassBeginInfo.renderPass               = renderPass;
+    renderPassBeginInfo.renderPass               = geometryPass;
     renderPassBeginInfo.renderArea.offset.x      = 0;
     renderPassBeginInfo.renderArea.offset.y      = 0;
     renderPassBeginInfo.renderArea.extent.width  = surfaceWidth;

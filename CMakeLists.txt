@@ -48,11 +48,11 @@ OptionsHelper(SAIGA_DEBUG_TSAN "Enable the thread sanitizer. Does not work in co
 
 
 OptionsHelper(SAIGA_MODULE_CORE   "Build the core module, if possible." ON)
-OptionsHelper(SAIGA_MODULE_OPENGL "Build the opengl module, if possible." ON)
+OptionsHelper(SAIGA_MODULE_OPENGL "Build the opengl module, if possible." OFF)
 OptionsHelper(SAIGA_MODULE_VULKAN "Build the vulkan module, if possible." ON)
-OptionsHelper(SAIGA_MODULE_EXTRA  "Build the extra module, if possible." ON)
-OptionsHelper(SAIGA_MODULE_VISION "Build the vision module, if possible." ON)
-OptionsHelper(SAIGA_MODULE_CUDA   "Build the cuda module, if possible." ON)
+OptionsHelper(SAIGA_MODULE_EXTRA  "Build the extra module, if possible." OFF)
+OptionsHelper(SAIGA_MODULE_VISION "Build the vision module, if possible." OFF)
+OptionsHelper(SAIGA_MODULE_CUDA   "Build the cuda module, if possible." OFF)
 
 OptionsHelper(SAIGA_WITH_MKL "Build the MKL library, if possible." OFF)
 

@@ -24,7 +24,7 @@ class SAIGA_VULKAN_API AssetRenderer : public Pipeline
    public:
     // Change these strings before calling 'init' to use your own shaders
     std::string vertexShader = "vulkan/coloredAsset.vert";
-    std::string fragmendShader = "vulkan/coloredAsset.frag";
+    std::string fragmentShader = "vulkan/coloredAsset.frag";
 
     ~AssetRenderer() { destroy(); }
     void destroy();
@@ -53,6 +53,40 @@ class SAIGA_VULKAN_API AssetRenderer : public Pipeline
     StaticDescriptorSet descriptorSet;
 };
 
+
+class SAIGA_VULKAN_API DeferredAssetRenderer : public DeferredPipeline
+{
+   public:
+    // Change these strings before calling 'init' to use your own shaders
+    std::string vertexShader = "vulkan/coloredAssetDeferred.vert";
+    std::string fragmentShader = "vulkan/coloredAssetDeferred.frag";
+
+    ~DeferredAssetRenderer() { destroy(); }
+    void destroy();
+
+    bool bind(vk::CommandBuffer cmd);
+
+
+    void pushModel(VkCommandBuffer cmd, mat4 model);
+    void updateUniformBuffers(vk::CommandBuffer cmd, mat4 view, mat4 proj);
+
+    void init(Saiga::Vulkan::VulkanBase& vulkanDevice, vk::RenderPass geometryPass, vk::RenderPass lightingPass);
+
+    void prepareUniformBuffers(Saiga::Vulkan::VulkanBase* vulkanDevice);
+    //    void preparePipelines(VkPipelineCache pipelineCache, VkRenderPass renderPass);
+    void setupLayoutsAndDescriptors();
+
+   private:
+    struct UBOVS
+    {
+        mat4 projection;
+        mat4 modelview;
+        vec4 lightPos;
+    } uboVS;
+
+    UniformBuffer uniformBufferVS;
+    StaticDescriptorSet descriptorSet;
+};
 
 
 }  // namespace Vulkan

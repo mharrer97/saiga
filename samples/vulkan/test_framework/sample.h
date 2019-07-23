@@ -51,7 +51,7 @@ class VulkanExample : public Saiga::Updating,
     Saiga::Vulkan::VulkanVertexColoredAsset teapot, plane;
     Saiga::Vulkan::VulkanLineVertexColoredAsset grid, frustum;
     Saiga::Vulkan::VulkanPointCloudAsset pointCloud;
-    Saiga::Vulkan::AssetRenderer assetRenderer;
+    Saiga::Vulkan::DeferredAssetRenderer assetRenderer;
     Saiga::Vulkan::LineAssetRenderer lineAssetRenderer;
     Saiga::Vulkan::PointCloudRenderer pointCloudRenderer;
     Saiga::Vulkan::TexturedAssetRenderer texturedAssetRenderer;
