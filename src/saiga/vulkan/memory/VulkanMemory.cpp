@@ -12,8 +12,15 @@
 #include "ImageCopyComputeShader.h"
 
 #include <memory>
-namespace Saiga::Vulkan::Memory
+namespace Saiga
 {
+
+namespace Vulkan
+{
+
+namespace Memory
+{
+
 void VulkanMemory::init(VulkanBase* base, uint32_t swapchain_frames, const VulkanParameters& parameters)
 {
     this->base                  = base;
@@ -450,4 +457,6 @@ void VulkanMemory::full_defrag()
 }
 
 
-}  // namespace Saiga::Vulkan::Memory
+} // namespace Memory
+} // namespace Vulkan
+} // namespace Saiga

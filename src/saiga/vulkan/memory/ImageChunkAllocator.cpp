@@ -9,9 +9,12 @@
 #include "saiga/core/math/imath.h"
 
 #include "SafeAllocator.h"
+namespace Saiga {
 
-namespace Saiga::Vulkan::Memory
-{
+namespace Vulkan {
+
+namespace Memory {
+
 ChunkIterator<ImageMemoryLocation> ImageChunkAllocator::createNewChunk()
 {
     auto newMem = SafeAllocator::instance()->allocateMemory(m_device, allocateInfo);
@@ -76,3 +79,5 @@ void ImageChunkAllocator::deallocate(ImageMemoryLocation* location)
 }
 
 }  // namespace Saiga::Vulkan::Memory
+}
+}

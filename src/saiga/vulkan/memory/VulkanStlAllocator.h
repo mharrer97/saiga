@@ -12,8 +12,13 @@
 #include <vulkan/vulkan.hpp>
 
 
-namespace Saiga::Vulkan::Memory
-{
+namespace Saiga {
+
+namespace Vulkan {
+
+namespace Memory {
+
+
 /**
  * Allocator that uses host visible and host coherent vulkan memory.
  * @tparam T Type of object to allocate.
@@ -78,3 +83,5 @@ struct VulkanStlAllocator
 
 
 }  // namespace Saiga::Vulkan::Memory
+}
+}

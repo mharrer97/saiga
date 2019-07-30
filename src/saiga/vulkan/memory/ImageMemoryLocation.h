@@ -6,8 +6,13 @@
 #include "MemoryLocation.h"
 
 
-namespace Saiga::Vulkan::Memory
-{
+namespace Saiga  {
+
+namespace Vulkan {
+
+namespace Memory {
+
+
 struct SAIGA_VULKAN_API ImageData
 {
     vk::ImageLayout layout;
@@ -226,4 +231,6 @@ inline void bind_image_data(vk::Device device, ImageMemoryLocation* location, Im
     device.bindImageMemory(location->data.image, location->memory, location->offset);
 }
 
-}  // namespace Saiga::Vulkan::Memory
+} // namespace Memory
+} // namespace Vulkan
+} // namespace Saiga

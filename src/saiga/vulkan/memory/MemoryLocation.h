@@ -13,8 +13,13 @@
 #include <ostream>
 #include <saiga/core/util/assert.h>
 #include <vulkan/vulkan.hpp>
-namespace Saiga::Vulkan::Memory
-{
+
+namespace Saiga {
+
+namespace Vulkan {
+
+namespace Memory {
+
 template <typename T>
 struct SafeAccessor final
 {
@@ -302,4 +307,6 @@ struct SAIGA_VULKAN_API BaseMemoryLocation
     void modified() { modified_time = Clock::now(); }
 };
 
-}  // namespace Saiga::Vulkan::Memory
+} // namespace Memory
+} // namespace Vulkan
+} // namespace Saiga

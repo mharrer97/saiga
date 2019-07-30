@@ -8,8 +8,14 @@
 
 #include <mutex>
 #include <vulkan/vulkan.hpp>
-namespace Saiga::Vulkan::Memory
-{
+
+namespace Saiga {
+
+namespace Vulkan {
+
+namespace Memory {
+
+
 using vk::AllocationCallbacks;
 using vk::Device;
 using vk::DeviceMemory;
@@ -52,3 +58,5 @@ class SafeAllocator : public Singleton<SafeAllocator>
 };
 
 }  // namespace Saiga::Vulkan::Memory
+}
+}

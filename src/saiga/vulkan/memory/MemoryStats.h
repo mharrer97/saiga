@@ -8,8 +8,12 @@
 
 #include <saiga/core/util/assert.h>
 
-namespace Saiga::Vulkan::Memory
-{
+namespace Saiga {
+
+namespace Vulkan {
+
+namespace Memory {
+
 struct MemoryStats
 {
     vk::DeviceSize allocated;
@@ -33,3 +37,5 @@ struct MemoryStats
 };
 
 }  // namespace Saiga::Vulkan::Memory
+}
+}

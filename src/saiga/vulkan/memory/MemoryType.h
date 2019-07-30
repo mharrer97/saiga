@@ -6,8 +6,12 @@
 
 #include <ostream>
 
-namespace Saiga::Vulkan::Memory
-{
+namespace Saiga {
+
+namespace Vulkan {
+
+namespace Memory {
+
 template <typename T>
 struct MemoryType
 {
@@ -59,6 +63,8 @@ struct SAIGA_VULKAN_API ImageType : public MemoryType<vk::ImageUsageFlags>
 };
 
 }  // namespace Saiga::Vulkan::Memory
+}
+}
 
 namespace std
 {

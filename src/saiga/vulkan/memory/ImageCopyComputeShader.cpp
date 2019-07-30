@@ -8,8 +8,12 @@
 
 #include "memory.h"
 
-namespace Saiga::Vulkan::Memory
-{
+namespace Saiga {
+
+namespace Vulkan {
+
+namespace Memory {
+
 void ImageCopyComputeShader::init(VulkanBase* _base)
 {
     base = _base;
@@ -88,3 +92,5 @@ std::optional<vk::DescriptorSet> ImageCopyComputeShader::copy_image(vk::CommandB
     return descriptorSet;
 }
 }  // namespace Saiga::Vulkan::Memory
+}
+}

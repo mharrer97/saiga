@@ -5,14 +5,22 @@
 #pragma once
 
 #include "ImageMemoryLocation.h"
-namespace Saiga::Vulkan
+namespace Saiga
 {
+namespace Vulkan {
+
+
 struct VulkanBase;
 class ComputePipeline;
 }  // namespace Saiga::Vulkan
+}
 
-namespace Saiga::Vulkan::Memory
-{
+namespace Saiga {
+
+namespace Vulkan {
+
+namespace Memory {
+
 class VulkanMemory;
 
 
@@ -37,3 +45,5 @@ class ImageCopyComputeShader
 };
 
 }  // namespace Saiga::Vulkan::Memory
+}
+}

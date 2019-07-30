@@ -8,8 +8,12 @@
 #include "Chunk.h"
 
 #include <tuple>
-namespace Saiga::Vulkan::Memory
-{
+namespace Saiga {
+
+namespace Vulkan {
+
+namespace Memory {
+
 template <typename T>
 struct SAIGA_LOCAL FitStrategy
 {
@@ -122,3 +126,5 @@ std::pair<ChunkIterator<T>, FreeIterator<T>> WorstFitStrategy<T>::findRange(Chun
 }
 
 }  // namespace Saiga::Vulkan::Memory
+}
+}

@@ -9,8 +9,12 @@
 
 #include "VulkanMemory.h"
 
-namespace Saiga::Vulkan::Memory
-{
+namespace Saiga {
+
+namespace Vulkan {
+
+namespace Memory {
+
 void VulkanMemory::renderGUI()
 {
     static bool mem_stats_open = base->m_parameters.expand_memory_stats;
@@ -101,3 +105,5 @@ void VulkanMemory::renderGUI()
     ImGui::Unindent();
 }
 }  // namespace Saiga::Vulkan::Memory
+}
+}

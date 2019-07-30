@@ -12,8 +12,13 @@
 #include <memory>
 #include <optional>
 #include <ostream>
-namespace Saiga::Vulkan::Memory
-{
+namespace Saiga {
+
+namespace Vulkan {
+
+namespace Memory {
+
+
 struct FreeListEntry
 {
     vk::DeviceSize offset;
@@ -130,3 +135,5 @@ using FreeIterator = typename Chunk<T>::FreeList::iterator;
 template <typename T>
 using ConstFreeIterator = typename Chunk<T>::FreeList::const_iterator;
 }  // namespace Saiga::Vulkan::Memory
+}
+}

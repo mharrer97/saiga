@@ -15,8 +15,12 @@
 
 #include <mutex>
 
-namespace Saiga::Vulkan::Memory
-{
+namespace Saiga {
+
+namespace Vulkan {
+
+namespace Memory {
+
 template <typename T>
 class SAIGA_VULKAN_API ChunkAllocator
 {
@@ -123,3 +127,5 @@ class SAIGA_VULKAN_API ChunkAllocator
 };
 
 }  // namespace Saiga::Vulkan::Memory
+}
+}

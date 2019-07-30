@@ -15,8 +15,13 @@
 #include <sstream>
 #include <string>
 
-namespace Saiga::Vulkan::Memory
-{
+namespace Saiga {
+
+namespace Vulkan {
+
+namespace Memory {
+
+
 BufferMemoryLocation* BufferChunkAllocator::allocate(vk::DeviceSize size)
 {
     SAIGA_ASSERT(size > 0, "Allocations must have a size > 0");
@@ -75,3 +80,5 @@ std::unique_ptr<BufferMemoryLocation> BufferChunkAllocator::create_location(
                                                   chunk_alloc->mappedPointer);
 }
 }  // namespace Saiga::Vulkan::Memory
+}
+}

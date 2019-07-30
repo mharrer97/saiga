@@ -9,8 +9,12 @@
 
 #include <numeric>
 
-namespace Saiga::Vulkan::Memory
-{
+namespace Saiga {
+
+namespace Vulkan {
+
+namespace Memory {
+
 void UniqueAllocator::deallocate(BufferMemoryLocation* location)
 {
     std::scoped_lock lock(mutex);
@@ -166,3 +170,5 @@ void UniqueAllocator::destroy(const vk::Device& device, ImageMemoryLocation* mem
 }
 
 }  // namespace Saiga::Vulkan::Memory
+}
+}

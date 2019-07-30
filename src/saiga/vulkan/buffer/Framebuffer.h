@@ -30,6 +30,8 @@ class SAIGA_VULKAN_API Framebuffer
     void createColor(int width, int height, vk::ImageView color, vk::RenderPass renderPass, vk::Device device);
     void create(int width, int height, vk::RenderPass renderPass, vk::Device device);
 
+    void createGBuffer(int width, int height, vk::ImageView diffuse, vk::ImageView specular, vk::ImageView normal,
+                       vk::ImageView additional, vk::ImageView depthStencil, vk::RenderPass renderPass, vk::Device device);
    private:
     vk::Device device;
 };

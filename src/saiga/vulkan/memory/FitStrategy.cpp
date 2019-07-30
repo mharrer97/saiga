@@ -6,6 +6,11 @@
 
 #include <tuple>
 #include <utility>
-namespace Saiga::Vulkan::Memory
-{
+namespace Saiga {
+
+namespace Vulkan {
+
+namespace Memory {
 }  // namespace Saiga::Vulkan::Memory
+}
+}

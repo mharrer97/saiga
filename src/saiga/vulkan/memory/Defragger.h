@@ -25,13 +25,16 @@
 
 #include <condition_variable>
 
-namespace Saiga::Vulkan
+namespace Saiga
 {
-struct VulkanBase;
-}
+namespace Vulkan{
 
-namespace Saiga::Vulkan::Memory
-{
+struct VulkanBase;
+
+
+namespace Memory {
+
+
 class ImageCopyComputeShader;
 
 struct DefraggerConfiguration
@@ -327,3 +330,5 @@ class ImageDefragger final : public Defragger<ImageMemoryLocation>
 };
 
 }  // namespace Saiga::Vulkan::Memory
+}
+}

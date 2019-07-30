@@ -19,8 +19,12 @@
 
 #include <saiga/core/util/easylogging++.h>
 
-namespace Saiga::Vulkan::Memory
-{
+namespace Saiga {
+
+namespace Vulkan {
+
+namespace Memory {
+
 class SAIGA_VULKAN_API UniqueAllocator
 {
    private:
@@ -83,3 +87,5 @@ class SAIGA_VULKAN_API UniqueAllocator
 };
 
 }  // namespace Saiga::Vulkan::Memory
+}
+}

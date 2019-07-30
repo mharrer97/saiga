@@ -21,11 +21,13 @@
 #include <vulkan/vulkan.hpp>
 
 #include <unordered_map>
-namespace Saiga::Vulkan
+namespace Saiga
 {
 struct VulkanBase;
-}
-namespace Saiga::Vulkan::Memory
+
+namespace Vulkan {
+
+namespace Memory
 {
 static const vk::BufferUsageFlags all_buffer_usage(VK_BUFFER_USAGE_FLAG_BITS_MAX_ENUM);
 static const vk::ImageUsageFlags all_image_usage(VK_IMAGE_USAGE_FLAG_BITS_MAX_ENUM);
@@ -252,4 +254,6 @@ class SAIGA_VULKAN_API VulkanMemory
     void full_defrag();
 };
 
-}  // namespace Saiga::Vulkan::Memory
+} // namespace Memory
+} // namespace Vulkan
+} // namespace Saiga

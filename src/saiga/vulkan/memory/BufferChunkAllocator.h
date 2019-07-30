@@ -21,8 +21,13 @@
 #include <utility>
 #include <vulkan/vulkan.hpp>
 
-namespace Saiga::Vulkan::Memory
-{
+namespace Saiga {
+
+namespace Vulkan {
+
+namespace Memory {
+
+
 class SAIGA_VULKAN_API BufferChunkAllocator final : public ChunkAllocator<BufferMemoryLocation>
 {
    private:
@@ -86,3 +91,5 @@ class SAIGA_VULKAN_API BufferChunkAllocator final : public ChunkAllocator<Buffer
     BufferMemoryLocation* allocate(vk::DeviceSize size);
 };
 }  // namespace Saiga::Vulkan::Memory
+}
+}

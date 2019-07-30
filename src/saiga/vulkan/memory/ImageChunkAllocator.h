@@ -8,8 +8,12 @@
 #include "ImageMemoryLocation.h"
 #include "MemoryType.h"
 
-namespace Saiga::Vulkan::Memory
-{
+namespace Saiga {
+
+namespace Vulkan {
+
+namespace Memory {
+
 class SAIGA_VULKAN_API ImageChunkAllocator final : public ChunkAllocator<ImageMemoryLocation>
 {
    private:
@@ -43,3 +47,5 @@ class SAIGA_VULKAN_API ImageChunkAllocator final : public ChunkAllocator<ImageMe
 };
 
 }  // namespace Saiga::Vulkan::Memory
+}
+}

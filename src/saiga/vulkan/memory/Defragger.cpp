@@ -10,8 +10,12 @@
 #include "ImageCopyComputeShader.h"
 
 #include <optional>
-namespace Saiga::Vulkan::Memory
-{
+namespace Saiga {
+
+namespace Vulkan {
+
+namespace Memory {
+
 template <typename T>
 bool Defragger<T>::perform_free_operations()
 {
@@ -723,3 +727,5 @@ ImageDefragger::ImageDefragger(VulkanBase* base, vk::Device device, ChunkAllocat
 }
 
 }  // namespace Saiga::Vulkan::Memory
+}
+}

@@ -6,8 +6,13 @@
 #include "BufferMemoryLocation.h"
 #include "ImageMemoryLocation.h"
 
-namespace Saiga::Vulkan::Memory
-{
+namespace Saiga {
+
+namespace Vulkan {
+
+namespace Memory {
+
+
 template <typename T>
 T* ChunkAllocator<T>::base_allocate(vk::DeviceSize size)
 {
@@ -355,3 +360,5 @@ template class ChunkAllocator<BufferMemoryLocation>;
 template class ChunkAllocator<ImageMemoryLocation>;
 
 }  // namespace Saiga::Vulkan::Memory
+}
+}

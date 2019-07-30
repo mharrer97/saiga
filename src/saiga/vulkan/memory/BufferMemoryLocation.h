@@ -5,8 +5,12 @@
 #pragma once
 #include "MemoryLocation.h"
 
-namespace Saiga::Vulkan::Memory
-{
+namespace Saiga {
+
+namespace Vulkan {
+
+namespace Memory {
+
 struct SAIGA_VULKAN_API BufferData
 {
     vk::Buffer buffer;
@@ -50,3 +54,5 @@ inline void copy_buffer(vk::CommandBuffer cmd, BufferMemoryLocation* target, Buf
     cmd.copyBuffer(static_cast<vk::Buffer>(source->data), static_cast<vk::Buffer>(target->data), bc);
 }
 }  // namespace Saiga::Vulkan::Memory
+}
+}
