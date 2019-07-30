@@ -39,8 +39,7 @@ class SAIGA_VULKAN_API VulkanDeferredRenderer : public VulkanRenderer
 {
    public:
     CommandPool renderCommandPool;
-    VkRenderPass geometryPass;
-    //VkRenderPass lightingPass;
+    VkRenderPass renderPass;
 
     VulkanDeferredRenderer(VulkanWindow& window, VulkanParameters vulkanParameters);
     virtual ~VulkanDeferredRenderer() override;
@@ -57,6 +56,7 @@ class SAIGA_VULKAN_API VulkanDeferredRenderer : public VulkanRenderer
     std::vector<vk::CommandBuffer> drawCmdBuffers;
     std::vector<Framebuffer> frameBuffers;
 };
+
 
 }  // namespace Vulkan
 }  // namespace Saiga

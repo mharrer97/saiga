@@ -37,28 +37,5 @@ class SAIGA_VULKAN_API Pipeline : public PipelineBase
     virtual bool checkShader() override;
 };
 
-class SAIGA_VULKAN_API DeferredPipeline : public PipelineBase
-{
-   public:
-    Saiga::Vulkan::GraphicsShaderPipeline shaderPipeline;
-
-    DeferredPipeline();
-
-
-    void create(vk::RenderPass geometryPass, vk::RenderPass lightingPass, PipelineInfo pipelineInfo = PipelineInfo());
-    void reload();
-
-    bool autoReload = true;
-
-   protected:
-    vk::RenderPass geometryPass;
-    vk::RenderPass lightingPass;
-
-    PipelineInfo pipelineInfo;
-    int reloadCounter = 0;
-
-    virtual bool checkShader() override;
-};
-
 }  // namespace Vulkan
 }  // namespace Saiga

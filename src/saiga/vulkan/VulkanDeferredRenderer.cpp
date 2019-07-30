@@ -27,13 +27,12 @@ VulkanDeferredRenderer::VulkanDeferredRenderer(VulkanWindow& window, VulkanParam
 {
     setupRenderPass();
     renderCommandPool = base().mainQueue.createCommandPool(vk::CommandPoolCreateFlagBits::eResetCommandBuffer);
-    cout << "VulkanDeferredRenderer init done." << endl;
+    cout << "VulkanForwardRenderer init done." << endl;
 }
 
 VulkanDeferredRenderer::~VulkanDeferredRenderer()
 {
-    base().device.destroyRenderPass(geometryPass);
-    //base().device.destroyRenderPass(lightingPass);
+    base().device.destroyRenderPass(renderPass);
 }
 
 
@@ -47,7 +46,7 @@ void VulkanDeferredRenderer::createBuffers(int numImages, int w, int h)
     for (int i = 0; i < numImages; i++)
     {
         frameBuffers[i].createColorDepthStencil(w, h, swapChain.buffers[i].view, depthBuffer.location->data.view,
-                                                geometryPass, base().device);
+                                                renderPass, base().device);
     }
 
 
@@ -55,7 +54,7 @@ void VulkanDeferredRenderer::createBuffers(int numImages, int w, int h)
     drawCmdBuffers.clear();
     drawCmdBuffers = renderCommandPool.allocateCommandBuffers(numImages, vk::CommandBufferLevel::ePrimary);
 
-    if (imGui) imGui->initResources(base(), geometryPass);
+    if (imGui) imGui->initResources(base(), renderPass);
 }
 
 
@@ -128,11 +127,7 @@ void VulkanDeferredRenderer::setupRenderPass()
     renderPassInfo.dependencyCount        = 1;  // static_cast<uint32_t>(dependencies.size());
     renderPassInfo.pDependencies          = dependencies.data();
 
-    //TODO use C++ version: VkRenderPass -> vk::RenderPass
-    //geometryPass = base().device.createRenderPass(&renderPassInfo, nullptr, &geometryPass);
-    VK_CHECK_RESULT(vkCreateRenderPass(base().device, &renderPassInfo, nullptr, &geometryPass));
-    //VK_CHECK_RESULT(vkCreateRenderPass(base().device, &renderPassInfo, nullptr, &lightingPass));
-
+    VK_CHECK_RESULT(vkCreateRenderPass(base().device, &renderPassInfo, nullptr, &renderPass));
 }
 
 
@@ -166,7 +161,7 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage)
     clearValues[1].depthStencil = {1.0f, 0};
 
     VkRenderPassBeginInfo renderPassBeginInfo    = vks::initializers::renderPassBeginInfo();
-    renderPassBeginInfo.renderPass               = geometryPass;
+    renderPassBeginInfo.renderPass               = renderPass;
     renderPassBeginInfo.renderArea.offset.x      = 0;
     renderPassBeginInfo.renderArea.offset.y      = 0;
     renderPassBeginInfo.renderArea.extent.width  = surfaceWidth;

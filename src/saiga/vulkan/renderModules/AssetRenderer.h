@@ -53,8 +53,7 @@ class SAIGA_VULKAN_API AssetRenderer : public Pipeline
     StaticDescriptorSet descriptorSet;
 };
 
-
-class SAIGA_VULKAN_API DeferredAssetRenderer : public DeferredPipeline
+class SAIGA_VULKAN_API DeferredAssetRenderer : public Pipeline
 {
    public:
     // Change these strings before calling 'init' to use your own shaders
@@ -70,7 +69,7 @@ class SAIGA_VULKAN_API DeferredAssetRenderer : public DeferredPipeline
     void pushModel(VkCommandBuffer cmd, mat4 model);
     void updateUniformBuffers(vk::CommandBuffer cmd, mat4 view, mat4 proj);
 
-    void init(Saiga::Vulkan::VulkanBase& vulkanDevice, vk::RenderPass geometryPass, vk::RenderPass lightingPass);
+    void init(Saiga::Vulkan::VulkanBase& vulkanDevice, VkRenderPass renderPass);
 
     void prepareUniformBuffers(Saiga::Vulkan::VulkanBase* vulkanDevice);
     //    void preparePipelines(VkPipelineCache pipelineCache, VkRenderPass renderPass);
@@ -87,7 +86,6 @@ class SAIGA_VULKAN_API DeferredAssetRenderer : public DeferredPipeline
     UniformBuffer uniformBufferVS;
     StaticDescriptorSet descriptorSet;
 };
-
 
 }  // namespace Vulkan
 }  // namespace Saiga

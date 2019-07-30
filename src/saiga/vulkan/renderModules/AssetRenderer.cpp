@@ -69,18 +69,16 @@ void AssetRenderer::init(VulkanBase& vulkanDevice, VkRenderPass renderPass)
 }
 
 
-
-//deferred Asset Renderer
 void DeferredAssetRenderer::destroy()
 {
-    DeferredPipeline::destroy();
+    Pipeline::destroy();
     uniformBufferVS.destroy();
 }
 bool DeferredAssetRenderer::bind(vk::CommandBuffer cmd)
 {
     bindDescriptorSet(cmd, descriptorSet, 0);
     // cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelineLayout, 0, descriptorSet, nullptr);
-    return DeferredPipeline::bind(cmd);
+    return Pipeline::bind(cmd);
 }
 
 void DeferredAssetRenderer::pushModel(VkCommandBuffer cmd, mat4 model)
@@ -97,7 +95,7 @@ void DeferredAssetRenderer::updateUniformBuffers(vk::CommandBuffer cmd, mat4 vie
     uniformBufferVS.update(cmd, sizeof(uboVS), &uboVS);
 }
 
-void DeferredAssetRenderer::init(VulkanBase& vulkanDevice, vk::RenderPass geometryPass, vk::RenderPass lightingPass)
+void DeferredAssetRenderer::init(VulkanBase& vulkanDevice, VkRenderPass renderPass)
 {
     PipelineBase::init(vulkanDevice, 1);
     addDescriptorSetLayout({{0, {7, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex}}});
@@ -106,7 +104,7 @@ void DeferredAssetRenderer::init(VulkanBase& vulkanDevice, vk::RenderPass geomet
 
     PipelineInfo info;
     info.addVertexInfo<VertexNC>();
-    create(geometryPass, lightingPass, info);
+    create(renderPass, info);
 
 
 
@@ -120,7 +118,6 @@ void DeferredAssetRenderer::init(VulkanBase& vulkanDevice, vk::RenderPass geomet
         },
         nullptr);
 }
-
 
 }  // namespace Vulkan
 }  // namespace Saiga
