@@ -316,8 +316,10 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage)
 
     // This is blender's default viewport background color :)
     vec4 geometryClearColor             = vec4(57, 57, 57, 255) / 255.0f;
-    geometryClearValues[0].color        = {{geometryClearColor[0], geometryClearColor[1], geometryClearColor[2], geometryClearColor[3]}};
-    geometryClearValues[1].depthStencil = {1.0f, 0};
+    geometryClearValues[0].color.setFloat32({geometryClearColor[0], geometryClearColor[1], geometryClearColor[2], geometryClearColor[3]});
+    geometryClearValues[1].depthStencil.setDepth(1.0f);
+    geometryClearValues[1].depthStencil.setStencil(0.0f);
+                                          ;
 
     vk::RenderPassBeginInfo geometryRenderPassBeginInfo    = vks::initializers::renderPassBeginInfo();
     geometryRenderPassBeginInfo.renderPass               = renderPass;
@@ -326,15 +328,15 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage)
     geometryRenderPassBeginInfo.renderArea.extent.width  = surfaceWidth;
     geometryRenderPassBeginInfo.renderArea.extent.height = SurfaceHeight;
     geometryRenderPassBeginInfo.clearValueCount          = 2;
-    geometryRenderPassBeginInfo.pClearValues             = clearValues;
+    geometryRenderPassBeginInfo.pClearValues             = geometryClearValues;
 
 
     vk::CommandBuffer& cmd = geometryCmdBuffer;
     // cmd.reset(vk::CommandBufferResetFlagBits::eReleaseResources);
     // Set target frame buffer
-    renderPassBeginInfo.framebuffer = gBuffer;
+    geometryRenderPassBeginInfo.framebuffer = gBuffer.framebuffer;
 
-    cmd.begin(cmdBufInfo);
+    cmd.begin(geometryCmdBufInfo);
     timings.resetFrame(cmd);
     timings.enterSection("TRANSFER", cmd);
 
@@ -346,7 +348,7 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage)
 
     if (imGui) imGui->updateBuffers(cmd, currentImage);
 
-    cmd.beginRenderPass( &renderPassBeginInfo, vk::SubpassContents::eInline);
+    cmd.beginRenderPass( &geometryRenderPassBeginInfo, vk::SubpassContents::eInline);
 
     vk::Viewport gBufferViewport = vks::initializers::viewport((float)surfaceWidth, (float)SurfaceHeight, 0.0f, 1.0f);
     cmd.setViewport(0, 1, &gBufferViewport);
