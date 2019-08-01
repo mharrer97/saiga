@@ -14,7 +14,9 @@
 
 #include <utility>
 
-namespace Saiga::Vulkan
+namespace Saiga
+{
+namespace Vulkan
 {
 class DescriptorSetLayout;
 struct VulkanBase;
@@ -95,3 +97,4 @@ class SAIGA_VULKAN_API DynamicDescriptorSet final : public DescriptorSet
     inline void update() override;
 };
 }  // namespace Saiga::Vulkan
+}

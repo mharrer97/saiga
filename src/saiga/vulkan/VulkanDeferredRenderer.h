@@ -15,6 +15,7 @@
 #include "saiga/vulkan/Queue.h"
 #include "saiga/vulkan/Renderer.h"
 #include "saiga/vulkan/buffer/DepthBuffer.h"
+#include "saiga/vulkan/buffer/ColorBuffer.h"
 #include "saiga/vulkan/buffer/Framebuffer.h"
 #include "saiga/vulkan/window/Window.h"
 
@@ -35,20 +36,20 @@ class SAIGA_VULKAN_API VulkanDeferredRenderingInterface : public RenderingInterf
 };
 
 
-struct FrameBufferAttachment {
+/*struct FrameBufferAttachment {
         VkImage image;
         VkDeviceMemory mem;
         VkImageView view;
         VkFormat format;
-};
+};*/
 
 
 class SAIGA_VULKAN_API VulkanDeferredRenderer : public VulkanRenderer
 {
    public:
     CommandPool renderCommandPool;
-    VkRenderPass renderPass;
-    VkRenderPass lightingPass;
+    vk::RenderPass renderPass;
+    vk::RenderPass lightingPass;
 
     VulkanDeferredRenderer(VulkanWindow& window, VulkanParameters vulkanParameters);
     virtual ~VulkanDeferredRenderer() override;
@@ -58,18 +59,23 @@ class SAIGA_VULKAN_API VulkanDeferredRenderer : public VulkanRenderer
 
 
     virtual void createBuffers(int numImages, int w, int h) override;
-    void createAttachment(VkFormat format, VkImageUsageFlagBits usage, FrameBufferAttachment *attachment, int w, int h);
+//    void createAttachment(VkFormat format, VkImageUsageFlagBits usage, FrameBufferAttachment *attachment, int w, int h);
 
     void setupRenderPass();
+    void setupColorAttachmentSampler();
+    void setupDeferredCommandBuffer();
 
    protected:
     DepthBuffer depthBuffer;
     std::vector<vk::CommandBuffer> drawCmdBuffers;
+    vk::CommandBuffer geometryCmdBuffer;
     std::vector<Framebuffer> frameBuffers;
     Framebuffer gBuffer;
 
-    FrameBufferAttachment diffuseAttachment, specularAttachment, normalAttachment, additionalAttachment;
+    //FrameBufferAttachment diffuseAttachment, specularAttachment, normalAttachment, additionalAttachment;
+    ColorBuffer diffuseAttachment, specularAttachment, normalAttachment, additionalAttachment;
     DepthBuffer gBufferDepthBuffer;
+    vk::Sampler colorSampler;
 };
 
 
