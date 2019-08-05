@@ -292,6 +292,82 @@ void VulkanDeferredRenderer::setupColorAttachmentSampler(){
     SAIGA_ASSERT(colorSampler);
 }
 
+//!
+//! \brief VulkanDeferredRenderer::setupCommandBuffers
+//!
+//! creates the command buffers for rendering from the gbuffer to the actual swapchain
+//!
+void VulkanDeferredRenderer::setupCommandBuffers(){
+
+    vk::CommandBufferBeginInfo cmdBufBeginInfo = vks::initializers::commandBufferBeginInfo();
+
+    //following create infos etc are all the same for each draw cmd buffer
+    //clear values for each attachment
+    // This is blender's default viewport background color :)
+    vec4 clearColor = vec4(57, 57, 57, 255) / 255.0f;
+    vk::ClearValue clearValues[2];
+    clearValues[0].color = {clearColor};
+    clearValues[1].depthStencil = {1.0f, 0};
+
+    //renderpass begin info
+    vk::RenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
+    renderPassBeginInfo.renderPass = lightingPass;
+    renderPassBeginInfo.renderArea.offset.x = 0;
+    renderPassBeginInfo.renderArea.offset.y = 0;
+    renderPassBeginInfo.renderArea.extent.width = surfaceWidth;
+    renderPassBeginInfo.renderArea.extent.height = SurfaceHeight;
+    renderPassBeginInfo.clearValueCount = 2;
+    renderPassBeginInfo.pClearValues = clearValues;
+
+    for(int32_t i = 0; i < drawCmdBuffers.size(); ++i){
+
+        //set target framebuffer
+        renderPassBeginInfo.framebuffer = drawCmdBuffers[i];
+
+        //begin recording cmdBuffer
+        drawCmdBuffers[i].begin(cmdBufBeginInfo);
+        drawCmdBuffers[i].beginRenderPass(&renderPassBeginInfo, vk::SubpassContents::eInline);
+
+        //setup viewport & scissor
+        vk::Viewport viewport = vks::initializers::viewport(surfaceWidth, SurfaceHeight, 0.0f, 1.0f);
+        drawCmdBuffers[i].setViewport(0, 1, &viewport);
+
+        vk::Rect2D scissor = vks::initializers::rect2D(surfaceWidth, SurfaceHeight, 0, 0);
+        drawCmdBuffers[i].setScissor(0, 1, &scissor);
+
+        vk::DeviceSize offsets[1] = {0};
+        //TODO bind descriptorset here
+        //drawCmdBuffers[i].bindDescriptorSets;
+
+        //TODO debug output here?
+        /*if (debugDisplay)
+                    {
+                        vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.debug);
+                        vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1, &models.quad.vertices.buffer, offsets);
+                        vkCmdBindIndexBuffer(drawCmdBuffers[i], models.quad.indices.buffer, 0, VK_INDEX_TYPE_UINT32);
+                        vkCmdDrawIndexed(drawCmdBuffers[i], models.quad.indexCount, 1, 0, 0, 1);
+                        // Move viewport to display final composition in lower right corner
+                        viewport.x = viewport.width * 0.5f;
+                        viewport.y = viewport.height * 0.5f;
+                        viewport.width = viewport.width * 0.5f;
+                        viewport.height = viewport.height * 0.5f;
+                        vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
+                    }
+        */
+
+        //TODO bind pipeline here
+        //TODO bind vertex buffer here
+        //TODO bind index buffer here
+        //TODO draw quad here
+        //TODO draw ui here
+
+        drawCmdBuffers[i].endRenderPass();
+
+        drawCmdBuffers[i].end();
+    }
+}
+
+
 void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage)
 {
     VulkanDeferredRenderingInterface* renderingInterface = dynamic_cast<VulkanDeferredRenderingInterface*>(rendering);
@@ -309,17 +385,23 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage)
     }
 
 
+    //create semaphore for synchronization (offscreen rendering nad gbuffer usage)
+    vk::SemaphoreCreateInfo semCreateInfo = vks::initializers::semaphoreCreateInfo();
+    base().device.createSemaphore(&semCreateInfo, nullptr, geometrySemaphore);
+
+
     vk::CommandBufferBeginInfo geometryCmdBufInfo = vks::initializers::commandBufferBeginInfo();
     //    cmdBufInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
 
-    vk::ClearValue geometryClearValues[2];
+    std::array<vk::ClearValue, 5> geometryClearValues;
 
-    // This is blender's default viewport background color :)
-    vec4 geometryClearColor             = vec4(57, 57, 57, 255) / 255.0f;
-    geometryClearValues[0].color.setFloat32({geometryClearColor[0], geometryClearColor[1], geometryClearColor[2], geometryClearColor[3]});
-    geometryClearValues[1].depthStencil.setDepth(1.0f);
-    geometryClearValues[1].depthStencil.setStencil(0.0f);
-                                          ;
+
+    //geometryClearValues[0].color.setFloat32({geometryClearColor[0], geometryClearColor[1], geometryClearColor[2], geometryClearColor[3]});
+    geometryClearValues[0].color = {{0.0f, 0.0f, 0.0f, 0.0f}};
+    geometryClearValues[1].color = {{0.0f, 0.0f, 0.0f, 0.0f}};
+    geometryClearValues[2].color = {{0.0f, 0.0f, 0.0f, 0.0f}};
+    geometryClearValues[3].color = {{0.0f, 0.0f, 0.0f, 0.0f}};
+    geometryClearValues[4].depthStencil = {1.0f, 0.0f};
 
     vk::RenderPassBeginInfo geometryRenderPassBeginInfo    = vks::initializers::renderPassBeginInfo();
     geometryRenderPassBeginInfo.renderPass               = renderPass;
@@ -327,10 +409,15 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage)
     geometryRenderPassBeginInfo.renderArea.offset.y      = 0;
     geometryRenderPassBeginInfo.renderArea.extent.width  = surfaceWidth;
     geometryRenderPassBeginInfo.renderArea.extent.height = SurfaceHeight;
-    geometryRenderPassBeginInfo.clearValueCount          = 2;
-    geometryRenderPassBeginInfo.pClearValues             = geometryClearValues;
+    geometryRenderPassBeginInfo.clearValueCount          = static_cast<uint32_t>(geometryClearValues.size());
+    geometryRenderPassBeginInfo.pClearValues             = geometryClearValues.data();
 
 
+
+
+
+
+    //TODOTODO
     vk::CommandBuffer& cmd = geometryCmdBuffer;
     // cmd.reset(vk::CommandBufferResetFlagBits::eReleaseResources);
     // Set target frame buffer

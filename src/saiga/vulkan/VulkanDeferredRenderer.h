@@ -63,12 +63,13 @@ class SAIGA_VULKAN_API VulkanDeferredRenderer : public VulkanRenderer
 
     void setupRenderPass();
     void setupColorAttachmentSampler();
-    void setupDeferredCommandBuffer();
+    void setupCommandBuffers();
 
    protected:
     DepthBuffer depthBuffer;
     std::vector<vk::CommandBuffer> drawCmdBuffers;
     vk::CommandBuffer geometryCmdBuffer;
+    vk::Semaphore geometrySemaphore = VK_NULL_HANDLE;
     std::vector<Framebuffer> frameBuffers;
     Framebuffer gBuffer;
 
