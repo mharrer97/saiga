@@ -7,7 +7,9 @@
 #include "saiga/core/util/assert.h"
 #include "saiga/vulkan/Base.h"
 
-namespace Saiga::Vulkan
+namespace Saiga
+{
+namespace Vulkan
 {
 DescriptorSetLayout::DescriptorSetLayout() : base(nullptr) {}
 
@@ -94,3 +96,4 @@ void DescriptorSetLayout::create(VulkanBase* _base)
 
 
 }  // namespace Saiga::Vulkan
+}

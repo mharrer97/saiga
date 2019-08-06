@@ -40,9 +40,9 @@ VulkanExample::~VulkanExample()
 {
     LOG(INFO) << "~VulkanExample";
     assetRenderer.destroy();
-    lineAssetRenderer.destroy();
-    pointCloudRenderer.destroy();
-    texturedAssetRenderer.destroy();
+    //lineAssetRenderer.destroy();
+    //pointCloudRenderer.destroy();
+    //texturedAssetRenderer.destroy();
 }
 
 void VulkanExample::init(Saiga::Vulkan::VulkanBase& base)
@@ -76,19 +76,19 @@ void VulkanExample::init(Saiga::Vulkan::VulkanBase& base)
 
 
     assetRenderer.init(base, renderer.renderPass);
-    lineAssetRenderer.init(base, renderer.renderPass, 2);
-    pointCloudRenderer.init(base, renderer.renderPass, 5);
-    texturedAssetRenderer.init(base, renderer.renderPass);
-    textureDisplay.init(base, renderer.renderPass);
+    //lineAssetRenderer.init(base, renderer.renderPass, 2);
+    //pointCloudRenderer.init(base, renderer.renderPass, 5);
+    //texturedAssetRenderer.init(base, renderer.renderPass);
+    //textureDisplay.init(base, renderer.renderPass);
 
-    textureDes = textureDisplay.createAndUpdateDescriptorSet(*texture);
+    //textureDes = textureDisplay.createAndUpdateDescriptorSet(*texture);
 
 
-    box.loadObj("box.obj");
+    //box.loadObj("box.obj");
 
-    //    box.loadObj("cat.obj");
-    box.init(renderer.base());
-    box.descriptor = texturedAssetRenderer.createAndUpdateDescriptorSet(*box.textures[0]);
+    ////    box.loadObj("cat.obj");
+    //box.init(renderer.base());
+    //box.descriptor = texturedAssetRenderer.createAndUpdateDescriptorSet(*box.textures[0]);
 
     teapot.loadObj("teapot.obj");
     //        teapot.loadPly("dragon_10k.ply");
@@ -103,7 +103,7 @@ void VulkanExample::init(Saiga::Vulkan::VulkanBase& base)
     plane.createCheckerBoard(ivec2(20, 20), 1.0f, Saiga::Colors::firebrick, Saiga::Colors::gray);
     plane.init(renderer.base());
 
-    grid.createGrid(10, 10);
+    /*grid.createGrid(10, 10);
     grid.init(renderer.base());
 
     frustum.createFrustum(camera.proj, 2, make_vec4(1), true);
@@ -116,7 +116,7 @@ void VulkanExample::init(Saiga::Vulkan::VulkanBase& base)
         v.position               = make_vec4(linearRand(make_vec3(-3), make_vec3(3)), 1);
         v.color                  = make_vec4(linearRand(make_vec3(0), make_vec3(1)), 1);
         pointCloud.pointCloud[i] = v;
-    }
+    }*/
 }
 
 
@@ -154,18 +154,18 @@ void VulkanExample::update(float dt)
 void VulkanExample::transfer(vk::CommandBuffer cmd)
 {
     assetRenderer.updateUniformBuffers(cmd, camera.view, camera.proj);
-    lineAssetRenderer.updateUniformBuffers(cmd, camera.view, camera.proj);
-    pointCloudRenderer.updateUniformBuffers(cmd, camera.view, camera.proj);
-    texturedAssetRenderer.updateUniformBuffers(cmd, camera.view, camera.proj);
+    //lineAssetRenderer.updateUniformBuffers(cmd, camera.view, camera.proj);
+    //pointCloudRenderer.updateUniformBuffers(cmd, camera.view, camera.proj);
+    //texturedAssetRenderer.updateUniformBuffers(cmd, camera.view, camera.proj);
 
 
     // upload everything every frame
-    if (uploadChanges)
-    {
-        pointCloud.updateBuffer(cmd, 0, pointCloud.capacity);
+    //if (uploadChanges)
+    //{
+    //    pointCloud.updateBuffer(cmd, 0, pointCloud.capacity);
 
-        uploadChanges = false;
-    }
+    //    uploadChanges = false;
+    //}
 }
 
 
@@ -178,11 +178,11 @@ void VulkanExample::render(vk::CommandBuffer cmd)
             assetRenderer.pushModel(cmd, identityMat4());
             plane.render(cmd);
 
-            lineAssetRenderer.pushModel(cmd, teapotTrans.model);
+            assetRenderer.pushModel(cmd, teapotTrans.model);
             teapot.render(cmd);
         }
 
-        if (lineAssetRenderer.bind(cmd))
+        /*if (lineAssetRenderer.bind(cmd))
         {
             lineAssetRenderer.pushModel(cmd, translate(vec3(-5, 1.5f, 0)));
             //            teapot.render(cmd);
@@ -205,15 +205,15 @@ void VulkanExample::render(vk::CommandBuffer cmd)
             texturedAssetRenderer.pushModel(cmd, identityMat4());
             texturedAssetRenderer.bindTexture(cmd, box.descriptor);
             box.render(cmd);
-        }
+        }*/
     }
 
 
 
-    if (textureDisplay.bind(cmd))
+    /*if (textureDisplay.bind(cmd))
     {
         textureDisplay.renderTexture(cmd, textureDes, vec2(10, 10), vec2(100, 50));
-    }
+    }*/
 }
 
 void VulkanExample::renderGUI()

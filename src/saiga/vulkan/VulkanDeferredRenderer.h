@@ -18,6 +18,8 @@
 #include "saiga/vulkan/buffer/ColorBuffer.h"
 #include "saiga/vulkan/buffer/Framebuffer.h"
 #include "saiga/vulkan/window/Window.h"
+#include "saiga/vulkan/VulkanAsset.h"
+
 
 
 namespace Saiga
@@ -69,7 +71,7 @@ class SAIGA_VULKAN_API VulkanDeferredRenderer : public VulkanRenderer
     DepthBuffer depthBuffer;
     std::vector<vk::CommandBuffer> drawCmdBuffers;
     vk::CommandBuffer geometryCmdBuffer;
-    vk::Semaphore geometrySemaphore = VK_NULL_HANDLE;
+    vk::Semaphore geometrySemaphore;
     std::vector<Framebuffer> frameBuffers;
     Framebuffer gBuffer;
 
@@ -77,6 +79,11 @@ class SAIGA_VULKAN_API VulkanDeferredRenderer : public VulkanRenderer
     ColorBuffer diffuseAttachment, specularAttachment, normalAttachment, additionalAttachment;
     DepthBuffer gBufferDepthBuffer;
     vk::Sampler colorSampler;
+
+    //TODO test
+    Saiga::Vulkan
+
+
 };
 
 

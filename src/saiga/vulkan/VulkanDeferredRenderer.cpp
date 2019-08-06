@@ -27,6 +27,7 @@ VulkanDeferredRenderer::VulkanDeferredRenderer(VulkanWindow& window, VulkanParam
 {
     setupRenderPass();
     setupColorAttachmentSampler();
+
     renderCommandPool = base().mainQueue.createCommandPool(vk::CommandPoolCreateFlagBits::eResetCommandBuffer);
     cout << "VulkanDeferredRenderer init done." << endl;
 }
@@ -306,8 +307,9 @@ void VulkanDeferredRenderer::setupCommandBuffers(){
     // This is blender's default viewport background color :)
     vec4 clearColor = vec4(57, 57, 57, 255) / 255.0f;
     vk::ClearValue clearValues[2];
-    clearValues[0].color = {clearColor};
-    clearValues[1].depthStencil = {1.0f, 0};
+    clearValues[0].color.setFloat32({clearColor[0], clearColor[1], clearColor[2], clearColor[3]});
+    clearValues[1].depthStencil.setDepth(1.0f);
+    clearValues[1].depthStencil.setStencil(0);
 
     //renderpass begin info
     vk::RenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
@@ -319,10 +321,10 @@ void VulkanDeferredRenderer::setupCommandBuffers(){
     renderPassBeginInfo.clearValueCount = 2;
     renderPassBeginInfo.pClearValues = clearValues;
 
-    for(int32_t i = 0; i < drawCmdBuffers.size(); ++i){
+    for(uint32_t i = 0; i < drawCmdBuffers.size(); ++i){
 
         //set target framebuffer
-        renderPassBeginInfo.framebuffer = drawCmdBuffers[i];
+        renderPassBeginInfo.framebuffer = frameBuffers[i].framebuffer;
 
         //begin recording cmdBuffer
         drawCmdBuffers[i].begin(cmdBufBeginInfo);
@@ -335,7 +337,7 @@ void VulkanDeferredRenderer::setupCommandBuffers(){
         vk::Rect2D scissor = vks::initializers::rect2D(surfaceWidth, SurfaceHeight, 0, 0);
         drawCmdBuffers[i].setScissor(0, 1, &scissor);
 
-        vk::DeviceSize offsets[1] = {0};
+        //vk::DeviceSize offsets[1] = {0};
         //TODO bind descriptorset here
         //drawCmdBuffers[i].bindDescriptorSets;
 
@@ -387,7 +389,7 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage)
 
     //create semaphore for synchronization (offscreen rendering nad gbuffer usage)
     vk::SemaphoreCreateInfo semCreateInfo = vks::initializers::semaphoreCreateInfo();
-    base().device.createSemaphore(&semCreateInfo, nullptr, geometrySemaphore);
+    base().device.createSemaphore(&semCreateInfo, nullptr, &geometrySemaphore);
 
 
     vk::CommandBufferBeginInfo geometryCmdBufInfo = vks::initializers::commandBufferBeginInfo();
@@ -397,31 +399,24 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage)
 
 
     //geometryClearValues[0].color.setFloat32({geometryClearColor[0], geometryClearColor[1], geometryClearColor[2], geometryClearColor[3]});
-    geometryClearValues[0].color = {{0.0f, 0.0f, 0.0f, 0.0f}};
-    geometryClearValues[1].color = {{0.0f, 0.0f, 0.0f, 0.0f}};
-    geometryClearValues[2].color = {{0.0f, 0.0f, 0.0f, 0.0f}};
-    geometryClearValues[3].color = {{0.0f, 0.0f, 0.0f, 0.0f}};
-    geometryClearValues[4].depthStencil = {1.0f, 0.0f};
+    geometryClearValues[0].color.setFloat32({0.0f, 0.0f, 0.0f, 0.0f});
+    geometryClearValues[1].color.setFloat32({0.0f, 0.0f, 0.0f, 0.0f});
+    geometryClearValues[2].color.setFloat32({0.0f, 0.0f, 0.0f, 0.0f});
+    geometryClearValues[3].color.setFloat32({0.0f, 0.0f, 0.0f, 0.0f});
+    geometryClearValues[4].depthStencil.setDepth(1.0f);
+    geometryClearValues[4].depthStencil.setStencil(0);
 
     vk::RenderPassBeginInfo geometryRenderPassBeginInfo    = vks::initializers::renderPassBeginInfo();
-    geometryRenderPassBeginInfo.renderPass               = renderPass;
-    geometryRenderPassBeginInfo.renderArea.offset.x      = 0;
-    geometryRenderPassBeginInfo.renderArea.offset.y      = 0;
+    geometryRenderPassBeginInfo.renderPass = renderPass;
+    geometryRenderPassBeginInfo.framebuffer = gBuffer.framebuffer;
     geometryRenderPassBeginInfo.renderArea.extent.width  = surfaceWidth;
     geometryRenderPassBeginInfo.renderArea.extent.height = SurfaceHeight;
     geometryRenderPassBeginInfo.clearValueCount          = static_cast<uint32_t>(geometryClearValues.size());
     geometryRenderPassBeginInfo.pClearValues             = geometryClearValues.data();
 
-
-
-
-
-
-    //TODOTODO
     vk::CommandBuffer& cmd = geometryCmdBuffer;
     // cmd.reset(vk::CommandBufferResetFlagBits::eReleaseResources);
     // Set target frame buffer
-    geometryRenderPassBeginInfo.framebuffer = gBuffer.framebuffer;
 
     cmd.begin(geometryCmdBufInfo);
     timings.resetFrame(cmd);
@@ -459,20 +454,45 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage)
     //VK_CHECK_RESULT(vkEndCommandBuffer(cmd));
     cmd.end();
 
-    vk::PipelineStageFlags submitPipelineStages = vk::PipelineStageFlagBits::eColorAttachmentOutput;
 
+
+    //TODO
+    //think about synchronization ...
+
+    //TODO dummy top of pipe
+    vk::PipelineStageFlags submitPipelineStages = vk::PipelineStageFlagBits::eTopOfPipe; //TODO not right yet
+
+    //offscreen rendering submitinfo and synchronization
+    //wait for available image to start rendering TODO ??
+    //signal that offscreen rendering is finished (geometrysemaphore)
+    vk::SubmitInfo gBufferPassSubmitinfo = vks::initializers::submitInfo();
+    gBufferPassSubmitinfo.commandBufferCount = 1;
+    gBufferPassSubmitinfo.pCommandBuffers = &cmd;
+    gBufferPassSubmitinfo.pWaitDstStageMask = &submitPipelineStages;
+    gBufferPassSubmitinfo.pWaitSemaphores = &sync.imageAvailable;
+    gBufferPassSubmitinfo.waitSemaphoreCount = 1;
+    gBufferPassSubmitinfo.pSignalSemaphores = &geometrySemaphore;
+
+    //submit geometry pass
+    base().mainQueue.submit(gBufferPassSubmitinfo, nullptr);
+
+
+    //vk::PipelineStageFlags submitPipelineStages = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+
+
+    //signal that rendering is complete etc
     std::array<vk::Semaphore, 2> signalSemaphores{sync.renderComplete, sync.defragMayStart};
 
     vk::SubmitInfo submitInfo;
     //    submitInfo = vks::initializers::submitInfo();
     submitInfo.pWaitDstStageMask    = &submitPipelineStages;
     submitInfo.waitSemaphoreCount   = 1;
-    submitInfo.pWaitSemaphores      = &sync.imageAvailable;
+    submitInfo.pWaitSemaphores      = &geometrySemaphore; //wait for finished geometry pass
     submitInfo.signalSemaphoreCount = 2;
     submitInfo.pSignalSemaphores    = signalSemaphores.data();
 
     submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers    = &cmd;
+    submitInfo.pCommandBuffers    = &drawCmdBuffers[currentImage]; //use correct cmd buffer
     //    VK_CHECK_RESULT(vkQueueSubmit(graphicsQueue, 1, &submitInfo, sync.frameFence));
     base().mainQueue.submit(submitInfo, sync.frameFence);
 

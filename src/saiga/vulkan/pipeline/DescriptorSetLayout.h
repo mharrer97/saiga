@@ -9,7 +9,9 @@
 
 #include <exception>
 #include <map>
-namespace Saiga::Vulkan
+namespace Saiga
+{
+namespace Vulkan
 {
 struct VulkanBase;
 class SAIGA_VULKAN_API DescriptorSetLayout
@@ -72,3 +74,4 @@ class SAIGA_VULKAN_API DescriptorSetLayout
 };
 
 }  // namespace Saiga::Vulkan
+}
