@@ -25,15 +25,29 @@ namespace Vulkan
 VulkanDeferredRenderer::VulkanDeferredRenderer(VulkanWindow& window, VulkanParameters vulkanParameters)
     : VulkanRenderer(window, vulkanParameters)
 {
+    std::cout << "VulkanDeferredRenderer Creation -- START" << std::endl;
+
     setupRenderPass();
-    setupColorAttachmentSampler();
+    //setupColorAttachmentSampler();
+    std::cout << "RenderPass Creation -- FINISHED" << std::endl;
+
+    //init renderer fpr rendering of fullscreen quad
+
+    quadRenderer.init(base(), lightingPass);
+
+
+
 
     renderCommandPool = base().mainQueue.createCommandPool(vk::CommandPoolCreateFlagBits::eResetCommandBuffer);
     cout << "VulkanDeferredRenderer init done." << endl;
+    std::cout << "VulkanDeferredRenderer Creation -- FINISHED" << std::endl;
 }
 
 VulkanDeferredRenderer::~VulkanDeferredRenderer()
 {
+    std::cout << "Destroying VulkanDeferredRenderer" << std::endl;
+
+    quadRenderer.destroy();
     base().device.destroyRenderPass(renderPass);
 }
 
@@ -45,12 +59,18 @@ VulkanDeferredRenderer::~VulkanDeferredRenderer()
 //!
 void VulkanDeferredRenderer::createBuffers(int numImages, int w, int h)
 {
+    std::cout << "Buffer Creation -- START" << std::endl;
+
     depthBuffer.destroy();
     depthBuffer.init(base(), w, h);
+
+    std::cout << "  DepthBuffer Creation -- FINISHED" << std::endl;
 
     //gbuffer and attachments
     gBufferDepthBuffer.destroy();
     gBufferDepthBuffer.init(base(), w, h);
+
+    std::cout << "  GBufferDepthBufferCreation -- FINISHED" << std::endl;
 
     diffuseAttachment.destroy();
     specularAttachment.destroy();
@@ -62,6 +82,8 @@ void VulkanDeferredRenderer::createBuffers(int numImages, int w, int h)
     normalAttachment.init(base(), w, h, vk::ImageUsageFlagBits::eSampled);
     additionalAttachment.init(base(), w, h, vk::ImageUsageFlagBits::eSampled);
 
+    std::cout << "  Attachment Creation -- FINISHED" << std::endl;
+
     frameBuffers.clear();
     frameBuffers.resize(numImages);
     for (int i = 0; i < numImages; i++)
@@ -70,20 +92,38 @@ void VulkanDeferredRenderer::createBuffers(int numImages, int w, int h)
                                                 lightingPass, base().device);
     }
 
+    std::cout << "  Framebuffer Creation -- FINISHED" << std::endl;
+
     //TODO use gbuffer correctly
     gBuffer.destroy();
     gBuffer.createGBuffer(w, h, diffuseAttachment.location->data.view, specularAttachment.location->data.view,
                           normalAttachment.location->data.view, additionalAttachment.location->data.view,
                           gBufferDepthBuffer.location->data.view, renderPass, base().device);
 
+    std::cout << "  GBuffer Creation -- FINISHED" << std::endl;
+
     renderCommandPool.freeCommandBuffers(drawCmdBuffers);
     drawCmdBuffers.clear();
     drawCmdBuffers = renderCommandPool.allocateCommandBuffers(numImages, vk::CommandBufferLevel::ePrimary);
 
+    std::cout << "  Command Buffer Allocation -- FINISHED" << std::endl;
+
     renderCommandPool.freeCommandBuffer(geometryCmdBuffer);
     geometryCmdBuffer = renderCommandPool.allocateCommandBuffer(vk::CommandBufferLevel::ePrimary);
 
+    std::cout << "  Geometry Command Buffer Allocation -- FINISHED" << std::endl;
+
     if (imGui) imGui->initResources(base(), renderPass);
+
+    std::cout << "QuadRenderer DescriptorSet Update/Creation -- CALL" << std::endl;
+
+    quadRenderer.createAndUpdateDescriptorSet(diffuseAttachment.location->data.view,
+                                              specularAttachment.location->data.view,
+                                              normalAttachment.location->data.view,
+                                              additionalAttachment.location->data.view);
+
+    std::cout << "Buffer Creation -- FINISHED" << std::endl;
+
 }
 
 
@@ -94,7 +134,7 @@ void VulkanDeferredRenderer::createBuffers(int numImages, int w, int h)
 //!
 void VulkanDeferredRenderer::setupRenderPass()
 {
-
+    std::cout << "Creation Render Passes -- START" << std::endl;
     // create gbuffer Pass
     std::array<vk::AttachmentDescription, 5> gBufferAttachments = {};
     // diffuse attachment
@@ -195,6 +235,7 @@ void VulkanDeferredRenderer::setupRenderPass()
     //VK_CHECK_RESULT(vkCreateRenderPass(base().device, &gBufferRenderPassInfo, nullptr, &renderPass));
     base().device.createRenderPass(&gBufferRenderPassInfo, nullptr, &renderPass);
     SAIGA_ASSERT(renderPass);
+    std::cout << "Creation Render Pass 1 -- FINISHED" << std::endl;
 
 
     //create lighting Pass
@@ -267,31 +308,15 @@ void VulkanDeferredRenderer::setupRenderPass()
     renderPassInfo.pDependencies          = dependencies.data();
 
     base().device.createRenderPass(&renderPassInfo, nullptr, &lightingPass);
-    SAIGA_ASSERT(lightingPass);}
+    SAIGA_ASSERT(lightingPass);
 
-//!
-//! \brief VulkanDeferredRenderer::setupColorAttachmentSampler
-//!
-//! creates a sampler to sample from the color attachments of the geometry pass
-//!
-void VulkanDeferredRenderer::setupColorAttachmentSampler(){
+    std::cout << "Creation Render Pass 2 -- FINISHED" << std::endl;
+    std::cout << "Creation Render Passes -- FINISHED" << std::endl;
 
-    vk::SamplerCreateInfo sampler = {};
-    sampler.magFilter = vk::Filter::eNearest;
-    sampler.minFilter = vk::Filter::eNearest;
-    sampler.mipmapMode = vk::SamplerMipmapMode::eLinear;
-    sampler.addressModeU = vk::SamplerAddressMode::eClampToEdge;
-    sampler.addressModeV = sampler.addressModeU;
-    sampler.addressModeW = sampler.addressModeU;
-    sampler.mipLodBias = 0.0f;
-    sampler.maxAnisotropy = 1.0f;
-    sampler.minLod = 0.0f;
-    sampler.maxLod = 1.0f;
-    sampler.borderColor = vk::BorderColor::eFloatOpaqueWhite;
 
-    base().device.createSampler(&sampler, nullptr, &colorSampler);
-    SAIGA_ASSERT(colorSampler);
 }
+
+
 
 //!
 //! \brief VulkanDeferredRenderer::setupCommandBuffers
@@ -299,6 +324,8 @@ void VulkanDeferredRenderer::setupColorAttachmentSampler(){
 //! creates the command buffers for rendering from the gbuffer to the actual swapchain
 //!
 void VulkanDeferredRenderer::setupCommandBuffers(){
+
+    std::cout << "Setup Command Buffers -- START" << std::endl;
 
     vk::CommandBufferBeginInfo cmdBufBeginInfo = vks::initializers::commandBufferBeginInfo();
 
@@ -322,6 +349,7 @@ void VulkanDeferredRenderer::setupCommandBuffers(){
     renderPassBeginInfo.pClearValues = clearValues;
 
     for(uint32_t i = 0; i < drawCmdBuffers.size(); ++i){
+        std::cout << "  Setup Command Buffer Nr.: " << i << " -- START" << std::endl;
 
         //set target framebuffer
         renderPassBeginInfo.framebuffer = frameBuffers[i].framebuffer;
@@ -363,10 +391,19 @@ void VulkanDeferredRenderer::setupCommandBuffers(){
         //TODO draw quad here
         //TODO draw ui here
 
+        //bind quadrenderer and render the fullscreen quad
+        if(quadRenderer.bind(drawCmdBuffers[i])){
+            quadRenderer.render(drawCmdBuffers[i]);
+        }
+
         drawCmdBuffers[i].endRenderPass();
 
         drawCmdBuffers[i].end();
+        std::cout << "  Setup Command Buffer Nr.: " << i << " -- FINISHED" << std::endl;
+
     }
+    std::cout << "Setup Command Buffers -- FINISHED" << std::endl;
+
 }
 
 

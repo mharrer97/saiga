@@ -22,10 +22,12 @@ layout (push_constant) uniform PushConstants {
 	mat4 model;
 } pushConstants;
 
-layout (location = 0) out vec3 outNormal;
-layout (location = 1) out vec3 outColor;
-layout (location = 2) out vec3 outViewVec;
-layout (location = 3) out vec3 outLightVec;
+//layout (location = 0) out vec3 outNormal;
+//layout (location = 1) out vec3 outColor;
+//layout (location = 2) out vec3 outViewVec;
+//layout (location = 3) out vec3 outLightVec;
+
+layout (location = 0) out vec2 outTC;
 
 out gl_PerVertex
 {
@@ -34,7 +36,7 @@ out gl_PerVertex
 
 void main() 
 {
-	outNormal = vec3(inNormal);
+	/*outNormal = vec3(inNormal);
 	outColor = vec3(inColor);
 	gl_Position = ubo.projection * ubo.view * pushConstants.model * vec4(inPos.xyz, 1.0);
 	
@@ -42,5 +44,7 @@ void main()
 	outNormal = mat3(ubo.view * pushConstants.model) * vec3(inNormal);
 	vec3 lPos = mat3(ubo.view) * ubo.lightPos.xyz;
 	outLightVec = lPos;//lPos;// - pos.xyz;
-	outViewVec = -pos.xyz;		
+	outViewVec = -pos.xyz;*/
+	outTC = inPos.xy;
+			
 }

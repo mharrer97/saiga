@@ -6,20 +6,27 @@
 
 #include "test.glsl"
 
-layout (location = 0) in vec3 inNormal;
+/*layout (location = 0) in vec3 inNormal;
 layout (location = 1) in vec3 inColor;
 layout (location = 2) in vec3 inViewVec;
-layout (location = 3) in vec3 inLightVec;
+layout (location = 3) in vec3 inLightVec;*/
+
+layout (binding = 10) uniform sampler2D diffuseS;
+layout (binding = 11) uniform sampler2D specularS;
+layout (binding = 12) uniform sampler2D normalS;
+layout (binding = 13) uniform sampler2D additionalS;
+
+layout (location = 0) in vec2 inTC;
 
 layout (location = 0) out vec4 outFragColor;
 
 void main() 
 {
-	vec3 N = normalize(inNormal);
+	/*vec3 N = normalize(texture(texSampler, inTc).rgb);
 	vec3 L = normalize(inLightVec);
 	vec3 V = normalize(inViewVec);
 	vec3 R = reflect(-L, N);
-	float diffuse = max(dot(N, L), 0.0);
-	vec3 specular = pow(max(dot(R, V), 0.0), 16.0) * vec3(0.75);
-	outFragColor = vec4(diffuse * inColor + specular, 1.0);		
+	vec3 diffuse = texture(diffuseS, inTc.xy).rgb;
+	vec3 specular = texture(specularS, inTc.xy).rgb;*/
+	outFragColor = vec4(texture(diffuseS, inTC).rgb, 1.f);//vec4(diffuse  + specular, 1.0);		
 }

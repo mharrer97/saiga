@@ -19,6 +19,7 @@
 #include "saiga/vulkan/buffer/Framebuffer.h"
 #include "saiga/vulkan/window/Window.h"
 #include "saiga/vulkan/VulkanAsset.h"
+#include "saiga/vulkan/renderModules/QuadRenderer.h"
 
 
 
@@ -64,7 +65,7 @@ class SAIGA_VULKAN_API VulkanDeferredRenderer : public VulkanRenderer
 //    void createAttachment(VkFormat format, VkImageUsageFlagBits usage, FrameBufferAttachment *attachment, int w, int h);
 
     void setupRenderPass();
-    void setupColorAttachmentSampler();
+
     void setupCommandBuffers();
 
    protected:
@@ -78,10 +79,10 @@ class SAIGA_VULKAN_API VulkanDeferredRenderer : public VulkanRenderer
     //FrameBufferAttachment diffuseAttachment, specularAttachment, normalAttachment, additionalAttachment;
     ColorBuffer diffuseAttachment, specularAttachment, normalAttachment, additionalAttachment;
     DepthBuffer gBufferDepthBuffer;
-    vk::Sampler colorSampler;
+
 
     //TODO test
-    Saiga::Vulkan
+    Saiga::Vulkan::QuadRenderer quadRenderer;
 
 
 };

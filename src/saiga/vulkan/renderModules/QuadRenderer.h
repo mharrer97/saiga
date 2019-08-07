@@ -41,7 +41,11 @@ class SAIGA_VULKAN_API QuadRenderer : public Pipeline
     //    void preparePipelines(VkPipelineCache pipelineCache, VkRenderPass renderPass);
     void setupLayoutsAndDescriptors();
 
+    void createAndUpdateDescriptorSet(vk::ImageView diffuse, vk::ImageView specular, vk::ImageView normal, vk::ImageView additional);
+
    private:
+    void setupColorAttachmentSampler();
+
     struct UBOVS
     {
         mat4 projection;
@@ -53,6 +57,8 @@ class SAIGA_VULKAN_API QuadRenderer : public Pipeline
 
     UniformBuffer uniformBufferVS;
     StaticDescriptorSet descriptorSet;
+
+    vk::Sampler colorSampler;
 };
 
 }  // namespace Vulkan
