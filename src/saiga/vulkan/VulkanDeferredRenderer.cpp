@@ -20,11 +20,13 @@
 
 namespace Saiga
 {
+
 namespace Vulkan
 {
 VulkanDeferredRenderer::VulkanDeferredRenderer(VulkanWindow& window, VulkanParameters vulkanParameters)
     : VulkanRenderer(window, vulkanParameters)
 {
+
     std::cout << "VulkanDeferredRenderer Creation -- START" << std::endl;
 
     setupRenderPass();
@@ -39,7 +41,7 @@ VulkanDeferredRenderer::VulkanDeferredRenderer(VulkanWindow& window, VulkanParam
 
 
     renderCommandPool = base().mainQueue.createCommandPool(vk::CommandPoolCreateFlagBits::eResetCommandBuffer);
-    cout << "VulkanDeferredRenderer init done." << endl;
+    std::cout << "VulkanDeferredRenderer init done." << std::endl;
     std::cout << "VulkanDeferredRenderer Creation -- FINISHED" << std::endl;
 }
 
@@ -196,6 +198,7 @@ void VulkanDeferredRenderer::setupRenderPass()
     vk::AttachmentReference gBufferDepthReference = {};
     gBufferDepthReference.attachment            = 4;
     gBufferDepthReference.layout                = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+
 
     vk::SubpassDescription gBufferSubpassDescription    = {};
     gBufferSubpassDescription.pipelineBindPoint       = vk::PipelineBindPoint::eGraphics;
