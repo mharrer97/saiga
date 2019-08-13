@@ -4,6 +4,9 @@
  * See LICENSE file for more information.
  */
 
+#include "saiga/config.h"
+
+#ifdef SAIGA_USE_GLM
 #include "glm.h"
 
 #include "saiga/core/util/assert.h"
@@ -49,7 +52,7 @@ std::ostream& operator<<(std::ostream& os, const mat3& v)
     auto vt = transpose(v);
     for (int i = 0; i < 3; ++i)
     {
-        os << vt[i] << endl;
+        os << vt[i] << std::endl;
     }
     return os;
 }
@@ -59,7 +62,7 @@ std::ostream& operator<<(std::ostream& os, const mat4& v)
     auto vt = transpose(v);
     for (int i = 0; i < 4; ++i)
     {
-        os << vt[i] << endl;
+        os << vt[i] << std::endl;
     }
     return os;
 }
@@ -234,3 +237,4 @@ vec4 vec4FromString(const std::string& str)
 }
 
 }  // namespace Saiga
+#endif

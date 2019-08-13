@@ -26,7 +26,7 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     set(SAIGA_CXX_MSVC 1)
     set(SAIGA_COMPILER_STRING "MSVC")
 else()
-    message(FATAL_ERROR "Unknown CXX Compiler.")
+    message(FATAL_ERROR "Unknown CXX Compiler. '${CMAKE_CXX_COMPILER_ID}'")
 endif()
 
 
@@ -60,6 +60,8 @@ if(SAIGA_LIBSTDCPP AND SAIGA_CXX_CLANG)
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libstdc++")
     set(CMAKE_LD_FLAGS "${CMAKE_LD_FLAGS} -stdlib=libstdc++")
     SET(LIBS ${LIBS} "-lstdc++")
+else()
+    #SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
 endif()
 
 if(SAIGA_CXX_CLANG OR SAIGA_CXX_GNU)

@@ -32,8 +32,8 @@ void buildScene(Scene& scene)
     sscene.numWorldPoints = 3;
     scene                 = sscene.circleSphere();
     scene.addWorldPointNoise(0.01);
-    scene.addImagePointNoise(1.0);
-    scene.addExtrinsicNoise(0.01);
+    //    scene.addImagePointNoise(1.0);
+    //    scene.addExtrinsicNoise(0.01);
 }
 
 std::vector<std::string> getBALFiles()
@@ -82,7 +82,7 @@ void buildSceneBAL(Scene& scene, const std::string& path)
     scene.globalScale = 1.0 / medianError;
     scene.removeOutliers(10);
     scene.compress();
-    cout << "> Scene Preprocessing done." << endl;
+    std::cout << "> Scene Preprocessing done." << std::endl;
 
     SAIGA_ASSERT(scene);
 }
@@ -92,15 +92,15 @@ void buildSceneBAL(Scene& scene, const std::string& path)
 
 void test_to_file(const OptimizationOptions& baoptions, const std::string& file, int its)
 {
-    cout << baoptions << endl;
+    std::cout << baoptions << std::endl;
 
-    cout << "Running long performance test to file..." << endl;
+    std::cout << "Running long performance test to file..." << std::endl;
 
     auto files = getBALFiles();
 
 
     std::ofstream strm(file);
-    strm << "file,images,points,schur density,solver_type,iterations,time_recursive,time_g2o,time_ceres" << endl;
+    strm << "file,images,points,schur density,solver_type,iterations,time_recursive,time_g2o,time_ceres" << std::endl;
 
 
     Saiga::Table table({20, 20, 15, 15});
@@ -130,7 +130,7 @@ void test_to_file(const OptimizationOptions& baoptions, const std::string& file,
 
 
 
-        cout << "> Initial Error: " << scene.chi2() << " - " << scene.rms() << endl;
+        std::cout << "> Initial Error: " << scene.chi2() << " - " << scene.rms() << std::endl;
         table << "Name"
               << "Final Error"
               << "Time_LS"
@@ -163,8 +163,8 @@ void test_to_file(const OptimizationOptions& baoptions, const std::string& file,
             table << s->name << chi2 << tl << t;
             strm << "," << t;
         }
-        strm << endl;
-        cout << endl;
+        strm << std::endl;
+        std::cout << std::endl;
     }
 }
 
@@ -206,10 +206,11 @@ int main(int, char**)
     Scene scene;
     //    scene.load(SearchPathes::data("vision/slam_30_2656.scene"));
     //    scene.load(SearchPathes::data("vision/slam_125_8658.scene"));
-    //    scene.load(SearchPathes::data("vision/tum_office.scene"));
+    scene.load(SearchPathes::data("vision/tum_office.scene"));
 
+    scene.addExtrinsicNoise(0.01);
 #if 0
-    cout << scene << endl;
+    std::cout << scene << std::endl;
 
     int maxcams = 20;
     if (maxcams < (int)scene.images.size())
@@ -230,9 +231,9 @@ int main(int, char**)
         }
     }
     scene.compress();
-#endif
 
     buildScene(scene);
+#endif
 
     //        buildSceneBAL(scene, balPrefix + "problem-21-11315-pre.txt");
     // buildSceneBAL(scene, balPrefix + "trafalgar-00201-54427.txt");
@@ -240,41 +241,56 @@ int main(int, char**)
     //    buildSceneBAL(scene, balPrefix + "venice-01778-993923.txt");
 
 
-    cout << scene << endl;
+    std::cout << scene << std::endl;
 
     OptimizationOptions baoptions;
-    baoptions.debugOutput            = false;
-    baoptions.maxIterations          = 3;
+    baoptions.debugOutput            = true;
+    baoptions.debug                  = false;
+    baoptions.maxIterations          = 5;
     baoptions.maxIterativeIterations = 15;
     baoptions.iterativeTolerance     = 1e-50;
     baoptions.initialLambda          = 1;
-
+    baoptions.numThreads             = 4;
 
     baoptions.solverType = OptimizationOptions::SolverType::Iterative;
-    cout << baoptions << endl;
+    std::cout << baoptions << std::endl;
 
 
     std::vector<std::shared_ptr<BABase>> solvers;
 
     solvers.push_back(std::make_shared<BARec>());
+    //    solvers.push_back(std::make_shared<CeresBA>());
     //    solvers.push_back(std::make_shared<BAPoseOnly>());
     //    solvers.push_back(std::make_shared<g2oBA2>());
-    solvers.push_back(std::make_shared<CeresBA>());
 
+    std::cout << std::setprecision(30) << std::endl;
     scene.globalScale = 1;
     for (auto& s : solvers)
     {
-        cout << "[Solver] " << s->name << endl;
+        std::cout << "[Solver] " << s->name << std::endl;
         Scene cpy = scene;
         s->create(cpy);
         auto opt                 = dynamic_cast<Optimizer*>(s.get());
         opt->optimizationOptions = baoptions;
         SAIGA_ASSERT(opt);
-        auto result = opt->initAndSolve();
 
-        cout << "Error " << result.cost_initial << " -> " << result.cost_final << endl;
-        cout << "Time LinearSolver/Total: " << result.linear_solver_time << "/" << result.total_time << endl;
-        cout << endl;
+
+        OptimizationResults result;
+        auto lmopt = dynamic_cast<LMOptimizer*>(opt);
+        if (lmopt)
+        {
+            lmopt->initOMP();
+            result = lmopt->solveOMP();
+        }
+        else
+        {
+            result = opt->initAndSolve();
+        }
+        //        auto result = opt->initAndSolve();
+
+        std::cout << "Error " << result.cost_initial << " -> " << result.cost_final << std::endl;
+        std::cout << "Time LinearSolver/Total: " << result.linear_solver_time << "/" << result.total_time << std::endl;
+        std::cout << std::endl;
     }
 
     return 0;

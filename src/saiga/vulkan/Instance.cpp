@@ -17,7 +17,7 @@ void Instance::destroy()
 {
     if (instance)
     {
-        LOG(INFO) << "Destroying Vulkan Instance: " << instance;
+        VLOG(3) << "Destroying Vulkan Instance: " << instance;
         debug.destroy();
         instance.destroy();
         instance = nullptr;
@@ -49,27 +49,31 @@ void Instance::create(const std::vector<std::string>& _instanceExtensions, bool 
 
         if (hasExtension(ext) && hasLayer(val))
         {
-            cout << "Vulkan Validation layer enabled!" << endl;
+            std::cout << "Vulkan Validation layer enabled!" << std::endl;
             instanceExtensions.push_back(ext);
             instanceLayers.push_back(val);
         }
         else if (!hasExtension(ext))
         {
-            cerr << "Vulkan Warning: You tried to enable the validation layer, but the extension " << ext
-                 << " was not found. Starting without valdiation layer..." << endl;
+            std::cerr << "Vulkan Warning: You tried to enable the validation layer, but the extension " << ext
+                 << " was not found. Starting without valdiation layer..." << std::endl;
             enableValidation = false;
         }
         else if (!hasLayer(val))
         {
-            cerr << "Vulkan Warning: You tried to enable the validation layer, but the layer " << val
-                 << " was not found. Starting without valdiation layer..." << endl;
+            std::cerr << "Vulkan Warning: You tried to enable the validation layer, but the layer " << val
+                 << " was not found. Starting without valdiation layer..." << std::endl;
             enableValidation = false;
         }
     }
+    for (auto& s : instanceExtensions) _extensions.push_back(s);
+    for (auto& s : instanceLayers) _layers.push_back(s);
 
-    // convert to char pointer array for vulkan
-    for (auto& s : instanceExtensions) extensions.push_back(s.c_str());
-    for (auto& s : instanceLayers) layers.push_back(s.c_str());
+
+    auto extensions = getEnabledExtensions();
+    auto layers     = getEnabledLayers();
+
+
     instanceCreateInfo.enabledExtensionCount   = (uint32_t)extensions.size();
     instanceCreateInfo.ppEnabledExtensionNames = extensions.data();
     instanceCreateInfo.enabledLayerCount       = (uint32_t)layers.size();
@@ -83,7 +87,7 @@ void Instance::create(const std::vector<std::string>& _instanceExtensions, bool 
     {
         debug.init(instance);
     }
-    cout << "Vulkan instance created." << endl;
+    std::cout << "Vulkan instance created." << std::endl;
 }
 
 vk::PhysicalDevice Instance::pickPhysicalDevice()

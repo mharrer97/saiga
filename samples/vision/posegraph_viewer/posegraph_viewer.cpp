@@ -30,12 +30,12 @@ VulkanExample::VulkanExample(Saiga::Vulkan::VulkanWindow& window, Saiga::Vulkan:
 {
     Saiga::SearchPathes::data.getFiles(datasets, "vision", ".posegraph");
     std::sort(datasets.begin(), datasets.end());
-    cout << "Found " << datasets.size() << " posegraph datasets" << endl;
+    std::cout << "Found " << datasets.size() << " posegraph datasets" << std::endl;
 
 
     Saiga::SearchPathes::data.getFiles(baldatasets, "vision", ".txt");
     std::sort(baldatasets.begin(), baldatasets.end());
-    cout << "Found " << baldatasets.size() << " BAL datasets" << endl;
+    std::cout << "Found " << baldatasets.size() << " BAL datasets" << std::endl;
 
     init(renderer.base());
 }
@@ -102,7 +102,7 @@ void VulkanExample::transfer(vk::CommandBuffer cmd)
 
         if (lines.size() > 0)
         {
-            cout << "num lines: " << lines.size() << endl;
+            std::cout << "num lines: " << lines.size() << std::endl;
             lineAsset.size = lines.size();
             std::copy(lines.begin(), lines.end(), lineAsset.pointCloud.begin());
             lineAsset.updateBuffer(cmd, 0, lineAsset.size);
@@ -127,7 +127,7 @@ void VulkanExample::render(vk::CommandBuffer cmd)
             v              = Saiga::cvViewToGLView(v);
             v              = mat4(inverse(v));
 
-            //            cout << v << endl;
+            //            std::cout << v << std::endl;
             vec4 color = i.constant ? vec4(0, 0, 1, 0) : vec4(1, 0, 0, 0);
             lineAssetRenderer.pushModel(cmd, v, color);
             frustum.render(cmd);
@@ -143,7 +143,7 @@ void VulkanExample::render(vk::CommandBuffer cmd)
 
 void VulkanExample::renderGUI()
 {
-    ImGui::SetNextWindowSize(ImVec2(200, 200), ImGuiSetCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(200, 200), ImGuiCond_FirstUseEver);
     ImGui::Begin("Pose Graph Viewer");
 
     ImGui::Text("Rms: %f", rms);
@@ -186,7 +186,7 @@ void VulkanExample::renderGUI()
             scene                   = Saiga::PoseGraph(sc);
             scene.poses[0].constant = true;
             change                  = true;
-            cout << scene.chi2() << endl;
+            std::cout << scene.chi2() << std::endl;
         }
     }
 

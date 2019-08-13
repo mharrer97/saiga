@@ -51,7 +51,12 @@ OptimizationResults g2oPGO::initAndSolve()
         SAIGA_ASSERT(vertex_from);
         SAIGA_ASSERT(vertex_to);
 
-        EdgeSim3* ge = new EdgeSim3();
+#ifdef LSD_REL
+        const bool LSD = true;
+#else
+        const bool LSD = false;
+#endif
+        auto ge = new EdgeSim3<LSD>();
         ge->setVertex(0, vertex_from);
         ge->setVertex(1, vertex_to);
         ge->setMeasurement(e.meassurement);
@@ -78,7 +83,7 @@ OptimizationResults g2oPGO::initAndSolve()
             double chi2b = optimizer.chi2();
             optimizer.optimize(optimizationOptions.maxIterations);
             double chi2a = optimizer.chi2();
-            cout << "g2o::optimize " << chi2b << " -> " << chi2a << endl;
+            std::cout << "g2o::optimize " << chi2b << " -> " << chi2a << std::endl;
         }
         else
         {

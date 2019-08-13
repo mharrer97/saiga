@@ -1,9 +1,10 @@
+add_subdirectory(bow)
 add_subdirectory(featureMatching_benchmark)
 add_subdirectory(robust_pose_optimization)
 add_subdirectory(derive)
 
 if(EIGENRECURSIVE_FOUND)
-    add_subdirectory(block_matrices)
+    #    add_subdirectory(block_matrices)
 
     if(SAIGA_USE_CHOLMOD)
         add_subdirectory(sparse_ldlt)
@@ -15,9 +16,7 @@ if(EIGENRECURSIVE_FOUND)
         add_subdirectory(ba_performance_test)
     endif()
 
-    if(SAIGA_USE_MKL)
-        add_subdirectory(mkl_test)
-    endif()
+
 
     if(SAIGA_MODULE_EXTRA AND OPENMESH_FOUND)
         add_subdirectory(arap)

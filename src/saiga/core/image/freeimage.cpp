@@ -88,19 +88,34 @@ void convert(const Image& _src, fipImage& dest)
 #    endif
 
 
-    int bpp = elementSize(src.type) * 8;
+    //    int bpp = elementSize(src.type) * 8;
+    int bpp = bitsPerPixel(src.type);
 
 
-    FREE_IMAGE_TYPE t = FIT_BITMAP;
+    FREE_IMAGE_TYPE t = FIT_UNKNOWN;
 
     switch (_src.type)
     {
+        case UC1:
+        case UC2:
+        case UC3:
+        case UC4:
+            t = FIT_BITMAP;
+            break;
         case US1:
             t = FIT_UINT16;
+            break;
+        case US3:
+            t = FIT_RGB16;
+            break;
+        case F3:
+            t = FIT_RGBF;
             break;
         default:
             break;
     }
+
+    SAIGA_ASSERT(t != FIT_UNKNOWN);
 
     auto res = dest.setSize(t, src.width, src.height, bpp);
 
@@ -146,29 +161,52 @@ void convert(const fipImage& src, Image& dest)
     {
         channels = 4;
     }
+    //    src.getImageType()
 
+    int bitDepth = src.getBitsPerPixel() / channels;
 
-    int bitDepth                 = src.getBitsPerPixel() / channels;
     ImageElementType elementType = IET_ELEMENT_UNKNOWN;
-    switch (bitDepth)
+    switch (src.getImageType())
     {
-        case 8:
-            elementType = IET_UCHAR;
+        case FIT_BITMAP:
+            switch (bitDepth)
+            {
+                case 8:
+                    elementType = IET_UCHAR;
+                    break;
+                case 16:
+                    elementType = IET_USHORT;
+                    break;
+                case 32:
+                    elementType = IET_UINT;
+                    break;
+            }
             break;
-        case 16:
+        case FIT_FLOAT:
+        case FIT_RGBF:
+        case FIT_RGBAF:
+            elementType = IET_FLOAT;
+            break;
+
+        case FIT_RGB16:
+        case FIT_RGBA16:
             elementType = IET_USHORT;
             break;
-        case 32:
-            elementType = IET_UINT;
+        default:
             break;
     }
-    SAIGA_ASSERT(elementType != IET_ELEMENT_UNKNOWN);
+
+    if (elementType == IET_ELEMENT_UNKNOWN)
+    {
+        throw std::runtime_error("Unknown FIT type " + std::to_string(src.getImageType()));
+    }
 
 
-    //    cout << "Channels: " << format.getChannels() << " BitsPerPixel: " << src.getBitsPerPixel() << " Bitdepth: " <<
-    //    format.getBitDepth() << endl;
 
-    //    cout << format << endl;
+    //    std::cout << "Channels: " << format.getChannels() << " BitsPerPixel: " << src.getBitsPerPixel() << " Bitdepth:
+    //    " << format.getBitDepth() << std::endl;
+
+    //    std::cout << format << std::endl;
 
     dest.type = getType(channels, elementType);
     dest.create();
@@ -231,7 +269,8 @@ void getMetaData(fipImage& img, ImageMetadata& metaData)
             }
             else
             {
-                //                cout << "Tag: " << tag.getKey() << " Value: " << tag.toString(FIMD_EXIF_MAIN) << endl;
+                //                std::cout << "Tag: " << tag.getKey() << " Value: " << tag.toString(FIMD_EXIF_MAIN) <<
+                //                std::endl;
             }
 
         } while (finder.findNextMetadata(tag));
@@ -261,12 +300,15 @@ void getMetaData(fipImage& img, ImageMetadata& metaData)
                 metaData.FocalPlaneXResolution = parseFraction(tag.getValue());
             }
             else if (t == "FocalPlaneYResolution")
-            {
                 metaData.FocalPlaneYResolution = parseFraction(tag.getValue());
-            }
+            else if (t == "ExposureTime")
+                metaData.ExposureTime = parseFraction(tag.getValue());
+            else if (t == "ISOSpeedRatings")
+                metaData.ISOSpeedRatings = reinterpret_cast<const short*>(tag.getValue())[0];
             else
             {
-                //                cout << "Tag: " << tag.getKey() << " Value: " << tag.toString(FIMD_EXIF_MAIN) << endl;
+                //                std::cout << "Tag: " << tag.getKey() << " Value: " << tag.toString(FIMD_EXIF_EXIF) <<
+                //                std::endl;
             }
         } while (finder.findNextMetadata(tag));
     }
@@ -275,10 +317,10 @@ void getMetaData(fipImage& img, ImageMetadata& metaData)
 
 void printAllMetaData(fipImage& img)
 {
-    for (int i = -1; i <= 11; ++i)
+    for (int i = 0; i <= 11; ++i)
     {
         FREE_IMAGE_MDMODEL model = (FREE_IMAGE_MDMODEL)i;
-        cout << "Model: " << model << endl;
+        std::cout << "Model: " << model << std::endl;
         fipTag tag;
         fipMetadataFind finder;
         if (finder.findFirstMetadata(model, img, tag))
@@ -287,7 +329,7 @@ void printAllMetaData(fipImage& img)
             {
                 std::string t = tag.getKey();
 
-                cout << tag.getKey() << " : " << tag.toString(model) << " Type: " << tag.getType() << endl;
+                std::cout << tag.getKey() << " : " << tag.toString(model) << " Type: " << tag.getType() << std::endl;
 
 
             } while (finder.findNextMetadata(tag));

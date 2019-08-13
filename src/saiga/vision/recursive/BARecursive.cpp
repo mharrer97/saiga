@@ -8,6 +8,7 @@
 #include "saiga/core/imgui/imgui.h"
 #include "saiga/core/time/timer.h"
 #include "saiga/core/util/Algorithm.h"
+#include "saiga/core/util/Thread/omp.h"
 #include "saiga/vision/HistogramImage.h"
 #include "saiga/vision/LM.h"
 #include "saiga/vision/kernels/BAPose.h"
@@ -21,12 +22,37 @@
 
 namespace Saiga
 {
+void BARec::reserve(int n, int m)
+{
+    validImages.reserve(n);
+    validPoints.reserve(m);
+    pointToValidMap.resize(m);
+    cameraPointCounts.reserve(n);
+    cameraPointCountsScan.reserve(n);
+    pointCameraCounts.reserve(m);
+    pointCameraCountsScan.reserve(m);
+
+    pointDiagTemp.reserve(m);
+    pointResTemp.reserve(m);
+
+    localChi2.reserve(64);
+
+    x_u.reserve(n);
+    oldx_u.reserve(n);
+    x_v.reserve(n);
+    oldx_v.reserve(n);
+}
+
 void BARec::init()
 {
-    //    cout << "Test sizes: " << sizeof(Scene) << " " << sizeof(BARec)<< " " << sizeof(BABase)<< " " <<
-    //    sizeof(LMOptimizer) << endl; cout << "Test sizes2: " << sizeof(BAMatrix) << " " << sizeof(BAVector)<< " " <<
-    //    sizeof(BASolver)<< " " << sizeof(AlignedVector<SE3>) << endl;
+    SAIGA_ASSERT(1 == OMP::getNumThreads());
+    //    threads = 4;
+    //    std::cout << "Test sizes: " << sizeof(Scene) << " " << sizeof(BARec)<< " " << sizeof(BABase)<< " " <<
+    //    sizeof(LMOptimizer) << std::endl; std::cout << "Test sizes2: " << sizeof(BAMatrix) << " " <<
+    //    sizeof(BAVector)<< " " << sizeof(BASolver)<< " " << sizeof(AlignedVector<SE3>) << std::endl;
 
+
+    //    threads      = OMP::getNumThreads();
     Scene& scene = *_scene;
 
     SAIGA_OPTIONAL_BLOCK_TIMER(RECURSIVE_BA_USE_TIMERS && optimizationOptions.debugOutput);
@@ -111,6 +137,8 @@ void BARec::init()
     pointCameraCounts.resize(m, 0);
     pointCameraCountsScan.resize(m);
     observations = 0;
+
+    std::vector<int> innerElements;
     for (int i = 0; i < (int)validImages.size(); ++i)
     {
         auto& img = scene.images[validImages[i]];
@@ -121,6 +149,7 @@ void BARec::init()
             int j = pointToValidMap[ip.wp];
             cameraPointCounts[i]++;
             pointCameraCounts[j]++;
+            innerElements.push_back(j);
             observations++;
         }
     }
@@ -143,6 +172,29 @@ void BARec::init()
     }
     A.w.outerIndexPtr()[A.w.outerSize()] = observations;
 
+
+    for (int i = 0; i < observations; ++i)
+    {
+        A.w.innerIndexPtr()[i] = innerElements[i];
+    }
+
+    // ===== Threading Tmps ======
+    localChi2.resize(threads);
+    pointDiagTemp.resize(threads - 1);
+    pointResTemp.resize(threads - 1);
+    for (auto& a : pointDiagTemp) a.resize(m);
+    for (auto& a : pointResTemp) a.resize(m);
+
+
+
+    // Setup the linear solver and anlyze the pattern
+    loptions.maxIterativeIterations = optimizationOptions.maxIterativeIterations;
+    loptions.iterativeTolerance     = optimizationOptions.iterativeTolerance;
+    loptions.solverType             = (optimizationOptions.solverType == OptimizationOptions::SolverType::Direct)
+                              ? Eigen::Recursive::LinearSolverOptions::SolverType::Direct
+                              : Eigen::Recursive::LinearSolverOptions::SolverType::Iterative;
+    loptions.buildExplizitSchur = explizitSchur;
+    solver.analyzePattern(A, loptions);
 
 
     // Create sparsity histogram of the schur complement
@@ -207,15 +259,16 @@ void BARec::init()
 
     if (optimizationOptions.debugOutput)
     {
-        cout << "." << endl;
-        cout << "Structure Analyzed." << endl;
-        cout << "Cameras: " << n << endl;
-        cout << "Points: " << m << endl;
-        cout << "Observations: " << observations << endl;
+        std::cout << "." << std::endl;
+        std::cout << "Structure Analyzed." << std::endl;
+        std::cout << "Cameras: " << n << std::endl;
+        std::cout << "Points: " << m << std::endl;
+        std::cout << "Observations: " << observations << std::endl;
 #if 1
-        cout << "Schur Edges: " << schurEdges << endl;
-        cout << "Non Zeros LSE: " << schurEdges * 6 * 6 << endl;
-        cout << "Density: " << double(schurEdges * 6.0 * 6) / double(double(n) * n * 6 * 6) * 100 << "%" << endl;
+        std::cout << "Schur Edges: " << schurEdges << std::endl;
+        std::cout << "Non Zeros LSE: " << schurEdges * 6 * 6 << std::endl;
+        std::cout << "Density: " << double(schurEdges * 6.0 * 6) / double(double(n) * n * 6 * 6) * 100 << "%"
+                  << std::endl;
 #endif
 
 #if 1
@@ -226,41 +279,70 @@ void BARec::init()
         averagePoints /= cameraPointCounts.size();
         for (auto i : pointCameraCounts) averageCams += i;
         averageCams /= pointCameraCounts.size();
-        cout << "Average Points per Camera: " << averagePoints << endl;
-        cout << "Average Cameras per Point: " << averageCams << endl;
+        std::cout << "Average Points per Camera: " << averagePoints << std::endl;
+        std::cout << "Average Cameras per Point: " << averageCams << std::endl;
 #endif
-        cout << "." << endl;
+        std::cout << "." << std::endl;
     }
 }
 
 double BARec::computeQuadraticForm()
 {
     Scene& scene = *_scene;
+    SAIGA_ASSERT(threads == OMP::getNumThreads());
 
-    SAIGA_OPTIONAL_BLOCK_TIMER(RECURSIVE_BA_USE_TIMERS && optimizationOptions.debugOutput);
+    //    SAIGA_OPTIONAL_BLOCK_TIMER(RECURSIVE_BA_USE_TIMERS && optimizationOptions.debugOutput);
 
-    using T          = BlockBAScalar;
-    using KernelType = Saiga::Kernel::BAPosePointMono<T>;
-    KernelType::PoseJacobiType JrowPose;
-    KernelType::PointJacobiType JrowPoint;
-    KernelType::ResidualType res;
+    using T = BlockBAScalar;
+    //    using KernelType = Saiga::Kernel::BAPosePointMono<T>;
 
 
-
-    b.setZero();
-    A.u.setZero();
-    A.v.setZero();
+    //    b.u.setZero();
+    //    b.v.setZero();
+    //    A.u.setZero();
+    //    A.v.setZero();
 
 
 
     SAIGA_ASSERT(A.w.IsRowMajor);
 
 
-    double newChi2 = 0;
+
+    //#pragma omp parallel num_threads(threads)
     {
-        int k = 0;
+        int tid = OMP::getThreadNum();
+
+
+        double& newChi2 = localChi2[tid];
+        newChi2         = 0;
+        BDiag* bdiagArray;
+        BRes* bresArray;
+
+        if (tid == 0)
+        {
+            // thread 0 directly writes into the recursive matrix
+            bdiagArray = &A.v.diagonal()(0).get();
+            bresArray  = &b.v(0).get();
+        }
+        else
+        {
+            bdiagArray = pointDiagTemp[tid - 1].data();
+            bresArray  = pointResTemp[tid - 1].data();
+        }
+
+        // every thread has to zero its own local copy
+        for (int i = 0; i < m; ++i)
+        {
+            bdiagArray[i].setZero();
+            bresArray[i].setZero();
+        }
+
+#pragma omp for
         for (int i = 0; i < (int)validImages.size(); ++i)
         {
+            int k = A.w.outerIndexPtr()[i];
+            //            SAIGA_ASSERT(k == A.w.outerIndexPtr()[i]);
+
             int imgid = validImages[i];
             auto& img = scene.images[imgid];
             //            auto& extr   = scene.extrinsics[img.extr].se3;
@@ -268,6 +350,13 @@ double BARec::computeQuadraticForm()
             auto& extr2  = scene.extrinsics[img.extr];
             auto& camera = scene.intrinsics[img.intr];
             StereoCamera4 scam(camera, scene.bf);
+
+            // each thread can direclty right into A.u and b.u because
+            // we parallize over images
+            auto& targetPosePose = A.u.diagonal()(i).get();
+            auto& targetPoseRes  = b.u(i).get();
+            targetPosePose.setZero();
+            targetPoseRes.setZero();
 
             for (auto& ip : img.stereoPoints)
             {
@@ -285,11 +374,13 @@ double BARec::computeQuadraticForm()
                 //                auto& wp        = scene.worldPoints[ip.wp].p;
                 auto& wp = x_v[j];
 
-                WElem targetPosePoint;
-                auto& targetPosePose   = A.u.diagonal()(i).get();
-                auto& targetPointPoint = A.v.diagonal()(j).get();
-                auto& targetPoseRes    = b.u(i).get();
-                auto& targetPointRes   = b.v(j).get();
+                //                WElem targetPosePoint;
+                WElem& targetPosePoint = A.w.valuePtr()[k].get();
+
+                //                BDiag& targetPointPoint = A.v.diagonal()(j).get();
+                //                BRes& targetPointRes    = b.v(j).get();
+                BDiag& targetPointPoint = bdiagArray[j];
+                BRes& targetPointRes    = bresArray[j];
 
                 if (ip.depth > 0)
                 {
@@ -302,16 +393,20 @@ double BARec::computeQuadraticForm()
                                                             JrowPoint);
                     if (extr2.constant) JrowPose.setZero();
 
-                    auto c = res.squaredNorm();
-                    newChi2 += c;
+
+                    auto c      = res.squaredNorm();
+                    auto sqrtrw = sqrt(w);
                     if (baOptions.huberStereo > 0)
                     {
-                        auto rw     = Kernel::huberWeight<T>(baOptions.huberStereo, c);
-                        auto sqrtrw = sqrt(rw(1)) * sqrt(w);
-                        JrowPose *= sqrtrw;
-                        JrowPoint *= sqrtrw;
-                        res *= sqrtrw;
+                        auto rw = Kernel::huberWeight<T>(baOptions.huberStereo, c);
+                        sqrtrw *= sqrt(rw(1));
                     }
+                    JrowPose *= sqrtrw;
+                    JrowPoint *= sqrtrw;
+                    res *= sqrtrw;
+
+                    newChi2 += res.squaredNorm();
+
                     targetPosePose += JrowPose.transpose() * JrowPose;
                     targetPointPoint += JrowPoint.transpose() * JrowPoint;
                     targetPosePoint = JrowPose.transpose() * JrowPoint;
@@ -327,16 +422,19 @@ double BARec::computeQuadraticForm()
 
                     KernelType::evaluateResidualAndJacobian(camera, extr, wp, ip.point, 1, res, JrowPose, JrowPoint);
                     if (extr2.constant) JrowPose.setZero();
-                    auto c = res.squaredNorm();
-                    newChi2 += c;
+
+                    auto c      = res.squaredNorm();
+                    auto sqrtrw = sqrt(w);
                     if (baOptions.huberMono > 0)
                     {
-                        auto rw     = Kernel::huberWeight<T>(baOptions.huberMono, c);
-                        auto sqrtrw = sqrt(rw(1)) * sqrt(w);
-                        JrowPose *= sqrtrw;
-                        JrowPoint *= sqrtrw;
-                        res *= sqrtrw;
+                        auto rw = Kernel::huberWeight<T>(baOptions.huberMono, c);
+                        sqrtrw *= sqrt(rw(1));
                     }
+                    JrowPose *= sqrtrw;
+                    JrowPoint *= sqrtrw;
+                    res *= sqrtrw;
+
+                    newChi2 += res.squaredNorm();
 
                     targetPosePose += JrowPose.transpose() * JrowPose;
                     targetPointPoint += JrowPoint.transpose() * JrowPoint;
@@ -345,83 +443,119 @@ double BARec::computeQuadraticForm()
                     targetPointRes -= JrowPoint.transpose() * res;
                 }
 
-                A.w.innerIndexPtr()[k] = j;
-                A.w.valuePtr()[k]      = targetPosePoint;
+                SAIGA_ASSERT(A.w.innerIndexPtr()[k] == j);
+                //                A.w.innerIndexPtr()[k] = j;
+                //                A.w.valuePtr()[k]      = targetPosePoint;
 
                 ++k;
+            }
+        }
+
+#pragma omp for
+        for (int i = 0; i < m; ++i)
+        {
+            for (int j = 0; j < threads - 1; ++j)
+            {
+                A.v.diagonal()(i).get() += pointDiagTemp[j][i];
+                b.v(i).get() += pointResTemp[j][i];
             }
         }
     }
 
 
-    return newChi2;
+    double chi2 = 0;
+    for (int i = 0; i < threads; ++i)
+    {
+        chi2 += localChi2[i];
+    }
+
+    return chi2;
 }
 
 void BARec::addDelta()
 {
-    oldx_u = x_u;
-    oldx_v = x_v;
-
-    for (int i = 0; i < n; ++i)
+    //#pragma omp parallel num_threads(threads)
     {
-        auto t = delta_x.u(i).get();
-        x_u[i] = SE3::exp(t) * x_u[i];
-    }
-    for (int i = 0; i < m; ++i)
-    {
-        auto t = delta_x.v(i).get();
-        x_v[i] += t;
+#pragma omp for nowait
+        for (int i = 0; i < n; ++i)
+        {
+            oldx_u[i] = x_u[i];
+            auto t    = delta_x.u(i).get();
+            x_u[i]    = SE3::exp(t) * x_u[i];
+        }
+#pragma omp for nowait
+        for (int i = 0; i < m; ++i)
+        {
+            oldx_v[i] = x_v[i];
+            auto t    = delta_x.v(i).get();
+            x_v[i] += t;
+        }
     }
 }
 
 void BARec::revertDelta()
 {
-    x_u = oldx_u;
-    x_v = oldx_v;
+    //#pragma omp parallel num_threads(threads)
+    {
+#pragma omp for nowait
+        for (int i = 0; i < n; ++i)
+        {
+            x_u[i] = oldx_u[i];
+        }
+#pragma omp for nowait
+        for (int i = 0; i < m; ++i)
+        {
+            x_v[i] = oldx_v[i];
+        }
+    }
+    //    x_u = oldx_u;
+    //    x_v = oldx_v;
 }
 void BARec::finalize()
 {
     Scene& scene = *_scene;
 
     SAIGA_OPTIONAL_BLOCK_TIMER(RECURSIVE_BA_USE_TIMERS && optimizationOptions.debugOutput);
-    for (size_t i = 0; i < validImages.size(); ++i)
-    {
-        auto id    = validImages[i];
-        auto& extr = scene.extrinsics[id];
-        if (!extr.constant) extr.se3 = x_u[i];
-    }
 
-    for (size_t i = 0; i < validPoints.size(); ++i)
+    //#pragma omp parallel num_threads(threads)
     {
-        Eigen::Matrix<BlockBAScalar, 3, 1> t;
-        auto id = validPoints[i];
-        auto& p = scene.worldPoints[id].p;
-        p       = x_v[i];
+#pragma omp for nowait
+        for (size_t i = 0; i < validImages.size(); ++i)
+        {
+            auto id    = validImages[i];
+            auto& extr = scene.extrinsics[id];
+            if (!extr.constant) extr.se3 = x_u[i];
+        }
+#pragma omp for
+        for (size_t i = 0; i < validPoints.size(); ++i)
+        {
+            Eigen::Matrix<BlockBAScalar, 3, 1> t;
+            auto id = validPoints[i];
+            auto& p = scene.worldPoints[id].p;
+            p       = x_v[i];
+        }
     }
 }
 
 
 void BARec::addLambda(double lambda)
 {
-    applyLMDiagonal(A.u, lambda);
-    applyLMDiagonal(A.v, lambda);
+    //#pragma omp parallel num_threads(threads)
+    {
+        applyLMDiagonal(A.u, lambda);
+        applyLMDiagonal(A.v, lambda);
+    }
 }
 
 
 
 void BARec::solveLinearSystem()
 {
-    using namespace Eigen::Recursive;
-    LinearSolverOptions loptions;
-    loptions.maxIterativeIterations = optimizationOptions.maxIterativeIterations;
-    loptions.iterativeTolerance     = optimizationOptions.iterativeTolerance;
-
-    loptions.solverType = (optimizationOptions.solverType == OptimizationOptions::SolverType::Direct)
-                              ? LinearSolverOptions::SolverType::Direct
-                              : LinearSolverOptions::SolverType::Iterative;
-    loptions.buildExplizitSchur = explizitSchur;
-
-    solver.solve(A, delta_x, b, loptions);
+    SAIGA_OPTIONAL_BLOCK_TIMER(RECURSIVE_BA_USE_TIMERS && optimizationOptions.debugOutput);
+    //#pragma omp parallel num_threads(threads)
+    {
+        solver.solve(A, delta_x, b, loptions);
+    }
 }
 
 double BARec::computeCost()
@@ -432,8 +566,13 @@ double BARec::computeCost()
 
     using T = BlockBAScalar;
 
-    double newChi2 = 0;
+    //#pragma omp parallel num_threads(threads)
     {
+        int tid = OMP::getThreadNum();
+
+        double& newChi2 = localChi2[tid];
+        newChi2         = 0;
+#pragma omp for
         for (int i = 0; i < (int)validImages.size(); ++i)
         {
             int imgid = validImages[i];
@@ -454,187 +593,43 @@ double BARec::computeCost()
                 {
                     using KernelType = Saiga::Kernel::BAPosePointStereo<T>;
                     KernelType::ResidualType res;
-                    res    = KernelType::evaluateResidual(scam, extr, wp, ip.point, ip.depth, 1);
-                    auto c = res.squaredNorm();
+                    res         = KernelType::evaluateResidual(scam, extr, wp, ip.point, ip.depth, 1);
+                    auto c      = res.squaredNorm();
+                    auto sqrtrw = sqrt(w);
                     if (baOptions.huberStereo > 0)
                     {
-                        auto rw     = Kernel::huberWeight<T>(baOptions.huberStereo, c);
-                        auto sqrtrw = sqrt(rw(1)) * sqrt(w);
-                        res *= sqrtrw;
+                        auto rw = Kernel::huberWeight<T>(baOptions.huberStereo, c);
+                        sqrtrw *= sqrt(rw(1));
                     }
-                    newChi2 += c;
+                    res *= sqrtrw;
+                    newChi2 += res.squaredNorm();
                 }
                 else
                 {
                     using KernelType = Saiga::Kernel::BAPosePointMono<T>;
-                    KernelType::PoseJacobiType JrowPose;
-                    KernelType::PointJacobiType JrowPoint;
                     KernelType::ResidualType res;
 
-                    res    = KernelType::evaluateResidual(camera, extr, wp, ip.point, 1);
-                    auto c = res.squaredNorm();
+                    res         = KernelType::evaluateResidual(camera, extr, wp, ip.point, 1);
+                    auto c      = res.squaredNorm();
+                    auto sqrtrw = sqrt(w);
                     if (baOptions.huberMono > 0)
                     {
-                        auto rw     = Kernel::huberWeight<T>(baOptions.huberMono, c);
-                        auto sqrtrw = sqrt(rw(1)) * sqrt(w);
-                        res *= sqrtrw;
+                        auto rw = Kernel::huberWeight<T>(baOptions.huberMono, c);
+                        sqrtrw *= sqrt(rw(1));
                     }
-                    newChi2 += c;
+                    res *= sqrtrw;
+                    newChi2 += res.squaredNorm();
                 }
             }
         }
     }
-    return newChi2;
-}
 
-
-#if 0
-OptimizationResults BARec::solve()
-{
-    Scene& scene = *_scene;
-
-    SAIGA_OPTIONAL_BLOCK_TIMER(RECURSIVE_BA_USE_TIMERS && optimizationOptions.debugOutput);
-
-
-    initStructure(scene);
-
-    // Set a pretty high error, so the first iteratioin doesn't fail
-
-    float linearSolverTime = 0;
-    // ======================== Variables ========================
-    for (int k = 0; k < optimizationOptions.maxIterations; ++k)
+    double chi2 = 0;
+    for (int i = 0; i < threads; ++i)
     {
-        if (!computeUVW(scene)) computeUVW(scene);
-
-
-        LinearSolverOptions loptions;
-        loptions.maxIterativeIterations = optimizationOptions.maxIterativeIterations;
-        loptions.iterativeTolerance     = optimizationOptions.iterativeTolerance;
-
-        loptions.solverType = (optimizationOptions.solverType == OptimizationOptions::SolverType::Direct)
-                                  ? LinearSolverOptions::SolverType::Direct
-                                  : LinearSolverOptions::SolverType::Iterative;
-        loptions.buildExplizitSchur = explizitSchur;
-
-        float t = 0;
-        {
-            Saiga::ScopedTimer<float> timer(t);
-            solver.solve(A, delta_x, b, loptions);
-        }
-        linearSolverTime += t;
-
-        //        cout << expand(A.u).transpose() << endl;
-        //        cout << expand(A.v).transpose() << endl;
-        //        cout << expand(A.w).transpose() << endl;
-        //        cout << expand(b.u).transpose() << endl;
-        //        cout << expand(b.v).transpose() << endl;
-        //        cout << expand(delta_x.u).transpose() << endl;
-        //        cout << expand(delta_x.v).transpose() << endl;
-
-        plus();
-
-        updateScene(scene);
-    }
-    cout << "totalLinearSolverTime: " << linearSolverTime << endl;
-
-    // revert last step
-    double finalChi2 = scene.chi2();
-    if (finalChi2 > chi2)
-    {
-        x_u = oldx_u;
-        x_v = oldx_v;
-        updateScene(scene);
+        chi2 += localChi2[i];
     }
 
-    result.linear_solver_time = linearSolverTime;
-    result.cost_final         = finalChi2;
-
-    return result;
+    return chi2;
 }
-#endif
-
-
-
-#if 0
-
-template <typename T, typename G>
-inline auto computeDerivatives(T t, G g)
-{
-}
-
-template <typename T>
-inline auto initializeSparseStructure(T t)
-{
-}
-template <typename T, typename G, typename H>
-inline auto solve(T t, G g, H h)
-{
-}
-
-
-static void compactSolve()
-{
-    using namespace Eigen;
-
-    using BAMatrix = SymmetricMixedMatrix22<DiagonalMatrix<MatrixScalar<Matrix<double, 6, 6>>, -1>,
-                                            DiagonalMatrix<MatrixScalar<Matrix<double, 3, 3>>, -1>,
-                                            SparseMatrix<MatrixScalar<Matrix<double, 6, 3>>, RowMajor>,
-                                            SparseMatrix<MatrixScalar<Matrix<double, 3, 6>>, RowMajor>>;
-
-    using BAVector = MixedVector2<Matrix<MatrixScalar<Matrix<double, 6, 1>>, -1, 1>,
-                                  Matrix<MatrixScalar<Matrix<double, 3, 1>>, -1, 1>>;
-
-    BAMatrix A;
-    BAVector x, b;
-    MixedSymmetricRecursiveSolver<BAMatrix, BAVector> solver;
-
-    initializeSparseStructure(A);
-    for (int k = 0; k < 10; ++k)
-    {
-        computeDerivatives(A, b);
-        solver.solve(A, x, b);
-    }
-}
-
-template<typename A, typename B, typename C, typename D>
-class MixedMatrix22{
-};
-template<typename A>
-class DiagonalMatrix{
-};
-
-static void compactSolve2()
-{
-    using namespace Eigen;
-
-    // clang-format off
-
-    using BAMatrix = SymmetricMixedMatrix2<
-                        DiagonalMatrix<Matrix<double, 6, 6>, -1>,
-                        DiagonalMatrix<Matrix<double, 3, 3>, -1>,
-                        SparseMatrix<Matrix<double, 6, 3>, RowMajor>>;
-
-    using BAVector = MixedVector2<
-                        Matrix<Matrix<double, 6, 1>, -1, 1>,
-                        Matrix<Matrix<double, 3, 1>, -1, 1>>;
-    BAMatrix A;
-    BAVector x, b;
-    for (int k = 0; k < 10; ++k)
-    {
-        computeDerivatives(A, b);
-        solve(A, x, b);
-    }
-
-    using BAMatrix = MixedMatrix22<
-        DiagonalMatrix<Matrix<double, 6, 6>>,
-        SparseMatrix  <Matrix<double, 6, 3>>,
-        SparseMatrix  <Matrix<double, 3, 6>>,
-        DiagonalMatrix<Matrix<double, 3, 3>>>;
-
-    // clang-format on
-}
-
-#endif
-
-
 }  // namespace Saiga

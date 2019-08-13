@@ -6,6 +6,7 @@
 
 #include "TumRGBDCamera.h"
 
+#include "saiga/core/util/ProgressBar.h"
 #include "saiga/core/util/easylogging++.h"
 #include "saiga/core/util/file.h"
 #include "saiga/core/util/tostring.h"
@@ -75,16 +76,17 @@ static AlignedVector<TumRGBDCamera::GroundTruth> readGT(std::string file)
 
 
 
-TumRGBDCamera::TumRGBDCamera(const std::string& datasetDir, const RGBDIntrinsics& intr) : RGBDCamera(intr)
+TumRGBDCamera::TumRGBDCamera(const std::string& datasetDir, const RGBDIntrinsics& intr, bool multithreaded)
+    : RGBDCamera(intr)
 {
     VLOG(1) << "Loading TUM RGBD Dataset: " << datasetDir;
     associate(datasetDir);
     //    associateFromFile(datasetDir + "/associations.txt");
 
-    load(datasetDir);
+    load(datasetDir, multithreaded);
 
     timeStep = std::chrono::duration_cast<tick_t>(
-        std::chrono::duration<double, std::milli>(1000.0 / double(intrinsics().fps)));
+        std::chrono::duration<double, std::micro>(1000000.0 / double(intrinsics().fps)));
 
     timer.start();
     lastFrameTime = timer.stop();
@@ -133,7 +135,7 @@ SE3 TumRGBDCamera::getGroundTruth(int frame)
 
 void TumRGBDCamera::saveRaw(const std::string& dir)
 {
-    cout << "Saving TUM dataset as Saiga-Raw dataset in " << dir << endl;
+    std::cout << "Saving TUM dataset as Saiga-Raw dataset in " << dir << std::endl;
 #pragma omp parallel for
     for (int i = 0; i < (int)frames.size(); ++i)
     {
@@ -142,7 +144,7 @@ void TumRGBDCamera::saveRaw(const std::string& dir)
         tmp.colorImg.save(std::string(dir) + str + ".png");
         tmp.depthImg.save(std::string(dir) + str + ".saigai");
     }
-    cout << "... Done saving the raw dataset." << endl;
+    std::cout << "... Done saving the raw dataset." << std::endl;
 }
 
 
@@ -212,55 +214,62 @@ void TumRGBDCamera::associateFromFile(const std::string& datasetDir)
     SAIGA_ASSERT(tumframes.size() > 1);
 }
 
-void TumRGBDCamera::load(const std::string& datasetDir)
+
+void TumRGBDCamera::load(const std::string& datasetDir, bool multithreaded)
 {
     if (intrinsics().maxFrames >= 0)
     {
         tumframes.resize(std::min((size_t)intrinsics().maxFrames, tumframes.size()));
     }
+    _intrinsics.maxFrames = tumframes.size();
 
 
-    frames.resize(tumframes.size());
+    int N = tumframes.size();
+    frames.resize(N);
 
-#pragma omp parallel for
-    for (int i = 0; i < (int)tumframes.size(); ++i)
     {
-        TumFrame d = tumframes[i];
-        Image cimg(datasetDir + "/" + d.rgb.img);
-        Image dimg(datasetDir + "/" + d.depth.img);
+        SyncedConsoleProgressBar loadingBar(std::cout, "Loading " + to_string(N) + " images ", N);
+#pragma omp parallel for if (multithreaded)
+        for (int i = 0; i < N; ++i)
+        {
+            TumFrame d = tumframes[i];
+            Image cimg(datasetDir + "/" + d.rgb.img);
+            Image dimg(datasetDir + "/" + d.depth.img);
 
-        RGBDFrameData f;
-        makeFrameData(f);
+            RGBDFrameData f;
+            makeFrameData(f);
 
-        if (cimg.type == UC3)
-        {
-            // convert to rgba
-            ImageTransformation::addAlphaChannel(cimg.getImageView<ucvec3>(), f.colorImg);
-        }
-        else if (cimg.type == UC4)
-        {
-            cimg.getImageView<ucvec4>().copyTo(f.colorImg.getImageView());
-        }
-        else
-        {
-            SAIGA_EXIT_ERROR("invalid image type");
-        }
+            if (cimg.type == UC3)
+            {
+                // convert to rgba
+                ImageTransformation::addAlphaChannel(cimg.getImageView<ucvec3>(), f.colorImg);
+            }
+            else if (cimg.type == UC4)
+            {
+                cimg.getImageView<ucvec4>().copyTo(f.colorImg.getImageView());
+            }
+            else
+            {
+                SAIGA_EXIT_ERROR("invalid image type");
+            }
 
-        if (dimg.type == US1)
-        {
-            dimg.getImageView<unsigned short>().copyTo(f.depthImg.getImageView(), 1.0 / intrinsics().depthFactor);
-        }
-        else
-        {
-            SAIGA_EXIT_ERROR("invalid image type");
-        }
+            if (dimg.type == US1)
+            {
+                dimg.getImageView<unsigned short>().copyTo(f.depthImg.getImageView(), 1.0 / intrinsics().depthFactor);
+            }
+            else
+            {
+                SAIGA_EXIT_ERROR("invalid image type");
+            }
 
-        if (d.gt.timestamp != -1)
-        {
-            f.groundTruth = d.gt.se3;
-        }
+            if (d.gt.timestamp != -1)
+            {
+                f.groundTruth = d.gt.se3;
+            }
 
-        frames[i] = std::move(f);
+            frames[i] = std::move(f);
+            loadingBar.addProgress(1);
+        }
     }
     VLOG(1) << "Loaded " << tumframes.size() << " images.";
 }

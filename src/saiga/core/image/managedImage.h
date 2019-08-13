@@ -9,7 +9,7 @@
 #include "saiga/core/image/imageBase.h"
 #include "saiga/core/image/imageFormat.h"
 #include "saiga/core/image/imageView.h"
-#include "saiga/core/util/ArrayView.h"
+#include "saiga/core/util/DataStructures/ArrayView.h"
 
 #include <vector>
 
@@ -33,7 +33,7 @@ class SAIGA_CORE_API Image : public ImageBase
     Image() {}
     Image(ImageType type) : type(type) {}
     Image(int h, int w, ImageType type);
-    Image(std::string file)
+    Image(const std::string& file)
     {
         auto res = load(file);
         SAIGA_ASSERT(res);

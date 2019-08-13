@@ -53,11 +53,15 @@ class SAIGA_VISION_API BARec : public BABase, public LMOptimizer
     virtual ~BARec() {}
     virtual void create(Scene& scene) override { _scene = &scene; }
 
+    // resserve space for n cameras and m points
+    void reserve(int n, int m);
+
    private:
     Scene* _scene;
 
    private:
     int n, m;
+
 
     BAMatrix A;
     BAVector x, b, delta_x;
@@ -69,7 +73,7 @@ class SAIGA_VISION_API BARec : public BABase, public LMOptimizer
     // ============== Structure information ==============
 
     int observations;
-    int schurEdges;
+    int schurEdges = 0;
     std::vector<std::vector<int>> schurStructure;
 
     // Number of seen world points for each camera + the corresponding exclusive scan and sum
@@ -87,6 +91,15 @@ class SAIGA_VISION_API BARec : public BABase, public LMOptimizer
     bool explizitSchur = false;
     bool computeWT     = true;
 
+    Eigen::Recursive::LinearSolverOptions loptions;
+    // ============= Multi Threading Stuff ===========
+    int threads = 1;
+    // each thread gets one vector
+    std::vector<std::vector<BDiag>> pointDiagTemp;
+    std::vector<std::vector<BRes>> pointResTemp;
+    std::vector<double> localChi2;
+
+
     // ============== LM Functions ==============
 
     virtual void init() override;
@@ -97,6 +110,9 @@ class SAIGA_VISION_API BARec : public BABase, public LMOptimizer
     virtual void solveLinearSystem() override;
     virtual double computeCost() override;
     virtual void finalize() override;
+
+    virtual void setThreadCount(int n) override { threads = n; }
+    virtual bool supportOMP() override { return true; }
 };
 
 

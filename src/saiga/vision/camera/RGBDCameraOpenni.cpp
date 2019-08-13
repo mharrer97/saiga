@@ -9,7 +9,7 @@
 #ifdef SAIGA_USE_OPENNI2
 #    include "saiga/core/image/imageTransformations.h"
 #    include "saiga/core/imgui/imgui.h"
-#    include "saiga/core/util/threadName.h"
+#    include "saiga/core/util/Thread/threadName.h"
 
 #    include "internal/noGraphicsAPI.h"
 
@@ -18,16 +18,16 @@
 
 namespace Saiga
 {
-#    define CHECK_NI(_X)                                                           \
-        {                                                                          \
-            auto ret = _X;                                                         \
-            if (ret != openni::STATUS_OK)                                          \
-            {                                                                      \
-                cout << "Openni error in " << #_X << endl                          \
-                     << "code: " << ret << endl                                    \
-                     << "message: " << openni::OpenNI::getExtendedError() << endl; \
-                SAIGA_ASSERT(0);                                                   \
-            }                                                                      \
+#    define CHECK_NI(_X)                                                                     \
+        {                                                                                    \
+            auto ret = _X;                                                                   \
+            if (ret != openni::STATUS_OK)                                                    \
+            {                                                                                \
+                std::cout << "Openni error in " << #_X << std::endl                          \
+                          << "code: " << ret << std::endl                                    \
+                          << "message: " << openni::OpenNI::getExtendedError() << std::endl; \
+                SAIGA_ASSERT(0);                                                             \
+            }                                                                                \
         }
 
 
@@ -41,15 +41,14 @@ RGBDCameraOpenni::RGBDCameraOpenni(const RGBDIntrinsics& intr)
 
     while (!tryOpen())
     {
-        cout << "RGBD Camera Open Failed. Trying again shortly." << endl;
+        std::cout << "RGBD Camera Open Failed. Trying again shortly." << std::endl;
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
     }
-    //    eventThread = std::thread(&RGBDCameraOpenni::eventLoop, this);
 }
 
 RGBDCameraOpenni::~RGBDCameraOpenni()
 {
-    cout << "~RGBDCameraOpenni" << endl;
+    std::cout << "~RGBDCameraOpenni" << std::endl;
 }
 
 
@@ -80,7 +79,7 @@ void RGBDCameraOpenni::close()
 {
     resetCamera();
 
-    cout << "RGBDCameraInput closed." << endl;
+    std::cout << "RGBDCameraInput closed." << std::endl;
 }
 
 bool RGBDCameraOpenni::isOpened()
@@ -113,7 +112,7 @@ bool RGBDCameraOpenni::tryOpen()
     rc = device->open(deviceURI);
     if (rc != openni::STATUS_OK)
     {
-        cout << "device open failed: " << rc << endl;
+        std::cout << "device open failed: " << rc << std::endl;
         return false;
     }
 
@@ -171,7 +170,7 @@ bool RGBDCameraOpenni::tryOpen()
 
     foundCamera = true;
 
-    cout << "RGBD Camera opened." << endl;
+    std::cout << "RGBD Camera opened." << std::endl;
 
     return true;
 }
@@ -196,7 +195,7 @@ bool RGBDCameraOpenni::waitFrame(RGBDFrameData& data, bool wait)
 
     if (!device->isValid() || !depth->isValid() || !color->isValid())
     {
-        cout << "wait frame on invalid device!" << endl;
+        std::cout << "wait frame on invalid device!" << std::endl;
         foundCamera = false;
     }
 
@@ -280,69 +279,13 @@ void RGBDCameraOpenni::updateSettingsIntern()
     SAIGA_ASSERT(foundCamera);
     auto settings = color->getCameraSettings();
 
-    //    return;
     (settings->setAutoExposureEnabled(autoexposure));
     (settings->setAutoWhiteBalanceEnabled(autoWhiteBalance));
 
-    //    int current_exposure_ = settings->getExposure();
-    //    (settings->setExposure(exposure));
-    //    cout << "Exposure " << current_exposure_ << " -> " << exposure << endl;
-
-    //    int current_gain = settings->getGain();
-    //    (settings->setGain(gain));
-    //    cout << "Gain " << current_gain << " -> " << gain << endl;
 
     updateS = false;
 }
 
-void RGBDCameraOpenni::eventLoop()
-{
-#    if 0
-    running = true;
-
-    setThreadName("Saiga::NI");
-
-    std::unique_ptr<RGBDFrameData> tmp = makeFrameData();
-
-    cout << "Starting OpenNI RGBD Camera..." << endl;
-
-
-    while (running)
-    {
-        if (!foundCamera)
-        {
-            //            foundCamera = open();
-
-            if (!foundCamera)
-            {
-                std::this_thread::sleep_for(std::chrono::milliseconds(100));
-                continue;
-            }
-        }
-
-        if (updateS) updateSettingsIntern();
-
-        //        if (!waitFrame(*tmp))
-        {
-            cout << "lost camera connection!" << endl;
-            foundCamera = false;
-            continue;
-        }
-
-        //        if(!frameBuffer.tryAdd(tmp))
-        //        frameBuffer.addOverride(tmp);
-        {
-            //            cout << "buffer full" << endl;
-        }
-        tmp = makeFrameData();
-    }
-
-    cout << "OpenNI RGBD Camera done." << endl;
-
-    resetCamera();
-    foundCamera = false;
-#    endif
-}
 
 
 }  // namespace Saiga

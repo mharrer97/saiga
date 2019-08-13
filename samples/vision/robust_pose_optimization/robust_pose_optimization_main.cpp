@@ -34,7 +34,7 @@ class RPOTest
         AlignedVector<Vec3Load> wps;
         AlignedVector<ObsLoad> obs;
 
-        std::ifstream strm(SearchPathes::data("vision/poseRefinement.dat"), std::ios::binary);
+        std::ifstream strm(SearchPathes::data("vision/poseRefinement41.dat"), std::ios::binary);
         SAIGA_ASSERT(strm.is_open());
 
         int wpc;
@@ -65,6 +65,10 @@ class RPOTest
         }
 
         outlier.resize(wpc);
+
+
+
+        std::cout << "Loaded Scene Wps/Obs: " << wps.size() << "/" << obs.size() << std::endl;
     }
 
     void normalize()
@@ -78,19 +82,27 @@ class RPOTest
         K.bf = K.bf * factor;
         rpo.scaleThresholds(factor);
     }
+    int optimizeOMP()
+    {
+        std::fill(outlier.begin(), outlier.end(), false);
+        SE3Type p = pose;
+        int inliers;
 
+#pragma omp parallel num_threads(4)
+        {
+            inliers = rpo.optimizePoseRobustOMP(wps, obs, outlier, p, K, wps.size());
+        }
+        return inliers;
+    }
     int optimize()
     {
         std::fill(outlier.begin(), outlier.end(), false);
         SE3Type p = pose;
         int inliers;
-        {
-            //            SAIGA_BLOCK_TIMER();
-            inliers = rpo.optimizePoseRobust(wps, obs, outlier, p, K);
-            //            inliers = rpo.optimizePoseRobust4(wps4, obs, outlier, p, K);
-        }
 
-        //        cout << "[PoseRefinement] Wps/Inliers " << wps.size() << "/" << inliers << " " << p << endl;
+        {
+            inliers = rpo.optimizePoseRobust(wps, obs, outlier, p, K);
+        }
         return inliers;
     }
 
@@ -104,8 +116,8 @@ class RPOTest
     AlignedVector<Vec4> wps4;
     AlignedVector<Obs> obs;
 
-    AlignedVector<bool> outlier;
-    RobustPoseOptimization<T, Normalized> rpo;
+    AlignedVector<int> outlier;
+    RobustPoseOptimization<T, Normalized> rpo = {2.45, 2.8};
 };
 
 
@@ -119,24 +131,27 @@ int main(int, char**)
 
     Saiga::EigenHelper::EigenCompileFlags flags;
     flags.create<3998735>();
-    cout << flags << endl;
-    RPOTest<double, true> test_float;
+    std::cout << flags << std::endl;
+    //    RPOTest<float, false> test_float;
     RPOTest<double, false> test_double;
-    cout << endl;
+    std::cout << std::endl;
 
-    //    cout << Kernel::huberWeight(0.5, 0.4999 * 0.4999) << endl << endl;
-    //    cout << Kernel::huberWeight(0.5, 0.5001 * 0.5001) << endl << endl;
+    //    std::cout << Kernel::huberWeight(0.5, 0.4999 * 0.4999) << std::endl << std::endl;
+    //    std::cout << Kernel::huberWeight(0.5, 0.5001 * 0.5001) << std::endl << std::endl;
     //    return 0;
 
-    int sum = 0;
 
-    int its = 5000;
-    test_double.optimize();
-    test_float.optimize();
+    int its      = 2000;
+    auto inliers = test_double.optimize();
+    std::cout << "inliers: " << inliers << std::endl;
+    //    sum += test_float.optimize();
     //    auto a = measureObject("Float", its, [&]() { sum += test_float.optimize(); });
-    //    auto b = measureObject("Double", its, [&]() { sum += test_double.optimize(); });
-
-    cout << "Sum: " << sum << endl;
-    //    cout << a.median << " " << b.median << endl;
+    int sum = 0;
+    //    auto b  = measureObject("Double", its, [&]() { sum += test_double.optimize(); });
+    //    std::cout << "Sum: " << sum << std::endl;
+    sum = 0;
+    //    auto c = measureObject("Double", its, [&]() { sum += test_double.optimizeOMP(); });
+    //    std::cout << "Sum: " << sum << std::endl;
+    //    std::cout << a.median << " " << b.median << std::endl;
     return 0;
 }

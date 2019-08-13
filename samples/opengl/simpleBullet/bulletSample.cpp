@@ -51,7 +51,7 @@ Sample::Sample(Saiga::OpenGLWindow& window, Saiga::Renderer& renderer)
     sun->enableShadows();
 
     initBullet();
-    cout << "Program Initialized!" << endl;
+    std::cout << "Program Initialized!" << std::endl;
 }
 
 Sample::~Sample()
@@ -145,8 +145,8 @@ void Sample::renderFinal(Camera* cam)
     // Usually the GUI is rendered here.
 
     {
-        ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiSetCond_FirstUseEver);
-        ImGui::SetNextWindowSize(ImVec2(400, 200), ImGuiSetCond_FirstUseEver);
+        ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(ImVec2(400, 200), ImGuiCond_FirstUseEver);
         ImGui::Begin("An Imgui Window :D");
 
         ImGui::End();

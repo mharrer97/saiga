@@ -11,6 +11,7 @@
 #include <map>
 #include <saiga/core/util/encoding.h>
 #include <vector>
+#include <string>
 
 namespace Saiga
 {
@@ -62,7 +63,7 @@ SAIGA_CORE_API inline std::string tr(const std::string& key, const std::string& 
 // Example:
 // void test(){
 //    static translation::trstring tstr("Hello world!");
-//    cout << tstr.str << endl;
+//    std::cout << tstr.str << std::endl;
 //}
 struct SAIGA_CORE_API trstring
 {

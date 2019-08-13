@@ -11,6 +11,7 @@
 
 #include "Debug.h"
 
+#include <iostream>
 namespace Saiga
 {
 namespace Vulkan
@@ -92,14 +93,14 @@ VkBool32 messageCallback(VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT
 
     // Display message to default output (console/logcat)
 
-    std::cerr << "Vulkan " << pLayerPrefix << " callback" << endl
-              << "  Severity    : " << prefix << endl
-              << "  Code        : " << msgCode << endl
-              << "  Object ID   : " << srcObject << endl
-              << "  Object Type : " << typestring << endl
-              << "  Location    : " << location << endl
-              << "  Message     : " << pMsg << endl
-              << endl;
+    std::cerr << "Vulkan " << pLayerPrefix << " callback" << std::endl
+              << "  Severity    : " << prefix << std::endl
+              << "  Code        : " << msgCode << std::endl
+              << "  Object ID   : " << srcObject << std::endl
+              << "  Object Type : " << typestring << std::endl
+              << "  Location    : " << location << std::endl
+              << "  Message     : " << pMsg << std::endl
+              << std::endl;
 
 
     SAIGA_ASSERT(0);
@@ -143,7 +144,8 @@ void Debug::destroy()
 
 std::string Debug::getDebugValidationLayers()
 {
-    return "VK_LAYER_LUNARG_standard_validation";
+    //    return "VK_LAYER_LUNARG_standard_validation";
+    return "VK_LAYER_KHRONOS_validation";
 }
 
 

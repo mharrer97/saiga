@@ -74,7 +74,7 @@ Sample::Sample(OpenGLWindow& window, Renderer& renderer) : Updating(window), Def
     sun->createShadowMap(2048, 2048);
     sun->enableShadows();
 
-    cout << "Program Initialized!" << endl;
+    std::cout << "Program Initialized!" << std::endl;
 }
 
 void Sample::update(float dt)
@@ -124,8 +124,8 @@ void Sample::renderFinal(Camera* cam)
     parentWindow.renderImGui();
 
     {
-        ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiSetCond_FirstUseEver);
-        ImGui::SetNextWindowSize(ImVec2(400, 200), ImGuiSetCond_FirstUseEver);
+        ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(ImVec2(400, 200), ImGuiCond_FirstUseEver);
         ImGui::Begin("An Imgui Window :D");
 
         ImGui::End();

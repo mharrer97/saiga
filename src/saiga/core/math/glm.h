@@ -8,6 +8,12 @@
 
 #include "saiga/config.h"
 
+#ifndef SAIGA_USE_GLM
+#error Saiga was compiled without glm.
+#endif
+
+#include <iostream>
+#include <string>
 //#define GLM_USE_SSE
 
 #define GLM_FORCE_RADIANS

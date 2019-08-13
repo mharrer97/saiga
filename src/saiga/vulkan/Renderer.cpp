@@ -46,7 +46,7 @@ VulkanRenderer::VulkanRenderer(VulkanWindow& window, VulkanParameters vulkanPara
 
 VulkanRenderer::~VulkanRenderer()
 {
-    LOG(INFO) << "Destroying VulkanRenderer";
+    VLOG(3) << "Destroying VulkanRenderer";
     // Only wait until the queue is done.
     // All vulkan objects are destroyed in their destructor
     waitIdle();
@@ -141,7 +141,7 @@ void VulkanRenderer::reset()
 
 void VulkanRenderer::renderImGui(bool* p_open)
 {
-    ImGui::SetNextWindowSize(ImVec2(200, 200), ImGuiSetCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(200, 200), ImGuiCond_FirstUseEver);
     ImGui::Begin("Renderer Info", p_open, ImGuiWindowFlags_NoCollapse);
 
     base().renderGUI();
@@ -153,9 +153,9 @@ void VulkanRenderer::renderImGui(bool* p_open)
 
 void VulkanRenderer::waitIdle()
 {
-    //    cout << "wait idle start" << endl;
+    //    std::cout << "wait idle start" << std::endl;
     base().mainQueue.waitIdle();
-    //    cout << "wait idle end" << endl;
+    //    std::cout << "wait idle end" << std::endl;
     //    presentQueue.waitIdle();
     //    transferQueue.waitIdle();
 }

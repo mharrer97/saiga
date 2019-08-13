@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <iostream>
 #include <saiga/core/util/assert.h>
 #include <vector>
 
@@ -60,7 +61,7 @@ Statistics<T>::Statistics(const std::vector<T>& _data)
     variance /= numValues;
 
     sdev = std::sqrt(variance);
-    rms = std::sqrt(rms / numValues);
+    rms  = std::sqrt(rms / numValues);
 }
 
 template <typename T>
@@ -74,7 +75,7 @@ std::ostream& operator<<(std::ostream& stream, const Statistics<T>& object)
 {
     stream << "Num         = [" << object.numValues << "]" << std::endl
            << "Min,Max     = [" << object.min << "," << object.max << "]" << std::endl
-           << "Mean,Median = [" << object.mean << "," << object.median << "]" << std::endl
+           << "Mean,Median,Rms = [" << object.mean << "," << object.median << "," << object.rms << "]" << std::endl
            << "sdev,var    = [" << object.sdev << "," << object.variance << "]";
     return stream;
 }

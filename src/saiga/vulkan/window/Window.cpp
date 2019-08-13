@@ -34,8 +34,8 @@ void VulkanWindow::renderImGui(bool* p_open)
 
     int w = 340;
     int h = 240;
-    ImGui::SetNextWindowPos(ImVec2(0, getHeight() - h), ImGuiSetCond_FirstUseEver);
-    ImGui::SetNextWindowSize(ImVec2(w, h), ImGuiSetCond_FirstUseEver);
+    ImGui::SetNextWindowPos(ImVec2(0, getHeight() - h), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(w, h), ImGuiCond_FirstUseEver);
     ImGui::Begin("Vulkan Window", &showImgui);
 
     mainLoop.renderImGuiInline();
@@ -47,8 +47,12 @@ void VulkanWindow::renderImGui(bool* p_open)
         ImGui::Text("Camera Direction: %s", to_string(-make_vec3(currentCamera->getDirection())).c_str());
         if (ImGui::Button("Printf camera"))
         {
-            cout << "camera.position = vec4" << currentCamera->position << ";" << endl;
-            cout << "camera.rot = quat" << currentCamera->rot << ";" << endl;
+            //            std::cout << "camera.position = vec4(" << currentCamera->position << ";" << std::endl;
+
+            auto t = currentCamera->position;
+            auto q = currentCamera->rot;
+            std::cout << "camera.position = vec4(" << t(0) << "," << t(1) << "," << t(2) << "," << 1 << ");" << std::endl;
+            std::cout << "camera.rot = quat(" << q.w() << "," << q.x() << "," << q.y() << "," << q.z() << ");" << std::endl;
         }
     }
 

@@ -10,7 +10,7 @@
 
 #ifdef SAIGA_USE_OPENNI2
 #    include "saiga/core/image/image.h"
-#    include "saiga/core/util/SynchronizedBuffer.h"
+#    include "saiga/core/util/Thread/SynchronizedBuffer.h"
 
 #    include "RGBDCamera.h"
 
@@ -85,12 +85,10 @@ class SAIGA_VISION_API RGBDCameraOpenni : public RGBDCamera
     //    std::thread eventThread;
 
     bool foundCamera = false;
-    bool running     = false;
+    //    bool running     = false;
     float depthFactor;
     bool updateS = false;
     void updateSettingsIntern();
-
-    void eventLoop();
 };
 
 }  // namespace Saiga

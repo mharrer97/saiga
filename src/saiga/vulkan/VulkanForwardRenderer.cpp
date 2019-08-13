@@ -27,7 +27,7 @@ VulkanForwardRenderer::VulkanForwardRenderer(VulkanWindow& window, VulkanParamet
 {
     setupRenderPass();
     renderCommandPool = base().mainQueue.createCommandPool(vk::CommandPoolCreateFlagBits::eResetCommandBuffer);
-    cout << "VulkanForwardRenderer init done." << endl;
+    std::cout << "VulkanForwardRenderer init done." << std::endl;
 }
 
 VulkanForwardRenderer::~VulkanForwardRenderer()
@@ -38,7 +38,6 @@ VulkanForwardRenderer::~VulkanForwardRenderer()
 
 void VulkanForwardRenderer::createBuffers(int numImages, int w, int h)
 {
-    depthBuffer.destroy();
     depthBuffer.init(base(), w, h);
 
     frameBuffers.clear();
@@ -137,8 +136,8 @@ void VulkanForwardRenderer::render(FrameSync& sync, int currentImage)
     VulkanForwardRenderingInterface* renderingInterface = dynamic_cast<VulkanForwardRenderingInterface*>(rendering);
     SAIGA_ASSERT(renderingInterface);
 
-    //    cout << "VulkanForwardRenderer::render" << endl;
-    if (imGui)
+    //    std::cout << "VulkanForwardRenderer::render" << std::endl;
+    if (imGui && renderImgui)
     {
         //        std::thread t([&](){
         imGui->beginFrame();
@@ -185,7 +184,7 @@ void VulkanForwardRenderer::render(FrameSync& sync, int currentImage)
     timings.leaveSection("TRANSFER", cmd);
 
 
-    if (imGui) imGui->updateBuffers(cmd, currentImage);
+    if (imGui && renderImgui) imGui->updateBuffers(cmd, currentImage);
 
     vkCmdBeginRenderPass(cmd, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -202,7 +201,7 @@ void VulkanForwardRenderer::render(FrameSync& sync, int currentImage)
         renderingInterface->render(cmd);
         timings.leaveSection("MAIN", cmd);
         timings.enterSection("IMGUI", cmd);
-        if (imGui) imGui->render(cmd, currentImage);
+        if (imGui && renderImgui) imGui->render(cmd, currentImage);
         timings.leaveSection("IMGUI", cmd);
     }
 

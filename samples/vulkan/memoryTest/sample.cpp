@@ -18,12 +18,11 @@
 #include <iterator>
 #include <saiga/core/imgui/imgui.h>
 
-#include <glm/gtc/matrix_transform.hpp>
 #if defined(SAIGA_OPENGL_INCLUDED)
 #    error OpenGL was included somewhere.
 #endif
 
-VulkanExample::VulkanExample(Saiga::Vulkan::VulkanWindow& window, Saiga::Vulkan::VulkanForwardRenderer& renderer)
+VulkanExample:: VulkanExample(Saiga::Vulkan::VulkanWindow& window, Saiga::Vulkan::VulkanForwardRenderer& renderer)
     : Updating(window), Saiga::Vulkan::VulkanForwardRenderingInterface(renderer), mersenne_twister(), renderer(renderer)
 {
     SAIGA_ASSERT(image_names.size() == images.size());
@@ -57,7 +56,7 @@ void VulkanExample::init(Saiga::Vulkan::VulkanBase& base)
 
         images[i] = image;
 
-        LOG(INFO) << image_names[i] << " " << image.get()->size();
+        VLOG(3) << image_names[i] << " " << image.get()->size();
     }
     num_allocations.resize(10, std::make_pair(nullptr, 0));
 
@@ -362,7 +361,7 @@ void VulkanExample::renderGUI()
 {
     static std::uniform_int_distribution<unsigned long> alloc_dist(1, 5), size_dist(0UL, 3UL), image_dist(0, 4);
 
-    ImGui::SetNextWindowSize(ImVec2(200, 200), ImGuiSetCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(200, 200), ImGuiCond_FirstUseEver);
     ImGui::Begin("Example settings");
 
     bool old_enable = enable_defragger;
@@ -839,7 +838,7 @@ void VulkanExample::keyPressed(SDL_Keysym key)
             for (auto i = 0U; i < num_allocs; ++i)
             {
                 auto index = mersenne_twister() % tex_allocations.size();
-                LOG(INFO) << "Dealloc image " << index;
+                VLOG(3) << "Dealloc image " << index;
                 std::move(tex_allocations.begin() + index, tex_allocations.begin() + index + 1,
                           std::back_inserter(to_delete_tex));
                 tex_allocations.erase(tex_allocations.begin() + index);
@@ -878,7 +877,7 @@ void VulkanExample::keyPressed(SDL_Keysym key)
                     }
                     else
                     {
-                        LOG(INFO) << "Verified " << copy[0];
+                        VLOG(3) << "Verified " << copy[0];
                     }
                 }
             }
@@ -929,7 +928,7 @@ std::pair<std::shared_ptr<Saiga::Vulkan::Buffer>, uint32_t> VulkanExample::alloc
 
     auto start = init_dist(mersenne_twister);
 
-    LOG(INFO) << "Creating buffer of size " << size << " beginning at " << start;
+    VLOG(3) << "Creating buffer of size " << size << " beginning at " << start;
     std::vector<uint32_t> mem;
     mem.resize(size / sizeof(uint32_t));
     std::iota(mem.begin(), mem.end(), start);
@@ -950,7 +949,7 @@ std::pair<std::shared_ptr<Saiga::Vulkan::Buffer>, uint32_t> VulkanExample::alloc
 
     auto start = init_dist(mersenne_twister);
 
-    LOG(INFO) << "Creating buffer of size " << size << " beginning at " << start;
+    VLOG(3) << "Creating buffer of size " << size << " beginning at " << start;
 
     std::shared_ptr<Saiga::Vulkan::Buffer> buffer = std::make_shared<Saiga::Vulkan::Buffer>();
     buffer->createBuffer(renderer.base(), size, type.usageFlags, type.memoryFlags);
@@ -977,7 +976,7 @@ void VulkanExample::cleanup()
 {
     renderer.base().device.waitIdle();
 
-    LOG(INFO) << allocations.size();
+    VLOG(3) << allocations.size();
     // if (!allocations.empty())
     //{
     //    allocations.resize(0);

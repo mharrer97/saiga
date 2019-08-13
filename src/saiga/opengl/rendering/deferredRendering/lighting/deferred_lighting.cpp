@@ -151,7 +151,7 @@ void DeferredLighting::printTimings()
     if (!useTimers) return;
     for (int i = 0; i < 5; ++i)
     {
-        cout << "\t " << getTime(i) << "ms " << timerStrings[i] << endl;
+        std::cout << "\t " << getTime(i) << "ms " << timerStrings[i] << std::endl;
     }
 }
 
@@ -379,7 +379,7 @@ void DeferredLighting::postprocessVolumetric()
     volumetricLightTexture2->bindImageTexture(0,GL_WRITE_ONLY);
     //    glBindImageTexture( 0, volumetricLightTexture2->getId(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16 );
     //    volumetricBlurShader2->upload(5,5);
-    //    cout << width << "x" << height << endl;
+    //    std::cout << width << "x" << height << std::endl;
     volumetricBlurShader2->dispatchCompute(Saiga::iDivUp(width,16),Saiga::iDivUp(height,16),1);
     //    volumetricBlurShader2->dispatchCompute(width,height,1);
     volumetricBlurShader2->unbind();
@@ -687,7 +687,7 @@ void DeferredLighting::createLightMeshes()
     // we estimate the required outer radius with apothem of regular polygons
     float n = 4.9;
     float r = 1.0f / cos(pi<float>() / n);
-    //    cout << "point light radius " << r << endl;
+    //    std::cout << "point light radius " << r << std::endl;
     Sphere s(make_vec3(0), r);
     auto sb = TriangleMeshGenerator::createMesh(s, 1);
     //    sb->createBuffers(pointLightMesh);
@@ -818,8 +818,8 @@ void DeferredLighting::renderImGui(bool* p_open)
 {
     int w = 340;
     int h = 240;
-    ImGui::SetNextWindowPos(ImVec2(680, height - h), ImGuiSetCond_FirstUseEver);
-    ImGui::SetNextWindowSize(ImVec2(w, h), ImGuiSetCond_FirstUseEver);
+    ImGui::SetNextWindowPos(ImVec2(680, height - h), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(w, h), ImGuiCond_FirstUseEver);
     ImGui::Begin("DeferredLighting", p_open);
 
     ImGui::Text("resolution: %dx%d", width, height);
