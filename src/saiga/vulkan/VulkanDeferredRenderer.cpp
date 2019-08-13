@@ -113,14 +113,18 @@ void VulkanDeferredRenderer::createBuffers(int numImages, int w, int h)
 
     std::cout << "  Geometry Command Buffer Allocation -- FINISHED" << std::endl;
 
-    if (imGui) imGui->initResources(base(), renderPass);
+    //if (imGui) imGui->initResources(base(), renderPass);
 
     std::cout << "QuadRenderer DescriptorSet Update/Creation -- CALL" << std::endl;
-
     quadRenderer.createAndUpdateDescriptorSet(diffuseAttachment.location->data.view,
                                               specularAttachment.location->data.view,
                                               normalAttachment.location->data.view,
                                               additionalAttachment.location->data.view);
+    std::cout << "QuadRenderer DescriptorSet Update/Creation -- CALL RETURN" << std::endl;
+
+    std::cout << "  Command Buffer Setup -- START" << std::endl;
+    setupCommandBuffers();
+    std::cout << "  Command Buffer Setup -- FINISHED" << std::endl;
 
     std::cout << "Buffer Creation -- FINISHED" << std::endl;
 
@@ -325,10 +329,14 @@ void VulkanDeferredRenderer::setupRenderPass()
 //!
 void VulkanDeferredRenderer::setupCommandBuffers(){
 
-    std::cout << "Setup Command Buffers -- START" << std::endl;
+    std::cout << "  Setup Command Buffers -- START" << std::endl;
 
+    std::cout << "    Fill CmdBufferBeginInfo -- START" << std::endl;
     vk::CommandBufferBeginInfo cmdBufBeginInfo = vks::initializers::commandBufferBeginInfo();
+    std::cout << "    Fill CmdBufferBeginInfo -- FINISHED" << std::endl;
 
+
+    std::cout << "    Specify Clear Values -- START" << std::endl;
     //following create infos etc are all the same for each draw cmd buffer
     //clear values for each attachment
     // This is blender's default viewport background color :)
@@ -337,7 +345,10 @@ void VulkanDeferredRenderer::setupCommandBuffers(){
     clearValues[0].color.setFloat32({clearColor[0], clearColor[1], clearColor[2], clearColor[3]});
     clearValues[1].depthStencil.setDepth(1.0f);
     clearValues[1].depthStencil.setStencil(0);
+    std::cout << "    Specify Clear Values -- FINISHED" << std::endl;
 
+
+    std::cout << "    Fill RenderPassBeginInfo -- START" << std::endl;
     //renderpass begin info
     vk::RenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
     renderPassBeginInfo.renderPass = lightingPass;
@@ -347,17 +358,24 @@ void VulkanDeferredRenderer::setupCommandBuffers(){
     renderPassBeginInfo.renderArea.extent.height = SurfaceHeight;
     renderPassBeginInfo.clearValueCount = 2;
     renderPassBeginInfo.pClearValues = clearValues;
+    std::cout << "    Fill RenderPassBeginInfo -- FINISHED" << std::endl;
 
+
+    std::cout << "    Actually Create CmdBuffers -- START" << std::endl;
     for(uint32_t i = 0; i < drawCmdBuffers.size(); ++i){
-        std::cout << "  Setup Command Buffer Nr.: " << i << " -- START" << std::endl;
+        std::cout << "      Setup Command Buffer Nr.: " << i << " -- START" << std::endl;
 
+        std::cout << "        Set Render Pass" << std::endl;
         //set target framebuffer
         renderPassBeginInfo.framebuffer = frameBuffers[i].framebuffer;
+
+        std::cout << "        Start Recording CmdBuffer" << std::endl;
 
         //begin recording cmdBuffer
         drawCmdBuffers[i].begin(cmdBufBeginInfo);
         drawCmdBuffers[i].beginRenderPass(&renderPassBeginInfo, vk::SubpassContents::eInline);
 
+        std::cout << "        Set Scissor and Viewport" << std::endl;
         //setup viewport & scissor
         vk::Viewport viewport = vks::initializers::viewport(surfaceWidth, SurfaceHeight, 0.0f, 1.0f);
         drawCmdBuffers[i].setViewport(0, 1, &viewport);
@@ -391,18 +409,23 @@ void VulkanDeferredRenderer::setupCommandBuffers(){
         //TODO draw quad here
         //TODO draw ui here
 
+        std::cout << "        Bind QuadRenderer" << std::endl;
         //bind quadrenderer and render the fullscreen quad
         if(quadRenderer.bind(drawCmdBuffers[i])){
+            std::cout << "        Render With QuadRenderer" << std::endl;
             quadRenderer.render(drawCmdBuffers[i]);
         }
+
+        std::cout << "        End Recording CmdBuffer" << std::endl;
 
         drawCmdBuffers[i].endRenderPass();
 
         drawCmdBuffers[i].end();
-        std::cout << "  Setup Command Buffer Nr.: " << i << " -- FINISHED" << std::endl;
+        std::cout << "      Setup Command Buffer Nr.: " << i << " -- FINISHED" << std::endl;
 
     }
-    std::cout << "Setup Command Buffers -- FINISHED" << std::endl;
+    std::cout << "    Actually Create CmdBuffers -- FINISHED" << std::endl;
+    std::cout << "  Setup Command Buffers -- FINISHED" << std::endl;
 
 }
 
@@ -413,7 +436,7 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage)
     SAIGA_ASSERT(renderingInterface);
 
     //    cout << "VulkanDeferredRenderer::render" << endl;
-    if (imGui)
+    /*if (imGui)
     {
         //        std::thread t([&](){
         imGui->beginFrame();
@@ -421,7 +444,7 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage)
         imGui->endFrame();
         //        });
         //        t.join();
-    }
+    }*/
 
 
     //create semaphore for synchronization (offscreen rendering nad gbuffer usage)
@@ -465,7 +488,7 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage)
     timings.leaveSection("TRANSFER", cmd);
 
 
-    if (imGui) imGui->updateBuffers(cmd, currentImage);
+    //if (imGui) imGui->updateBuffers(cmd, currentImage);
 
     cmd.beginRenderPass( &geometryRenderPassBeginInfo, vk::SubpassContents::eInline);
 
@@ -480,9 +503,10 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage)
         timings.enterSection("MAIN", cmd);
         renderingInterface->render(cmd);
         timings.leaveSection("MAIN", cmd);
-        timings.enterSection("IMGUI", cmd);
+        /*timings.enterSection("IMGUI", cmd);
         if (imGui) imGui->render(cmd, currentImage);
         timings.leaveSection("IMGUI", cmd);
+    */
     }
 
     cmd.endRenderPass();

@@ -25,8 +25,13 @@ void QuadRenderer::destroy()
 }
 bool QuadRenderer::bind(vk::CommandBuffer cmd)
 {
+    std::cout << "QuadRenderer Bind Descriptorset" << std::endl;
+
     bindDescriptorSet(cmd, descriptorSet, 0);
+    //cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelineLayout, 0, descriptorSet, nullptr);
     // cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelineLayout, 0, descriptorSet, nullptr);
+    std::cout << "QuadRenderer call Pipeline::bind(cmd) and return result" << std::endl;
+
     return Pipeline::bind(cmd);
 }
 
@@ -94,16 +99,16 @@ void QuadRenderer::init(VulkanBase& vulkanDevice, VkRenderPass renderPass)
 }
 
 void QuadRenderer::createAndUpdateDescriptorSet(vk::ImageView diffuse, vk::ImageView specular, vk::ImageView normal, vk::ImageView additional){
-    std::cout << "QuadRenderer DescriptorSet Update/Creation -- START" << std::endl;
+    std::cout << "  QuadRenderer DescriptorSet Update/Creation -- START" << std::endl;
 
-    std::cout << "DescriptorSet Creation -- START" << std::endl;
+    std::cout << "  QuadRenderer DescriptorSet Creation -- START" << std::endl;
     descriptorSet = createDescriptorSet(); //descriptorset is allocated here from a descriptorpool
-    std::cout << "DescriptorSet Creation -- FINISHED" << std::endl;
+    std::cout << "  QuadRenderer DescriptorSet Creation -- FINISHED" << std::endl;
 
-    std::cout << "uboVS Init -- START" << std::endl;
+    std::cout << "  QuadRenderer uboVS Init -- START" << std::endl;
 
     uniformBufferVS.init(*base, &uboVS, sizeof(UBOVS));
-    std::cout << "uboVS Init -- FINISHED" << std::endl;
+    std::cout << "  QuadRenderer uboVS Init -- FINISHED" << std::endl;
 
     vk::DescriptorBufferInfo descriptorInfo = uniformBufferVS.getDescriptorInfo();
 
@@ -166,7 +171,7 @@ void QuadRenderer::createAndUpdateDescriptorSet(vk::ImageView diffuse, vk::Image
         },
         nullptr);
 
-    std::cout << "QuadRenderer DescriptorSet Update/Creation -- START" << std::endl;
+    std::cout << "  QuadRenderer DescriptorSet Update/Creation -- FINISHED" << std::endl;
 
 }
 

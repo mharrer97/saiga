@@ -54,6 +54,7 @@ VulkanRenderer::~VulkanRenderer()
 
 void VulkanRenderer::init()
 {
+    std::cout << "Init VulkanRenderer -- START" << std::endl;
     SAIGA_ASSERT(state == State::INITIALIZED);
     //    createSwapChain();
     swapChain.create(&surfaceWidth, &SurfaceHeight, true);
@@ -80,6 +81,8 @@ void VulkanRenderer::init()
     // Everyting fine.
     // We can start rendering now :).
     state = State::RENDERABLE;
+    std::cout << "Init VulkanRenderer -- FINISHED" << std::endl;
+
 }
 
 void VulkanRenderer::render(Camera*)
