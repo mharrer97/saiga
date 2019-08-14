@@ -39,6 +39,9 @@ VulkanDeferredRenderer::VulkanDeferredRenderer(VulkanWindow& window, VulkanParam
 
 
 
+    //create semaphore for synchronization (offscreen rendering nad gbuffer usage)
+    vk::SemaphoreCreateInfo semCreateInfo = vks::initializers::semaphoreCreateInfo();
+    base().device.createSemaphore(&semCreateInfo, nullptr, &geometrySemaphore);
 
     renderCommandPool = base().mainQueue.createCommandPool(vk::CommandPoolCreateFlagBits::eResetCommandBuffer);
     std::cout << "VulkanDeferredRenderer init done." << std::endl;
@@ -49,8 +52,11 @@ VulkanDeferredRenderer::~VulkanDeferredRenderer()
 {
     std::cout << "Destroying VulkanDeferredRenderer" << std::endl;
 
+    base().device.destroySemaphore(geometrySemaphore);
     quadRenderer.destroy();
     base().device.destroyRenderPass(renderPass);
+    base().device.destroyRenderPass(lightingPass);
+
 }
 
 //!
@@ -110,8 +116,8 @@ void VulkanDeferredRenderer::createBuffers(int numImages, int w, int h)
 
     std::cout << "  Command Buffer Allocation -- FINISHED" << std::endl;
 
-    renderCommandPool.freeCommandBuffer(geometryCmdBuffer);
-    geometryCmdBuffer = renderCommandPool.allocateCommandBuffer(vk::CommandBufferLevel::ePrimary);
+    renderCommandPool.freeCommandBuffers(geometryCmdBuffers);
+    geometryCmdBuffers = renderCommandPool.allocateCommandBuffers(numImages, vk::CommandBufferLevel::ePrimary);
 
     std::cout << "  Geometry Command Buffer Allocation -- FINISHED" << std::endl;
 
@@ -187,7 +193,7 @@ void VulkanDeferredRenderer::setupRenderPass()
     gBufferAttachments[4].stencilLoadOp  = vk::AttachmentLoadOp::eClear;
     gBufferAttachments[4].stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
     gBufferAttachments[4].initialLayout  = vk::ImageLayout::eUndefined;
-    gBufferAttachments[4].finalLayout    = vk::ImageLayout::eShaderReadOnlyOptimal;
+    gBufferAttachments[4].finalLayout    = vk::ImageLayout::eDepthStencilAttachmentOptimal;
 
     std::vector<vk::AttachmentReference> gBufferColorReferences = {};
     gBufferColorReferences.push_back({0, vk::ImageLayout::eColorAttachmentOptimal});
@@ -450,9 +456,6 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage)
     }*/
 
 
-    //create semaphore for synchronization (offscreen rendering nad gbuffer usage)
-    vk::SemaphoreCreateInfo semCreateInfo = vks::initializers::semaphoreCreateInfo();
-    base().device.createSemaphore(&semCreateInfo, nullptr, &geometrySemaphore);
 
 
     vk::CommandBufferBeginInfo geometryCmdBufInfo = vks::initializers::commandBufferBeginInfo();
@@ -477,7 +480,7 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage)
     geometryRenderPassBeginInfo.clearValueCount          = static_cast<uint32_t>(geometryClearValues.size());
     geometryRenderPassBeginInfo.pClearValues             = geometryClearValues.data();
 
-    vk::CommandBuffer& cmd = geometryCmdBuffer;
+    vk::CommandBuffer& cmd = geometryCmdBuffers[currentImage];
     // cmd.reset(vk::CommandBufferResetFlagBits::eReleaseResources);
     // Set target frame buffer
 
@@ -506,10 +509,10 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage)
         timings.enterSection("MAIN", cmd);
         renderingInterface->render(cmd);
         timings.leaveSection("MAIN", cmd);
-        /*timings.enterSection("IMGUI", cmd);
-        if (imGui) imGui->render(cmd, currentImage);
+        timings.enterSection("IMGUI", cmd);
+        //if (imGui) imGui->render(cmd, currentImage);
         timings.leaveSection("IMGUI", cmd);
-    */
+
     }
 
     cmd.endRenderPass();
@@ -524,7 +527,7 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage)
     //think about synchronization ...
 
     //TODO dummy top of pipe
-    vk::PipelineStageFlags submitPipelineStages = vk::PipelineStageFlagBits::eTopOfPipe; //TODO not right yet
+    vk::PipelineStageFlags gBufferSubmitPipelineStages = vk::PipelineStageFlagBits::eColorAttachmentOutput; //TODO not right yet
 
     //offscreen rendering submitinfo and synchronization
     //wait for available image to start rendering TODO ??
@@ -532,10 +535,11 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage)
     vk::SubmitInfo gBufferPassSubmitinfo = vks::initializers::submitInfo();
     gBufferPassSubmitinfo.commandBufferCount = 1;
     gBufferPassSubmitinfo.pCommandBuffers = &cmd;
-    gBufferPassSubmitinfo.pWaitDstStageMask = &submitPipelineStages;
+    gBufferPassSubmitinfo.pWaitDstStageMask = &gBufferSubmitPipelineStages;
     gBufferPassSubmitinfo.pWaitSemaphores = &sync.imageAvailable;
     gBufferPassSubmitinfo.waitSemaphoreCount = 1;
     gBufferPassSubmitinfo.pSignalSemaphores = &geometrySemaphore;
+    gBufferPassSubmitinfo.signalSemaphoreCount = 1;
 
     //submit geometry pass
     base().mainQueue.submit(gBufferPassSubmitinfo, nullptr);
@@ -543,6 +547,8 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage)
 
     //vk::PipelineStageFlags submitPipelineStages = vk::PipelineStageFlagBits::eColorAttachmentOutput;
 
+
+    vk::PipelineStageFlags submitPipelineStages = vk::PipelineStageFlagBits::eColorAttachmentOutput; //TODO not right yet
 
     //signal that rendering is complete etc
     std::array<vk::Semaphore, 2> signalSemaphores{sync.renderComplete, sync.defragMayStart};

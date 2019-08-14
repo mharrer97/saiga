@@ -16,7 +16,7 @@ namespace Vulkan
 Pipeline::Pipeline() : PipelineBase(vk::PipelineBindPoint::eGraphics) {}
 
 
-void Pipeline::create(vk::RenderPass renderPass, PipelineInfo pipelineInfo)
+void Pipeline::create(vk::RenderPass renderPass, PipelineInfo pipelineInfo, int colorAttachmentCount)
 {
     SAIGA_ASSERT(isInitialized());
 
@@ -25,7 +25,7 @@ void Pipeline::create(vk::RenderPass renderPass, PipelineInfo pipelineInfo)
 
     createPipelineLayout();
     //    pipelineInfo.addShaders(shaderPipeline);
-    auto pipelineCreateInfo = pipelineInfo.createCreateInfo(pipelineLayout, renderPass);
+    auto pipelineCreateInfo = pipelineInfo.createCreateInfo(pipelineLayout, renderPass, colorAttachmentCount);
     shaderPipeline.addToPipeline(pipelineCreateInfo);
     pipeline = device.createGraphicsPipeline(base->pipelineCache, pipelineCreateInfo);
     SAIGA_ASSERT(pipeline);

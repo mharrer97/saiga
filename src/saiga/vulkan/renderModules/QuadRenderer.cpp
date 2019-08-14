@@ -20,6 +20,7 @@ namespace Vulkan
 {
 void QuadRenderer::destroy()
 {
+    base->device.destroySampler(colorSampler);
     Pipeline::destroy();
     uniformBufferVS.destroy();
 }

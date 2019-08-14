@@ -24,7 +24,7 @@ class SAIGA_VULKAN_API Pipeline : public PipelineBase
     Pipeline();
 
 
-    void create(vk::RenderPass renderPass, PipelineInfo pipelineInfo = PipelineInfo());
+    void create(vk::RenderPass renderPass, PipelineInfo pipelineInfo = PipelineInfo(), int colorAttachmentCount = 1);
     void reload();
 
     bool autoReload = true;

@@ -20,7 +20,7 @@ void PipelineInfo::addShaders(GraphicsShaderPipeline& shaders)
 }
 
 vk::GraphicsPipelineCreateInfo PipelineInfo::createCreateInfo(vk::PipelineLayout pipelineLayout,
-                                                              vk::RenderPass renderPass)
+                                                              vk::RenderPass renderPass, int colorAttachmentCount)
 {
     dynamicState.dynamicStateCount = dynamicStateEnables.size();
     dynamicState.pDynamicStates    = dynamicStateEnables.data();
@@ -32,8 +32,20 @@ vk::GraphicsPipelineCreateInfo PipelineInfo::createCreateInfo(vk::PipelineLayout
     vi.pVertexAttributeDescriptions    = vertexInputAttributes.data();
 
 
-    colorBlendState.pAttachments    = &blendAttachmentState;
-    colorBlendState.attachmentCount = 1;
+    for(int i = 0; i < colorAttachmentCount; ++i){
+        vk::PipelineColorBlendAttachmentState blendAttachmentState = {false,
+                                                        vk::BlendFactor::eSrcAlpha,
+                                                        vk::BlendFactor::eOneMinusSrcAlpha,
+                                                        vk::BlendOp::eAdd,
+                                                        vk::BlendFactor::eOneMinusSrcAlpha,
+                                                        vk::BlendFactor::eZero,
+                                                        vk::BlendOp::eAdd,
+                                                        vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB |
+                                                        vk::ColorComponentFlagBits::eA};
+        blendAttachmentStates.push_back(blendAttachmentState);
+    }
+    colorBlendState.pAttachments    = blendAttachmentStates.data();
+    colorBlendState.attachmentCount = static_cast<uint32_t>(blendAttachmentStates.size());
 
     vk::GraphicsPipelineCreateInfo pipelineCreateInfo(
         vk::PipelineCreateFlags(), shaderStages.size(), shaderStages.data(), &vi, &inputAssemblyState,

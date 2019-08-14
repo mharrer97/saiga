@@ -104,7 +104,7 @@ void DeferredAssetRenderer::init(VulkanBase& vulkanDevice, VkRenderPass renderPa
 
     PipelineInfo info;
     info.addVertexInfo<VertexNC>();
-    create(renderPass, info);
+    create(renderPass, info, 4);
 
 
 

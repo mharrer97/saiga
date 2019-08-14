@@ -173,12 +173,13 @@ void VulkanExample::render(vk::CommandBuffer cmd)
 {
     if (displayModels)
     {
+        if(assetRenderer.bind(cmd))
         {
             assetRenderer.pushModel(cmd, identityMat4());
             plane.render(cmd);
 
-            //assetRenderer.pushModel(cmd, teapotTrans.model);
-            //teapot.render(cmd);
+            assetRenderer.pushModel(cmd, teapotTrans.model);
+            teapot.render(cmd);
         }
 
         /*if (lineAssetRenderer.bind(cmd))

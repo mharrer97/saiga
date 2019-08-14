@@ -71,7 +71,7 @@ class SAIGA_VULKAN_API VulkanDeferredRenderer : public VulkanRenderer
    protected:
     DepthBuffer depthBuffer;
     std::vector<vk::CommandBuffer> drawCmdBuffers;
-    vk::CommandBuffer geometryCmdBuffer;
+    std::vector<vk::CommandBuffer> geometryCmdBuffers;
     vk::Semaphore geometrySemaphore;
     std::vector<Framebuffer> frameBuffers;
     Framebuffer gBuffer;
