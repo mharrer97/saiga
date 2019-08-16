@@ -55,7 +55,7 @@ void PointCloudRenderer::init(VulkanBase& vulkanDevice, VkRenderPass renderPass,
     PipelineInfo info;
     info.inputAssemblyState.topology = vk::PrimitiveTopology::ePointList;
     info.addVertexInfo<VertexType>();
-    create(renderPass, info);
+    create(renderPass, info, 1);
 
 
 

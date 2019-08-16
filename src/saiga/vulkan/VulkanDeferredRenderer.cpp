@@ -42,6 +42,9 @@ VulkanDeferredRenderer::VulkanDeferredRenderer(VulkanWindow& window, VulkanParam
     //create semaphore for synchronization (offscreen rendering nad gbuffer usage)
     vk::SemaphoreCreateInfo semCreateInfo = vks::initializers::semaphoreCreateInfo();
     base().device.createSemaphore(&semCreateInfo, nullptr, &geometrySemaphore);
+    //create Semaphore to signal, the deferred pass has finished completely
+    vk::SemaphoreCreateInfo deferredSemCreateInfo = vks::initializers::semaphoreCreateInfo();
+    base().device.createSemaphore(&deferredSemCreateInfo, nullptr, &deferredSemaphore);
 
     renderCommandPool = base().mainQueue.createCommandPool(vk::CommandPoolCreateFlagBits::eResetCommandBuffer);
     std::cout << "VulkanDeferredRenderer init done." << std::endl;
@@ -121,7 +124,11 @@ void VulkanDeferredRenderer::createBuffers(int numImages, int w, int h)
 
     std::cout << "  Geometry Command Buffer Allocation -- FINISHED" << std::endl;
 
-    //if (imGui) imGui->initResources(base(), renderPass);
+    renderCommandPool.freeCommandBuffers(forwardCmdBuffers);
+    forwardCmdBuffers = renderCommandPool.allocateCommandBuffers(numImages, vk::CommandBufferLevel::ePrimary);
+    std::cout << "  Forward Command Buffer Allocation -- FINISHED" << std::endl;
+
+    if (imGui) imGui->initResources(base(), forwardPass);
 
     std::cout << "QuadRenderer DescriptorSet Update/Creation -- CALL" << std::endl;
     quadRenderer.createAndUpdateDescriptorSet(diffuseAttachment.location->data.view,
@@ -142,7 +149,7 @@ void VulkanDeferredRenderer::createBuffers(int numImages, int w, int h)
 //!
 //! \brief VulkanDeferredRenderer::setupRenderPass
 //!
-//! sets up the render passes for deferred rendering
+//! sets up the render passes for deferred rendering and forward rendering
 //!
 void VulkanDeferredRenderer::setupRenderPass()
 {
@@ -262,7 +269,7 @@ void VulkanDeferredRenderer::setupRenderPass()
     attachments[0].stencilLoadOp  = vk::AttachmentLoadOp::eDontCare;
     attachments[0].stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
     attachments[0].initialLayout  = vk::ImageLayout::eUndefined;
-    attachments[0].finalLayout    = vk::ImageLayout::ePresentSrcKHR;
+    attachments[0].finalLayout    = vk::ImageLayout::eColorAttachmentOptimal;
     // Depth attachment
     attachments[1].format         = depthBuffer.format;
     attachments[1].samples        = vk::SampleCountFlagBits::e1;
@@ -324,6 +331,79 @@ void VulkanDeferredRenderer::setupRenderPass()
     SAIGA_ASSERT(lightingPass);
 
     std::cout << "Creation Render Pass 2 -- FINISHED" << std::endl;
+
+
+
+    //create forward render pass
+    std::array<vk::AttachmentDescription, 2> forwardAttachments = {};
+    // Color attachment
+    forwardAttachments[0].format         = (vk::Format)swapChain.colorFormat;
+    forwardAttachments[0].samples        = vk::SampleCountFlagBits::e1;
+    forwardAttachments[0].loadOp         = vk::AttachmentLoadOp::eLoad;
+    forwardAttachments[0].storeOp        = vk::AttachmentStoreOp::eStore;
+    forwardAttachments[0].stencilLoadOp  = vk::AttachmentLoadOp::eDontCare;
+    forwardAttachments[0].stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
+    forwardAttachments[0].initialLayout  = vk::ImageLayout::eColorAttachmentOptimal;
+    forwardAttachments[0].finalLayout    = vk::ImageLayout::ePresentSrcKHR;
+    // Depth attachment
+    forwardAttachments[1].format         = (vk::Format)depthBuffer.format;
+    forwardAttachments[1].samples        = vk::SampleCountFlagBits::e1;
+    forwardAttachments[1].loadOp         = vk::AttachmentLoadOp::eLoad;
+    forwardAttachments[1].storeOp        = vk::AttachmentStoreOp::eStore;
+    forwardAttachments[1].stencilLoadOp  = vk::AttachmentLoadOp::eLoad;
+    forwardAttachments[1].stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
+    forwardAttachments[1].initialLayout  = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+    forwardAttachments[1].finalLayout    = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+
+    vk::AttachmentReference forwardColorReference = {};
+    forwardColorReference.attachment            = 0;
+    forwardColorReference.layout                = vk::ImageLayout::eColorAttachmentOptimal;
+
+    vk::AttachmentReference forwardDepthReference = {};
+    forwardDepthReference.attachment            = 1;
+    forwardDepthReference.layout                = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+
+    vk::SubpassDescription forwardSubpassDescription    = {};
+    forwardSubpassDescription.pipelineBindPoint       = vk::PipelineBindPoint::eGraphics;
+    forwardSubpassDescription.colorAttachmentCount    = 1;
+    forwardSubpassDescription.pColorAttachments       = &forwardColorReference;
+    forwardSubpassDescription.pDepthStencilAttachment = &forwardDepthReference;
+    forwardSubpassDescription.inputAttachmentCount    = 0;
+    forwardSubpassDescription.pInputAttachments       = nullptr;
+    forwardSubpassDescription.preserveAttachmentCount = 0;
+    forwardSubpassDescription.pPreserveAttachments    = nullptr;
+    forwardSubpassDescription.pResolveAttachments     = nullptr;
+
+    // Subpass dependencies for layout transitions
+    std::array<vk::SubpassDependency, 2> forwardDependencies;
+
+    forwardDependencies[0].srcSubpass      = VK_SUBPASS_EXTERNAL;
+    forwardDependencies[0].dstSubpass      = 0;
+    forwardDependencies[0].srcStageMask    = vk::PipelineStageFlagBits::eBottomOfPipe;
+    forwardDependencies[0].dstStageMask    = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+    forwardDependencies[0].srcAccessMask   = vk::AccessFlagBits::eMemoryRead;
+    forwardDependencies[0].dstAccessMask   = vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite;
+    forwardDependencies[0].dependencyFlags = vk::DependencyFlagBits::eByRegion;
+
+    forwardDependencies[1].srcSubpass      = 0;
+    forwardDependencies[1].dstSubpass      = VK_SUBPASS_EXTERNAL;
+    forwardDependencies[1].srcStageMask    = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+    forwardDependencies[1].dstStageMask    = vk::PipelineStageFlagBits::eBottomOfPipe;
+    forwardDependencies[1].srcAccessMask   = vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite;
+    forwardDependencies[1].dstAccessMask   = vk::AccessFlagBits::eMemoryRead;;
+    forwardDependencies[1].dependencyFlags = vk::DependencyFlagBits::eByRegion;
+
+    vk::RenderPassCreateInfo forwardRenderPassInfo = {};
+    forwardRenderPassInfo.attachmentCount        = 2;  // static_cast<uint32_t>(attachments.size());
+    forwardRenderPassInfo.pAttachments           = forwardAttachments.data();
+    forwardRenderPassInfo.subpassCount           = 1;
+    forwardRenderPassInfo.pSubpasses             = &forwardSubpassDescription;
+    forwardRenderPassInfo.dependencyCount        = 1;  // static_cast<uint32_t>(dependencies.size());
+    forwardRenderPassInfo.pDependencies          = forwardDependencies.data();
+
+    base().device.createRenderPass(&forwardRenderPassInfo, nullptr, &forwardPass);
+    SAIGA_ASSERT(forwardPass);
+    std::cout << "Creation Render Pass 3 -- FINISHED" << std::endl;
     std::cout << "Creation Render Passes -- FINISHED" << std::endl;
 
 
@@ -445,7 +525,7 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage)
     SAIGA_ASSERT(renderingInterface);
 
     //    cout << "VulkanDeferredRenderer::render" << endl;
-    /*if (imGui)
+    if (imGui)
     {
         //        std::thread t([&](){
         imGui->beginFrame();
@@ -453,7 +533,7 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage)
         imGui->endFrame();
         //        });
         //        t.join();
-    }*/
+    }
 
 
 
@@ -509,9 +589,9 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage)
         timings.enterSection("MAIN", cmd);
         renderingInterface->render(cmd);
         timings.leaveSection("MAIN", cmd);
-        timings.enterSection("IMGUI", cmd);
+        //timings.enterSection("IMGUI", cmd);
         //if (imGui) imGui->render(cmd, currentImage);
-        timings.leaveSection("IMGUI", cmd);
+        //timings.leaveSection("IMGUI", cmd);
 
     }
 
@@ -522,6 +602,70 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage)
     cmd.end();
 
 
+
+
+    //record forwardRenderPass CmdBuffers
+
+    VkCommandBufferBeginInfo fwdCmdBufInfo = vks::initializers::commandBufferBeginInfo();
+    //    cmdBufInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
+;
+
+    // This is blender's default viewport background color :)
+    vec4 clearColor = vec4(57, 57, 57, 255) / 255.0f;
+    vk::ClearValue clearValues[2];
+    clearValues[0].color.setFloat32({clearColor[0], clearColor[1], clearColor[2], clearColor[3]});
+    clearValues[1].depthStencil.setDepth(1.0f);
+    clearValues[1].depthStencil.setStencil(0);
+
+    vk::RenderPassBeginInfo fwdRenderPassBeginInfo    = vks::initializers::renderPassBeginInfo();
+    fwdRenderPassBeginInfo.renderPass               = forwardPass;
+    fwdRenderPassBeginInfo.renderArea.offset.x      = 0;
+    fwdRenderPassBeginInfo.renderArea.offset.y      = 0;
+    fwdRenderPassBeginInfo.renderArea.extent.width  = surfaceWidth;
+    fwdRenderPassBeginInfo.renderArea.extent.height = SurfaceHeight;
+    fwdRenderPassBeginInfo.clearValueCount          = 2;
+    fwdRenderPassBeginInfo.pClearValues             = clearValues;
+
+
+    vk::CommandBuffer& fwdCmd = forwardCmdBuffers[currentImage];
+    // cmd.reset(vk::CommandBufferResetFlagBits::eReleaseResources);
+    // Set target frame buffer
+    fwdRenderPassBeginInfo.framebuffer = frameBuffers[currentImage].framebuffer;
+
+    fwdCmd.begin(fwdCmdBufInfo);
+    timings.resetFrame(fwdCmd);
+    timings.enterSection("TRANSFER", fwdCmd);
+
+    // VK_CHECK_RESULT(vkBeginCommandBuffer(cmd, &cmdBufInfo));
+    renderingInterface->transferForward(fwdCmd);
+
+    timings.leaveSection("TRANSFER", fwdCmd);
+
+
+    if (imGui && renderImgui) imGui->updateBuffers(fwdCmd, currentImage);
+
+    fwdCmd.beginRenderPass(&fwdRenderPassBeginInfo, vk::SubpassContents::eInline);
+
+
+    vk::Viewport fwdViewport = vks::initializers::viewport(surfaceWidth, SurfaceHeight, 0.0f, 1.0f);
+    fwdCmd.setViewport(0, 1, &fwdViewport);
+
+    vk::Rect2D fwdScissor = vks::initializers::rect2D(surfaceWidth, SurfaceHeight, 0, 0);
+    fwdCmd.setScissor(0, 1, &fwdScissor);
+
+    {
+        // Actual rendering
+        timings.enterSection("MAIN", fwdCmd);
+        renderingInterface->renderForward(fwdCmd);
+        timings.leaveSection("MAIN", fwdCmd);
+        timings.enterSection("IMGUI", fwdCmd);
+        if (imGui && renderImgui) imGui->render(fwdCmd, currentImage);
+        timings.leaveSection("IMGUI", fwdCmd);
+    }
+
+    fwdCmd.endRenderPass();
+    fwdCmd.end();
+    SAIGA_ASSERT(fwdCmd);
 
     //TODO
     //think about synchronization ...
@@ -550,24 +694,41 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage)
 
     vk::PipelineStageFlags submitPipelineStages = vk::PipelineStageFlagBits::eColorAttachmentOutput; //TODO not right yet
 
-    //signal that rendering is complete etc
-    std::array<vk::Semaphore, 2> signalSemaphores{sync.renderComplete, sync.defragMayStart};
+
 
     vk::SubmitInfo submitInfo;
     //    submitInfo = vks::initializers::submitInfo();
     submitInfo.pWaitDstStageMask    = &submitPipelineStages;
     submitInfo.waitSemaphoreCount   = 1;
     submitInfo.pWaitSemaphores      = &geometrySemaphore; //wait for finished geometry pass
-    submitInfo.signalSemaphoreCount = 2;
-    submitInfo.pSignalSemaphores    = signalSemaphores.data();
+    submitInfo.signalSemaphoreCount = 1;
+    submitInfo.pSignalSemaphores    = &deferredSemaphore;
 
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers    = &drawCmdBuffers[currentImage]; //use correct cmd buffer
     //    VK_CHECK_RESULT(vkQueueSubmit(graphicsQueue, 1, &submitInfo, sync.frameFence));
-    base().mainQueue.submit(submitInfo, sync.frameFence);
+    base().mainQueue.submit(submitInfo, nullptr);
+
+    //    graphicsQueue.queue.submit(submitInfo,vk::Fence());
+
+
+    //signal that rendering is complete etc
+    std::array<vk::Semaphore, 2> signalSemaphores{sync.renderComplete, sync.defragMayStart};
+
+    vk::SubmitInfo fwdSubmitInfo;
+    //    submitInfo = vks::initializers::submitInfo();
+    fwdSubmitInfo.pWaitDstStageMask    = &submitPipelineStages;
+    fwdSubmitInfo.waitSemaphoreCount   = 1;
+    fwdSubmitInfo.pWaitSemaphores      = &deferredSemaphore; //wait for finished geometry pass
+    fwdSubmitInfo.signalSemaphoreCount = 2;
+    fwdSubmitInfo.pSignalSemaphores    = signalSemaphores.data();
+
+    fwdSubmitInfo.commandBufferCount = 1;
+    fwdSubmitInfo.pCommandBuffers    = &fwdCmd; //use correct cmd buffer
+    //    VK_CHECK_RESULT(vkQueueSubmit(graphicsQueue, 1, &submitInfo, sync.frameFence));
+    base().mainQueue.submit(fwdSubmitInfo, sync.frameFence);
 
     timings.finishFrame(sync.defragMayStart);
-    //    graphicsQueue.queue.submit(submitInfo,vk::Fence());
 
     //    VK_CHECK_RESULT(swapChain.queuePresent(presentQueue, currentBuffer,  sync.renderComplete));
     base().finish_frame();

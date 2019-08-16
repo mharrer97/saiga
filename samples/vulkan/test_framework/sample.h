@@ -35,7 +35,9 @@ class VulkanExample : public Saiga::Updating,
 
     void update(float dt) override;
     void transfer(vk::CommandBuffer cmd) override;
+    void transferForward(vk::CommandBuffer cmd) override;
     void render(vk::CommandBuffer cmd) override;
+    void renderForward(vk::CommandBuffer cmd) override;
     void renderGUI() override;
 
    private:

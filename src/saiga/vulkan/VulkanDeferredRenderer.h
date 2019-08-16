@@ -34,7 +34,9 @@ class SAIGA_VULKAN_API VulkanDeferredRenderingInterface : public RenderingInterf
     virtual ~VulkanDeferredRenderingInterface() {}
 
     virtual void transfer(vk::CommandBuffer cmd) {}
+    virtual void transferForward(vk::CommandBuffer cmd) {}
     virtual void render(vk::CommandBuffer cmd) {}
+    virtual void renderForward(vk::CommandBuffer cmd) {}
     virtual void renderGUI() {}
 };
 
@@ -53,6 +55,7 @@ class SAIGA_VULKAN_API VulkanDeferredRenderer : public VulkanRenderer
     CommandPool renderCommandPool;
     vk::RenderPass renderPass;
     vk::RenderPass lightingPass;
+    vk::RenderPass forwardPass;
 
     VulkanDeferredRenderer(VulkanWindow& window, VulkanParameters vulkanParameters);
     virtual ~VulkanDeferredRenderer() override;
@@ -72,7 +75,10 @@ class SAIGA_VULKAN_API VulkanDeferredRenderer : public VulkanRenderer
     DepthBuffer depthBuffer;
     std::vector<vk::CommandBuffer> drawCmdBuffers;
     std::vector<vk::CommandBuffer> geometryCmdBuffers;
+    std::vector<vk::CommandBuffer> forwardCmdBuffers;
+
     vk::Semaphore geometrySemaphore;
+    vk::Semaphore deferredSemaphore;
     std::vector<Framebuffer> frameBuffers;
     Framebuffer gBuffer;
 
