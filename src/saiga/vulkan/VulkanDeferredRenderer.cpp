@@ -56,10 +56,11 @@ VulkanDeferredRenderer::~VulkanDeferredRenderer()
     std::cout << "Destroying VulkanDeferredRenderer" << std::endl;
 
     base().device.destroySemaphore(geometrySemaphore);
+    base().device.destroySemaphore(deferredSemaphore);
     quadRenderer.destroy();
     base().device.destroyRenderPass(renderPass);
     base().device.destroyRenderPass(lightingPass);
-
+    base().device.destroyRenderPass(forwardPass);
 }
 
 //!

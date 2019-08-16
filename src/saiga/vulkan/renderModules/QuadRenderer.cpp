@@ -20,9 +20,11 @@ namespace Vulkan
 {
 void QuadRenderer::destroy()
 {
-    base->device.destroySampler(colorSampler);
     Pipeline::destroy();
+    //vkDestroySampler(base->device, colorSampler, nullptr);
     uniformBufferVS.destroy();
+    base->device.destroySampler(colorSampler);
+
 }
 bool QuadRenderer::bind(vk::CommandBuffer cmd)
 {
@@ -183,7 +185,7 @@ void QuadRenderer::createAndUpdateDescriptorSet(vk::ImageView diffuse, vk::Image
 //!
 void QuadRenderer::setupColorAttachmentSampler(){
 
-    vk::SamplerCreateInfo sampler = {};
+    vk::SamplerCreateInfo sampler = vks::initializers::samplerCreateInfo();
     sampler.magFilter = vk::Filter::eNearest;
     sampler.minFilter = vk::Filter::eNearest;
     sampler.mipmapMode = vk::SamplerMipmapMode::eLinear;
