@@ -58,6 +58,7 @@ void TexturedAssetRenderer::init(VulkanBase& vulkanDevice, VkRenderPass renderPa
     PipelineInfo info;
     info.addVertexInfo<VertexType>();
     //    auto info2 = info;
+
     create(renderPass, info);
 }
 

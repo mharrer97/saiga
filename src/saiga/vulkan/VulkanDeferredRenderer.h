@@ -8,18 +8,19 @@
 
 #pragma once
 
-#include "saiga/core/util/assert.h"
 #include "saiga/core/math/math.h"
+#include "saiga/core/util/assert.h"
 #include "saiga/vulkan/CommandPool.h"
 #include "saiga/vulkan/FrameSync.h"
 #include "saiga/vulkan/Queue.h"
 #include "saiga/vulkan/Renderer.h"
-#include "saiga/vulkan/buffer/DepthBuffer.h"
-#include "saiga/vulkan/buffer/ColorBuffer.h"
-#include "saiga/vulkan/buffer/Framebuffer.h"
-#include "saiga/vulkan/window/Window.h"
 #include "saiga/vulkan/VulkanAsset.h"
+#include "saiga/vulkan/buffer/ColorBuffer.h"
+#include "saiga/vulkan/buffer/DepthBuffer.h"
+#include "saiga/vulkan/buffer/Framebuffer.h"
 #include "saiga/vulkan/renderModules/QuadRenderer.h"
+#include "saiga/vulkan/renderModules/TestRenderer.h"
+#include "saiga/vulkan/window/Window.h"
 
 
 
@@ -65,7 +66,10 @@ class SAIGA_VULKAN_API VulkanDeferredRenderer : public VulkanRenderer
 
 
     virtual void createBuffers(int numImages, int w, int h) override;
-//    void createAttachment(VkFormat format, VkImageUsageFlagBits usage, FrameBufferAttachment *attachment, int w, int h);
+    //    void createAttachment(VkFormat format, VkImageUsageFlagBits usage, FrameBufferAttachment *attachment, int w,
+    //    int h);
+
+    virtual void reload();
 
     void setupRenderPass();
 
@@ -82,15 +86,17 @@ class SAIGA_VULKAN_API VulkanDeferredRenderer : public VulkanRenderer
     std::vector<Framebuffer> frameBuffers;
     Framebuffer gBuffer;
 
-    //FrameBufferAttachment diffuseAttachment, specularAttachment, normalAttachment, additionalAttachment;
+    // FrameBufferAttachment diffuseAttachment, specularAttachment, normalAttachment, additionalAttachment;
     ColorBuffer diffuseAttachment, specularAttachment, normalAttachment, additionalAttachment;
     DepthBuffer gBufferDepthBuffer;
 
 
-    //TODO test
+    // TODO test
     Saiga::Vulkan::QuadRenderer quadRenderer;
 
-
+    Saiga::Vulkan::TestRenderer testRenderer;
+    Saiga::Vulkan::StaticDescriptorSet testDescriptorSet;
+    std::shared_ptr<Saiga::Vulkan::Texture2D> texture;
 };
 
 

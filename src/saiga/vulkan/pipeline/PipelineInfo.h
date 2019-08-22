@@ -45,7 +45,8 @@ class SAIGA_VULKAN_API PipelineInfo
                                                                  0};
 
     std::vector<vk::PipelineColorBlendAttachmentState> blendAttachmentStates = {};
-    vk::PipelineColorBlendAttachmentState blendAttachmentState ={     false,
+    vk::PipelineColorBlendAttachmentState blendAttachmentState               = {
+        false,
         vk::BlendFactor::eSrcAlpha,
         vk::BlendFactor::eOneMinusSrcAlpha,
         vk::BlendOp::eAdd,
@@ -77,7 +78,8 @@ class SAIGA_VULKAN_API PipelineInfo
 
     void addShaders(Saiga::Vulkan::GraphicsShaderPipeline& shaders);
 
-    vk::GraphicsPipelineCreateInfo createCreateInfo(vk::PipelineLayout pipelineLayout, vk::RenderPass renderPass, int colorAttachmentCount = 1);
+    vk::GraphicsPipelineCreateInfo createCreateInfo(vk::PipelineLayout pipelineLayout, vk::RenderPass renderPass,
+                                                    int colorAttachmentCount = 1);
 
    private:
     std::vector<vk::PipelineShaderStageCreateInfo> shaderStages;

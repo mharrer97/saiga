@@ -66,6 +66,7 @@ void LineAssetRenderer::init(VulkanBase& vulkanDevice, VkRenderPass renderPass, 
         }
     }
     info.addVertexInfo<VertexType>();
+
     create(renderPass, info);
 
 

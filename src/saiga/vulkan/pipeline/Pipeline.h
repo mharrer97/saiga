@@ -30,6 +30,7 @@ class SAIGA_VULKAN_API Pipeline : public PipelineBase
     bool autoReload = true;
 
    protected:
+    int colorAttachmentCount = 1;
     vk::RenderPass renderPass;
     PipelineInfo pipelineInfo;
     int reloadCounter = 0;

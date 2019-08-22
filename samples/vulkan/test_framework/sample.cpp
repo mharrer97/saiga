@@ -54,21 +54,21 @@ void VulkanExample::init(Saiga::Vulkan::VulkanBase& base)
 
         std::cout << "uncompressed size " << img.size() << std::endl;
         auto data = img.compress();
-       std::cout << "compressed size " << data.size() <<std::endl;
+        std::cout << "compressed size " << data.size() << std::endl;
         img.decompress(data);
-       std::cout << "test" <<std::endl;
+        std::cout << "test" << std::endl;
 
         if (img.type == Saiga::UC3)
         {
-           std::cout << "adding alplha channel" <<std::endl;
+            std::cout << "adding alplha channel" << std::endl;
             Saiga::TemplatedImage<ucvec4> img2(img.height, img.width);
-           std::cout << img << " " << img2 <<std::endl;
+            std::cout << img << " " << img2 << std::endl;
             Saiga::ImageTransformation::addAlphaChannel(img.getImageView<ucvec3>(), img2.getImageView(), 255);
             tex->fromImage(base, img2);
         }
         else
         {
-           std::cout << img <<std::endl;
+            std::cout << img << std::endl;
             tex->fromImage(base, img);
         }
         texture = tex;
@@ -154,10 +154,10 @@ void VulkanExample::update(float dt)
 void VulkanExample::transfer(vk::CommandBuffer cmd)
 {
     assetRenderer.updateUniformBuffers(cmd, camera.view, camera.proj);
-
 }
 
-void VulkanExample::transferForward(vk::CommandBuffer cmd){
+void VulkanExample::transferForward(vk::CommandBuffer cmd)
+{
     pointCloudRenderer.updateUniformBuffers(cmd, camera.view, camera.proj);
     lineAssetRenderer.updateUniformBuffers(cmd, camera.view, camera.proj);
     texturedAssetRenderer.updateUniformBuffers(cmd, camera.view, camera.proj);
@@ -175,7 +175,7 @@ void VulkanExample::render(vk::CommandBuffer cmd)
 {
     if (displayModels)
     {
-        if(assetRenderer.bind(cmd))
+        if (assetRenderer.bind(cmd))
         {
             assetRenderer.pushModel(cmd, identityMat4());
             plane.render(cmd);
@@ -183,46 +183,37 @@ void VulkanExample::render(vk::CommandBuffer cmd)
             assetRenderer.pushModel(cmd, teapotTrans.model);
             teapot.render(cmd);
         }
-
-
     }
-
-
-
-
 }
 
-void VulkanExample::renderForward(vk::CommandBuffer cmd){
-    if(displayModels) {
-
-
-
-         if (pointCloudRenderer.bind(cmd))
+void VulkanExample::renderForward(vk::CommandBuffer cmd)
+{
+    if (displayModels)
+    {
+        if (pointCloudRenderer.bind(cmd))
         {
             pointCloudRenderer.pushModel(cmd, translate(vec3(10, 2.5f, 0)));
             pointCloud.render(cmd, 0, pointCloud.capacity);
         }
-         if (lineAssetRenderer.bind(cmd))
-         {
-             lineAssetRenderer.pushModel(cmd, translate(vec3(-5, 1.5f, 0)));
-             //            teapot.render(cmd);
+        if (lineAssetRenderer.bind(cmd))
+        {
+            lineAssetRenderer.pushModel(cmd, translate(vec3(-5, 1.5f, 0)));
+            //            teapot.render(cmd);
 
-             auto gridMatrix = rotate(0.5f * pi<float>(), vec3(1, 0, 0));
-             gridMatrix      = translate(gridMatrix, vec3(0, -10, 0));
-             lineAssetRenderer.pushModel(cmd, gridMatrix);
-             grid.render(cmd);
-         }
-
-
+            auto gridMatrix = rotate(0.5f * pi<float>(), vec3(1, 0, 0));
+            gridMatrix      = translate(gridMatrix, vec3(0, -10, 0));
+            lineAssetRenderer.pushModel(cmd, gridMatrix);
+            grid.render(cmd);
+        }
 
 
-         if (texturedAssetRenderer.bind(cmd))
-         {
-             texturedAssetRenderer.pushModel(cmd, identityMat4());
-             texturedAssetRenderer.bindTexture(cmd, box.descriptor);
-             box.render(cmd);
-         }
 
+        if (texturedAssetRenderer.bind(cmd))
+        {
+            texturedAssetRenderer.pushModel(cmd, identityMat4());
+            texturedAssetRenderer.bindTexture(cmd, box.descriptor);
+            box.render(cmd);
+        }
     }
     if (textureDisplay.bind(cmd))
     {
@@ -249,6 +240,10 @@ void VulkanExample::renderGUI()
         //        texturedAssetRenderer.shaderPipeline.reload();
         texturedAssetRenderer.reload();
         assetRenderer.reload();
+        lineAssetRenderer.reload();
+        textureDisplay.reload();
+        pointCloudRenderer.reload();
+        renderer.reload();
     }
 
 

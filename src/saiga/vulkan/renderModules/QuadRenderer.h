@@ -23,7 +23,7 @@ class SAIGA_VULKAN_API QuadRenderer : public Pipeline
 {
    public:
     // Change these strings before calling 'init' to use your own shaders
-    std::string vertexShader = "vulkan/quad.vert";
+    std::string vertexShader   = "vulkan/quad.vert";
     std::string fragmentShader = "vulkan/quad.frag";
 
     ~QuadRenderer() { destroy(); }
@@ -41,10 +41,13 @@ class SAIGA_VULKAN_API QuadRenderer : public Pipeline
     //    void preparePipelines(VkPipelineCache pipelineCache, VkRenderPass renderPass);
     void setupLayoutsAndDescriptors();
 
-    void createAndUpdateDescriptorSet(vk::ImageView diffuse, vk::ImageView specular, vk::ImageView normal, vk::ImageView additional);
+    void createAndUpdateDescriptorSet(Saiga::Vulkan::Memory::ImageMemoryLocation* diffuse,
+                                      Saiga::Vulkan::Memory::ImageMemoryLocation* specular,
+                                      Saiga::Vulkan::Memory::ImageMemoryLocation* normal,
+                                      Saiga::Vulkan::Memory::ImageMemoryLocation* additional);
 
    private:
-    void setupColorAttachmentSampler();
+    // void setupColorAttachmentSampler();
 
     struct UBOVS
     {

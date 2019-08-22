@@ -20,8 +20,9 @@ void Pipeline::create(vk::RenderPass renderPass, PipelineInfo pipelineInfo, int 
 {
     SAIGA_ASSERT(isInitialized());
 
-    this->renderPass   = renderPass;
-    this->pipelineInfo = pipelineInfo;
+    this->colorAttachmentCount = colorAttachmentCount;
+    this->renderPass           = renderPass;
+    this->pipelineInfo         = pipelineInfo;
 
     createPipelineLayout();
     //    pipelineInfo.addShaders(shaderPipeline);
@@ -56,8 +57,8 @@ bool Pipeline::checkShader()
         {
             vkDestroyPipeline(device, pipeline, nullptr);
             pipeline = nullptr;
-
-            auto pipelineCreateInfo = pipelineInfo.createCreateInfo(pipelineLayout, renderPass);
+            std::cout << "CAC: " << colorAttachmentCount << std::endl;
+            auto pipelineCreateInfo = pipelineInfo.createCreateInfo(pipelineLayout, renderPass, colorAttachmentCount);
             shaderPipeline.addToPipeline(pipelineCreateInfo);
             pipeline = device.createGraphicsPipeline(base->pipelineCache, pipelineCreateInfo);
             SAIGA_ASSERT(pipeline);

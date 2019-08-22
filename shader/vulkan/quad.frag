@@ -28,5 +28,5 @@ void main()
 	vec3 R = reflect(-L, N);
 	vec3 diffuse = texture(diffuseS, inTc.xy).rgb;
 	vec3 specular = texture(specularS, inTc.xy).rgb;*/
-	outFragColor = vec4(1.f,0.f,1.f,1.f);//vec4(texture(diffuseS, inTC).rgb, 1.f);//vec4(diffuse  + specular, 1.0);		
+	outFragColor = vec4(1.f,0.f,1.f,0.5f);//vec4(texture(diffuseS, inTC).rgb, 1.f);//vec4(diffuse  + specular, 1.0);		
 }

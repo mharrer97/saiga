@@ -45,6 +45,7 @@ void TextureDisplay::init(VulkanBase& vulkanDevice, VkRenderPass renderPass)
     info.addVertexInfo<VertexType>();
     info.rasterizationState.cullMode      = vk::CullModeFlagBits::eNone;
     info.blendAttachmentState.blendEnable = VK_TRUE;
+
     create(renderPass, info);
 
     blitMesh.createFullscreenQuad();

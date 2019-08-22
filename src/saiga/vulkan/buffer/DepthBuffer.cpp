@@ -22,7 +22,7 @@ void DepthBuffer::destroy()
     }
 }
 
-void DepthBuffer::init(VulkanBase& base, int width, int height)
+void DepthBuffer::init(VulkanBase& base, int width, int height, bool sampleFromDepthBuffer)
 {
     destroy();
     this->base = &base;
@@ -82,6 +82,31 @@ void DepthBuffer::init(VulkanBase& base, int width, int height)
         viewInfo.subresourceRange.layerCount     = 1;
 
         Memory::ImageData img_data(image_info, viewInfo, vk::ImageLayout::eUndefined);
+
+        if (sampleFromDepthBuffer)
+        {
+            image_info.usage = vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled;
+
+            vk::SamplerCreateInfo samplerCreateInfo = {};
+            samplerCreateInfo.magFilter             = vk::Filter::eLinear;
+            samplerCreateInfo.minFilter             = vk::Filter::eLinear;
+            samplerCreateInfo.mipmapMode            = vk::SamplerMipmapMode::eLinear;
+            samplerCreateInfo.addressModeU          = vk::SamplerAddressMode::eRepeat;
+            samplerCreateInfo.addressModeV          = vk::SamplerAddressMode::eRepeat;
+            samplerCreateInfo.addressModeW          = vk::SamplerAddressMode::eRepeat;
+            samplerCreateInfo.mipLodBias            = 0.0f;
+            samplerCreateInfo.compareOp             = vk::CompareOp::eNever;
+            samplerCreateInfo.minLod                = 0.0f;
+            // Max level-of-detail should match mip level count
+            samplerCreateInfo.maxLod = 0.0f;
+            // Only enable anisotropic filtering if enabled on the devicec
+            samplerCreateInfo.maxAnisotropy    = 16;
+            samplerCreateInfo.anisotropyEnable = VK_FALSE;
+            samplerCreateInfo.borderColor      = vk::BorderColor::eIntOpaqueWhite;
+
+            Memory::ImageData img_data_new(image_info, viewInfo, vk::ImageLayout::eUndefined, samplerCreateInfo);
+            img_data = img_data_new;
+        }
         // vk::MemoryRequirements mem_reqs;
         //
         //

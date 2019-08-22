@@ -45,7 +45,7 @@ void ColorBuffer::init(VulkanBase& base, int width, int height, vk::ImageUsageFl
         else
         {
             /* Try other colorformats? */
-            //std::cout << "VK_FORMAT_D16_UNORM Unsupported.\n";
+            // std::cout << "VK_FORMAT_D16_UNORM Unsupported.\n";
             std::cout << "Unsupported format" << std::endl;
             exit(-1);
         }
@@ -81,9 +81,54 @@ void ColorBuffer::init(VulkanBase& base, int width, int height, vk::ImageUsageFl
         viewInfo.subresourceRange.baseArrayLayer = 0;
         viewInfo.subresourceRange.layerCount     = 1;
 
-        Memory::ImageData img_data(image_info, viewInfo, vk::ImageLayout::eUndefined);
+        vk::SamplerCreateInfo samplerCreateInfo = {};
+        samplerCreateInfo.magFilter             = vk::Filter::eLinear;
+        samplerCreateInfo.minFilter             = vk::Filter::eLinear;
+        samplerCreateInfo.mipmapMode            = vk::SamplerMipmapMode::eLinear;
+        samplerCreateInfo.addressModeU          = vk::SamplerAddressMode::eRepeat;
+        samplerCreateInfo.addressModeV          = vk::SamplerAddressMode::eRepeat;
+        samplerCreateInfo.addressModeW          = vk::SamplerAddressMode::eRepeat;
+        samplerCreateInfo.mipLodBias            = 0.0f;
+        samplerCreateInfo.compareOp             = vk::CompareOp::eNever;
+        samplerCreateInfo.minLod                = 0.0f;
+        // Max level-of-detail should match mip level count
+        samplerCreateInfo.maxLod = 0.0f;
+        // Only enable anisotropic filtering if enabled on the devicec
+        samplerCreateInfo.maxAnisotropy    = 16;
+        samplerCreateInfo.anisotropyEnable = VK_FALSE;
+        samplerCreateInfo.borderColor      = vk::BorderColor::eIntOpaqueWhite;
+
+        Memory::ImageData img_data(image_info, viewInfo, vk::ImageLayout::eUndefined, samplerCreateInfo);
 
         location = base.memory.allocate(color_buffer_type, img_data);
+
+
+
+        //        vk::CommandBuffer cmd = pool.createAndBeginOneTimeBuffer();
+
+        // transitionImageLayout(cmd, vk::ImageLayout::eTransferDstOptimal);
+
+
+        // vk::BufferImageCopy bufferCopyRegion             = stagingBuffer.getBufferImageCopy(0);
+        //        bufferCopyRegion.imageSubresource.aspectMask     = vk::ImageAspectFlagBits::eColor;
+        //        bufferCopyRegion.imageSubresource.mipLevel       = 0;
+        //        bufferCopyRegion.imageSubresource.baseArrayLayer = 0;
+        //        bufferCopyRegion.imageSubresource.layerCount     = 1;
+        //        bufferCopyRegion.imageExtent.width               = width;
+        //        bufferCopyRegion.imageExtent.height              = height;
+        //        bufferCopyRegion.imageExtent.depth               = 1;
+
+        //    StagingBuffer staging;
+        //
+        //    staging.init(base,img.size(),img.data());
+
+        // stagingBuffer.copyTo(cmd, memoryLocation->data.image, vk::ImageLayout::eTransferDstOptimal,
+        // bufferCopyRegion);
+        //        SAIGA_ASSERT(location->data);
+        //        location->data.transitionImageLayout(cmd, vk::ImageLayout::eShaderReadOnlyOptimal);
+        // transitionImageLayout(cmd, vk::ImageLayout::eShaderReadOnlyOptimal);
+
+        //        cmd.end();
     }
 }
 

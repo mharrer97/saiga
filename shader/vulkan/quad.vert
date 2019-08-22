@@ -27,12 +27,13 @@ layout (push_constant) uniform PushConstants {
 //layout (location = 2) out vec3 outViewVec;
 //layout (location = 3) out vec3 outLightVec;
 
-layout (location = 0) out vec2 outTC;
-
 out gl_PerVertex
 {
 	vec4 gl_Position;
 };
+
+layout (location = 0) out vec2 outTC;
+
 
 void main() 
 {
@@ -45,6 +46,11 @@ void main()
 	vec3 lPos = mat3(ubo.view) * ubo.lightPos.xyz;
 	outLightVec = lPos;//lPos;// - pos.xyz;
 	outViewVec = -pos.xyz;*/
-	outTC = inPos.xy;
-			
+	outTC = inPos.xy * 0.5f + 0.5f;
+	outTC.y = 1.f - outTC.y;
+	
+	gl_Position = vec4(inPos.x,inPos.y,0,1);
+
+
+    	gl_Position.z = -0.1;	
 }

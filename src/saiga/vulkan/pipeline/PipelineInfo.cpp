@@ -31,17 +31,18 @@ vk::GraphicsPipelineCreateInfo PipelineInfo::createCreateInfo(vk::PipelineLayout
     vi.vertexAttributeDescriptionCount = vertexInputAttributes.size();
     vi.pVertexAttributeDescriptions    = vertexInputAttributes.data();
 
-
-    for(int i = 0; i < colorAttachmentCount; ++i){
-        vk::PipelineColorBlendAttachmentState blendAttachmentState = {false,
+    blendAttachmentStates.clear();
+    for (int i = 0; i < colorAttachmentCount; ++i)
+    {
+        /*vk::PipelineColorBlendAttachmentState blendAttachmentState = {false,
                                                         vk::BlendFactor::eSrcAlpha,
                                                         vk::BlendFactor::eOneMinusSrcAlpha,
                                                         vk::BlendOp::eAdd,
                                                         vk::BlendFactor::eOneMinusSrcAlpha,
                                                         vk::BlendFactor::eZero,
                                                         vk::BlendOp::eAdd,
-                                                        vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB |
-                                                        vk::ColorComponentFlagBits::eA};
+                                                        vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG
+           | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA};*/
         blendAttachmentStates.push_back(blendAttachmentState);
     }
     colorBlendState.pAttachments    = blendAttachmentStates.data();
