@@ -37,7 +37,7 @@ VulkanDeferredRenderer::VulkanDeferredRenderer(VulkanWindow& window, VulkanParam
 
 
 
-    testRenderer.init(base(), lightingPass);
+    quadRenderer.init(base(), lightingPass);
 
 
 
@@ -60,7 +60,7 @@ VulkanDeferredRenderer::~VulkanDeferredRenderer()
     base().device.destroySemaphore(geometrySemaphore);
     base().device.destroySemaphore(deferredSemaphore);
     //    quadRenderer.destroy();
-    testRenderer.destroy();
+    quadRenderer.destroy();
     base().device.destroyRenderPass(renderPass);
     base().device.destroyRenderPass(lightingPass);
     base().device.destroyRenderPass(forwardPass);
@@ -158,9 +158,9 @@ void VulkanDeferredRenderer::createBuffers(int numImages, int w, int h)
          }
          texture = tex;
      }*/
-    testDescriptorSet = testRenderer.createAndUpdateDescriptorSet(
-        diffuseAttachment.location, specularAttachment.location, normalAttachment.location,
-        additionalAttachment.location, gBufferDepthBuffer.location);
+    quadRenderer.createAndUpdateDescriptorSet(diffuseAttachment.location, specularAttachment.location,
+                                              normalAttachment.location, additionalAttachment.location,
+                                              gBufferDepthBuffer.location);
     std::cout << "QuadRenderer DescriptorSet Update/Creation -- CALL RETURN" << std::endl;
 
 
@@ -173,7 +173,7 @@ void VulkanDeferredRenderer::createBuffers(int numImages, int w, int h)
 
 void VulkanDeferredRenderer::reload()
 {
-    testRenderer.reload();
+    quadRenderer.reload();
 }
 
 //!
@@ -541,9 +541,10 @@ void VulkanDeferredRenderer::setupCommandBuffers()
         //            std::cout << "        Render With QuadRenderer" << std::endl;
         //            quadRenderer.render(drawCmdBuffers[i]);
         //        }
-        if (testRenderer.bind(drawCmdBuffers[i]))
+        quadRenderer.updateUniformBuffers(drawCmdBuffers[i], vec4(1.f, 0.f, 1.f, 1.f));
+        if (quadRenderer.bind(drawCmdBuffers[i]))
         {
-            testRenderer.render(drawCmdBuffers[i], testDescriptorSet, vec2(0, 0), vec2(surfaceWidth, SurfaceHeight));
+            quadRenderer.render(drawCmdBuffers[i], vec2(0, 0), vec2(surfaceWidth, SurfaceHeight));
         }
 
         std::cout << "        End Recording CmdBuffer" << std::endl;
@@ -609,7 +610,6 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage)
 
     // VK_CHECK_RESULT(vkBeginCommandBuffer(cmd, &cmdBufInfo));
     renderingInterface->transfer(cmd);
-
     timings.leaveSection("TRANSFER", cmd);
 
 

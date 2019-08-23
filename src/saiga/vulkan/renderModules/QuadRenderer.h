@@ -14,6 +14,7 @@
 #include "saiga/vulkan/buffer/UniformBuffer.h"
 #include "saiga/vulkan/pipeline/Pipeline.h"
 #include "saiga/vulkan/svulkan.h"
+#include "saiga/vulkan/texture/Texture.h"
 
 namespace Saiga
 {
@@ -22,47 +23,46 @@ namespace Vulkan
 class SAIGA_VULKAN_API QuadRenderer : public Pipeline
 {
    public:
-    // Change these strings before calling 'init' to use your own shaders
-    std::string vertexShader   = "vulkan/quad.vert";
-    std::string fragmentShader = "vulkan/quad.frag";
+    using VertexType = VertexNC;
+
 
     ~QuadRenderer() { destroy(); }
     void destroy();
 
-    bool bind(vk::CommandBuffer cmd);
-    void render(vk::CommandBuffer cmd);
 
-    void pushModel(VkCommandBuffer cmd, mat4 model);
-    void updateUniformBuffers(vk::CommandBuffer cmd, mat4 view, mat4 proj);
+    /**
+     * Render the texture at the given pixel position and size
+     */
+    void render(vk::CommandBuffer cmd, vec2 position, vec2 size);
+
+
 
     void init(Saiga::Vulkan::VulkanBase& vulkanDevice, VkRenderPass renderPass);
 
-    void prepareUniformBuffers(Saiga::Vulkan::VulkanBase* vulkanDevice);
-    //    void preparePipelines(VkPipelineCache pipelineCache, VkRenderPass renderPass);
-    void setupLayoutsAndDescriptors();
+    void updateUniformBuffers(vk::CommandBuffer, vec4 lightPosition);
 
     void createAndUpdateDescriptorSet(Saiga::Vulkan::Memory::ImageMemoryLocation* diffuse,
                                       Saiga::Vulkan::Memory::ImageMemoryLocation* specular,
                                       Saiga::Vulkan::Memory::ImageMemoryLocation* normal,
-                                      Saiga::Vulkan::Memory::ImageMemoryLocation* additional);
+                                      Saiga::Vulkan::Memory::ImageMemoryLocation* additional,
+                                      Saiga::Vulkan::Memory::ImageMemoryLocation* depth);
 
    private:
-    // void setupColorAttachmentSampler();
-
     struct UBOVS
     {
-        mat4 projection;
-        mat4 modelview;
+        //    mat4 projection;
+        //    mat4 modelview;
         vec4 lightPos;
     } uboVS;
 
-    Saiga::Vulkan::VulkanVertexColoredAsset quad;
-
     UniformBuffer uniformBufferVS;
-    StaticDescriptorSet descriptorSet;
 
-    vk::Sampler colorSampler;
+
+    Saiga::Vulkan::VulkanVertexColoredAsset blitMesh;
+    Saiga::Vulkan::StaticDescriptorSet descriptorSet;
 };
+
+
 
 }  // namespace Vulkan
 }  // namespace Saiga

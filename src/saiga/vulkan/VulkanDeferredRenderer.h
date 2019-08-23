@@ -19,7 +19,6 @@
 #include "saiga/vulkan/buffer/DepthBuffer.h"
 #include "saiga/vulkan/buffer/Framebuffer.h"
 #include "saiga/vulkan/renderModules/QuadRenderer.h"
-#include "saiga/vulkan/renderModules/TestRenderer.h"
 #include "saiga/vulkan/window/Window.h"
 
 
@@ -93,10 +92,6 @@ class SAIGA_VULKAN_API VulkanDeferredRenderer : public VulkanRenderer
 
     // TODO test
     Saiga::Vulkan::QuadRenderer quadRenderer;
-
-    Saiga::Vulkan::TestRenderer testRenderer;
-    Saiga::Vulkan::StaticDescriptorSet testDescriptorSet;
-    std::shared_ptr<Saiga::Vulkan::Texture2D> texture;
 };
 
 
