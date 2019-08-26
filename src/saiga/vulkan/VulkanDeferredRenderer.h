@@ -37,6 +37,7 @@ class SAIGA_VULKAN_API VulkanDeferredRenderingInterface : public RenderingInterf
     virtual void transferForward(vk::CommandBuffer cmd) {}
     virtual void render(vk::CommandBuffer cmd) {}
     virtual void renderForward(vk::CommandBuffer cmd) {}
+    virtual mat4 getCameraView() { return identityMat4(); }  // TODO ?? nicht die eleganteste lösung?
     virtual void renderGUI() {}
 };
 
@@ -72,7 +73,7 @@ class SAIGA_VULKAN_API VulkanDeferredRenderer : public VulkanRenderer
 
     void setupRenderPass();
 
-    void setupCommandBuffers();
+    void setupCommandBuffer(int currentImage);
 
    protected:
     DepthBuffer depthBuffer;

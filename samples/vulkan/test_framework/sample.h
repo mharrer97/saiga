@@ -15,6 +15,7 @@
 #include "saiga/vulkan/memory/VulkanMemory.h"
 #include "saiga/vulkan/pipeline/DescriptorSet.h"
 #include "saiga/vulkan/renderModules/AssetRenderer.h"
+#include "saiga/vulkan/renderModules/DeferredRenderer.h"
 #include "saiga/vulkan/renderModules/LineAssetRenderer.h"
 #include "saiga/vulkan/renderModules/PointCloudRenderer.h"
 #include "saiga/vulkan/renderModules/TextureDisplay.h"
@@ -38,6 +39,7 @@ class VulkanExample : public Saiga::Updating,
     void transferForward(vk::CommandBuffer cmd) override;
     void render(vk::CommandBuffer cmd) override;
     void renderForward(vk::CommandBuffer cmd) override;
+    mat4 getCameraView() override;  // TODO eleganter loesen
     void renderGUI() override;
 
    private:
@@ -53,7 +55,7 @@ class VulkanExample : public Saiga::Updating,
     Saiga::Vulkan::VulkanVertexColoredAsset teapot, plane;
     Saiga::Vulkan::VulkanLineVertexColoredAsset grid, frustum;
     Saiga::Vulkan::VulkanPointCloudAsset pointCloud;
-    Saiga::Vulkan::DeferredAssetRenderer assetRenderer;
+    Saiga::Vulkan::UniversalAssetRenderer assetRenderer;
     Saiga::Vulkan::LineAssetRenderer lineAssetRenderer;
     Saiga::Vulkan::PointCloudRenderer pointCloudRenderer;
     Saiga::Vulkan::TexturedAssetRenderer texturedAssetRenderer;

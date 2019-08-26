@@ -75,7 +75,7 @@ void VulkanExample::init(Saiga::Vulkan::VulkanBase& base)
     }
 
 
-    assetRenderer.init(base, renderer.renderPass);
+    assetRenderer.init(base, renderer.renderPass, renderer.forwardPass);
     lineAssetRenderer.init(base, renderer.forwardPass, 2);
     pointCloudRenderer.init(base, renderer.forwardPass, 5);
     texturedAssetRenderer.init(base, renderer.forwardPass);
@@ -97,7 +97,7 @@ void VulkanExample::init(Saiga::Vulkan::VulkanBase& base)
     teapot.init(renderer.base());
     teapotTrans.setScale(vec3(2, 2, 2));
     //    teapotTrans.rotateGlobal(vec3(1, 0, 0), pi<float>());
-    teapotTrans.translateGlobal(vec3(0, 1, 0));
+    teapotTrans.translateGlobal(vec3(0, 2, 0));
     teapotTrans.calculateModel();
 
     plane.createCheckerBoard(ivec2(20, 20), 1.0f, Saiga::Colors::firebrick, Saiga::Colors::gray);
@@ -153,11 +153,12 @@ void VulkanExample::update(float dt)
 
 void VulkanExample::transfer(vk::CommandBuffer cmd)
 {
-    assetRenderer.updateUniformBuffers(cmd, camera.view, camera.proj);
+    assetRenderer.updateUniformBuffersDeferred(cmd, camera.view, camera.proj);
 }
 
 void VulkanExample::transferForward(vk::CommandBuffer cmd)
 {
+    assetRenderer.updateUniformBuffersForward(cmd, camera.view, camera.proj);
     pointCloudRenderer.updateUniformBuffers(cmd, camera.view, camera.proj);
     lineAssetRenderer.updateUniformBuffers(cmd, camera.view, camera.proj);
     texturedAssetRenderer.updateUniformBuffers(cmd, camera.view, camera.proj);
@@ -175,12 +176,12 @@ void VulkanExample::render(vk::CommandBuffer cmd)
 {
     if (displayModels)
     {
-        if (assetRenderer.bind(cmd))
+        if (assetRenderer.bindDeferred(cmd))
         {
-            assetRenderer.pushModel(cmd, identityMat4());
+            assetRenderer.pushModelDeferred(cmd, identityMat4());
             plane.render(cmd);
 
-            assetRenderer.pushModel(cmd, teapotTrans.model);
+            assetRenderer.pushModelDeferred(cmd, teapotTrans.model);
             teapot.render(cmd);
         }
     }
@@ -190,6 +191,11 @@ void VulkanExample::renderForward(vk::CommandBuffer cmd)
 {
     if (displayModels)
     {
+        if (assetRenderer.bindForward(cmd))
+        {
+            assetRenderer.pushModelForward(cmd, teapotTrans.model * translate(vec3(5.f, 0.f, 5.f)));
+            teapot.render(cmd);
+        }
         if (pointCloudRenderer.bind(cmd))
         {
             pointCloudRenderer.pushModel(cmd, translate(vec3(10, 2.5f, 0)));
@@ -197,8 +203,8 @@ void VulkanExample::renderForward(vk::CommandBuffer cmd)
         }
         if (lineAssetRenderer.bind(cmd))
         {
-            lineAssetRenderer.pushModel(cmd, translate(vec3(-5, 1.5f, 0)));
-            //            teapot.render(cmd);
+            lineAssetRenderer.pushModel(cmd, translate(vec3(-10.f, 1.5f, 0)));
+            teapot.render(cmd);
 
             auto gridMatrix = rotate(0.5f * pi<float>(), vec3(1, 0, 0));
             gridMatrix      = translate(gridMatrix, vec3(0, -10, 0));
@@ -210,7 +216,7 @@ void VulkanExample::renderForward(vk::CommandBuffer cmd)
 
         if (texturedAssetRenderer.bind(cmd))
         {
-            texturedAssetRenderer.pushModel(cmd, identityMat4());
+            texturedAssetRenderer.pushModel(cmd, translate(vec3(-7.5f, 1, -5.f)));
             texturedAssetRenderer.bindTexture(cmd, box.descriptor);
             box.render(cmd);
         }
@@ -221,6 +227,10 @@ void VulkanExample::renderForward(vk::CommandBuffer cmd)
     }
 }
 
+mat4 VulkanExample::getCameraView()  // TODO eleganter loesen
+{
+    return camera.view;
+}
 void VulkanExample::renderGUI()
 {
     ImGui::SetNextWindowSize(ImVec2(200, 200));

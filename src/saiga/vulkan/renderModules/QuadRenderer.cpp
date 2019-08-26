@@ -59,9 +59,11 @@ void QuadRenderer::init(VulkanBase& vulkanDevice, VkRenderPass renderPass)
     blitMesh.init(vulkanDevice);
 }
 
-void QuadRenderer::updateUniformBuffers(vk::CommandBuffer, vec4 lightPosition)
+void QuadRenderer::updateUniformBuffers(vk::CommandBuffer cmd, mat4 view, vec4 lightPosition)
 {
+    uboVS.view     = view;
     uboVS.lightPos = lightPosition;
+    uniformBufferVS.update(cmd, sizeof(uboVS), &uboVS);
 }
 
 void QuadRenderer::createAndUpdateDescriptorSet(Saiga::Vulkan::Memory::ImageMemoryLocation* diffuse,

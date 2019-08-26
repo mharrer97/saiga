@@ -164,9 +164,6 @@ void VulkanDeferredRenderer::createBuffers(int numImages, int w, int h)
     std::cout << "QuadRenderer DescriptorSet Update/Creation -- CALL RETURN" << std::endl;
 
 
-    std::cout << "  Command Buffer Setup -- START" << std::endl;
-    setupCommandBuffers();
-    std::cout << "  Command Buffer Setup -- FINISHED" << std::endl;
 
     std::cout << "Buffer Creation -- FINISHED" << std::endl;
 }
@@ -451,16 +448,11 @@ void VulkanDeferredRenderer::setupRenderPass()
 //!
 //! creates the command buffers for rendering from the gbuffer to the actual swapchain
 //!
-void VulkanDeferredRenderer::setupCommandBuffers()
+void VulkanDeferredRenderer::setupCommandBuffer(int currentImage)
 {
-    std::cout << "  Setup Command Buffers -- START" << std::endl;
-
-    std::cout << "    Fill CmdBufferBeginInfo -- START" << std::endl;
     vk::CommandBufferBeginInfo cmdBufBeginInfo = vks::initializers::commandBufferBeginInfo();
-    std::cout << "    Fill CmdBufferBeginInfo -- FINISHED" << std::endl;
 
 
-    std::cout << "    Specify Clear Values -- START" << std::endl;
     // following create infos etc are all the same for each draw cmd buffer
     // clear values for each attachment
     // This is blender's default viewport background color :)
@@ -469,10 +461,8 @@ void VulkanDeferredRenderer::setupCommandBuffers()
     clearValues[0].color.setFloat32({clearColor[0], clearColor[1], clearColor[2], clearColor[3]});
     clearValues[1].depthStencil.setDepth(1.0f);
     clearValues[1].depthStencil.setStencil(0);
-    std::cout << "    Specify Clear Values -- FINISHED" << std::endl;
 
 
-    std::cout << "    Fill RenderPassBeginInfo -- START" << std::endl;
     // renderpass begin info
     vk::RenderPassBeginInfo renderPassBeginInfo  = vks::initializers::renderPassBeginInfo();
     renderPassBeginInfo.renderPass               = lightingPass;
@@ -482,80 +472,40 @@ void VulkanDeferredRenderer::setupCommandBuffers()
     renderPassBeginInfo.renderArea.extent.height = SurfaceHeight;
     renderPassBeginInfo.clearValueCount          = 2;
     renderPassBeginInfo.pClearValues             = clearValues;
-    std::cout << "    Fill RenderPassBeginInfo -- FINISHED" << std::endl;
 
 
-    std::cout << "    Actually Create CmdBuffers -- START" << std::endl;
-    for (uint32_t i = 0; i < drawCmdBuffers.size(); ++i)
+
+    // set target framebuffer
+    renderPassBeginInfo.framebuffer = frameBuffers[currentImage].framebuffer;
+
+
+    // begin recording cmdBuffer
+    drawCmdBuffers[currentImage].begin(cmdBufBeginInfo);
+
+    // update unfiform buffer ... first get view matrix
+    VulkanDeferredRenderingInterface* renderingInterface = dynamic_cast<VulkanDeferredRenderingInterface*>(rendering);
+    SAIGA_ASSERT(renderingInterface);  // TODO iwie übergeben!!!!!!!!!!!
+    mat4 view = renderingInterface->getCameraView();
+    quadRenderer.updateUniformBuffers(drawCmdBuffers[currentImage], view, vec4(5.f, 5.f, 5.f, 0.f));
+    drawCmdBuffers[currentImage].beginRenderPass(&renderPassBeginInfo, vk::SubpassContents::eInline);
+
+    // setup viewport & scissor
+    vk::Viewport viewport = vks::initializers::viewport(surfaceWidth, SurfaceHeight, 0.0f, 1.0f);
+    drawCmdBuffers[currentImage].setViewport(0, 1, &viewport);
+
+    vk::Rect2D scissor = vks::initializers::rect2D(surfaceWidth, SurfaceHeight, 0, 0);
+    drawCmdBuffers[currentImage].setScissor(0, 1, &scissor);
+
+
+    if (quadRenderer.bind(drawCmdBuffers[currentImage]))
     {
-        std::cout << "      Setup Command Buffer Nr.: " << i << " -- START" << std::endl;
-
-        std::cout << "        Set Render Pass" << std::endl;
-        // set target framebuffer
-        renderPassBeginInfo.framebuffer = frameBuffers[i].framebuffer;
-
-        std::cout << "        Start Recording CmdBuffer" << std::endl;
-
-        // begin recording cmdBuffer
-        drawCmdBuffers[i].begin(cmdBufBeginInfo);
-        drawCmdBuffers[i].beginRenderPass(&renderPassBeginInfo, vk::SubpassContents::eInline);
-
-        std::cout << "        Set Scissor and Viewport" << std::endl;
-        // setup viewport & scissor
-        vk::Viewport viewport = vks::initializers::viewport(surfaceWidth, SurfaceHeight, 0.0f, 1.0f);
-        drawCmdBuffers[i].setViewport(0, 1, &viewport);
-
-        vk::Rect2D scissor = vks::initializers::rect2D(surfaceWidth, SurfaceHeight, 0, 0);
-        drawCmdBuffers[i].setScissor(0, 1, &scissor);
-
-        // vk::DeviceSize offsets[1] = {0};
-        // TODO bind descriptorset here
-        // drawCmdBuffers[i].bindDescriptorSets;
-
-        // TODO debug output here?
-        /*if (debugDisplay)
-                    {
-                        vkCmdBindPipeline(drawCmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.debug);
-                        vkCmdBindVertexBuffers(drawCmdBuffers[i], VERTEX_BUFFER_BIND_ID, 1,
-           &models.quad.vertices.buffer, offsets); vkCmdBindIndexBuffer(drawCmdBuffers[i], models.quad.indices.buffer,
-           0, VK_INDEX_TYPE_UINT32); vkCmdDrawIndexed(drawCmdBuffers[i], models.quad.indexCount, 1, 0, 0, 1);
-                        // Move viewport to display final composition in lower right corner
-                        viewport.x = viewport.width * 0.5f;
-                        viewport.y = viewport.height * 0.5f;
-                        viewport.width = viewport.width * 0.5f;
-                        viewport.height = viewport.height * 0.5f;
-                        vkCmdSetViewport(drawCmdBuffers[i], 0, 1, &viewport);
-                    }
-        */
-
-        // TODO bind pipeline here
-        // TODO bind vertex buffer here
-        // TODO bind index buffer here
-        // TODO draw quad here
-        // TODO draw ui here
-
-        std::cout << "        Bind QuadRenderer" << std::endl;
-        // bind quadrenderer and render the fullscreen quad
-        //        if (quadRenderer.bind(drawCmdBuffers[i]))
-        //        {
-        //            std::cout << "        Render With QuadRenderer" << std::endl;
-        //            quadRenderer.render(drawCmdBuffers[i]);
-        //        }
-        quadRenderer.updateUniformBuffers(drawCmdBuffers[i], vec4(1.f, 0.f, 1.f, 1.f));
-        if (quadRenderer.bind(drawCmdBuffers[i]))
-        {
-            quadRenderer.render(drawCmdBuffers[i], vec2(0, 0), vec2(surfaceWidth, SurfaceHeight));
-        }
-
-        std::cout << "        End Recording CmdBuffer" << std::endl;
-
-        drawCmdBuffers[i].endRenderPass();
-
-        drawCmdBuffers[i].end();
-        std::cout << "      Setup Command Buffer Nr.: " << i << " -- FINISHED" << std::endl;
+        quadRenderer.render(drawCmdBuffers[currentImage], vec2(0, 0), vec2(surfaceWidth, SurfaceHeight));
     }
-    std::cout << "    Actually Create CmdBuffers -- FINISHED" << std::endl;
-    std::cout << "  Setup Command Buffers -- FINISHED" << std::endl;
+
+
+    drawCmdBuffers[currentImage].endRenderPass();
+
+    drawCmdBuffers[currentImage].end();
 }
 
 
@@ -735,6 +685,8 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage)
 
 
 
+    // prepare the command nuffer
+    setupCommandBuffer(currentImage);
     vk::SubmitInfo submitInfo;
     //    submitInfo = vks::initializers::submitInfo();
     submitInfo.pWaitDstStageMask    = &submitPipelineStages;
