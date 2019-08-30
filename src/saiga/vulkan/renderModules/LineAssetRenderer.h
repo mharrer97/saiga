@@ -57,6 +57,44 @@ class SAIGA_VULKAN_API LineAssetRenderer : public Pipeline
     StaticDescriptorSet descriptorSet;
 };
 
+class SAIGA_VULKAN_API DeferredLineAssetRenderer : public Pipeline
+{
+   public:
+    using VertexType = VertexNC;
+    ~DeferredLineAssetRenderer() { destroy(); }
+    void destroy();
+
+    SAIGA_WARN_UNUSED_RESULT bool bind(vk::CommandBuffer cmd);
+
+
+    void pushModel(VkCommandBuffer cmd, mat4 model, vec4 color = make_vec4(1));
+
+    void updateUniformBuffers(vk::CommandBuffer cmd, mat4 view, mat4 proj);
+
+    void init(Saiga::Vulkan::VulkanBase& vulkanDevice, VkRenderPass renderPass, float lineWidth);
+
+    void prepareUniformBuffers(Saiga::Vulkan::VulkanBase* vulkanDevice);
+    //    void preparePipelines(VkPipelineCache pipelineCache, VkRenderPass renderPass);
+    void setupLayoutsAndDescriptors();
+
+   private:
+    struct UBOVS
+    {
+        mat4 projection;
+        mat4 modelview;
+        vec4 lightPos;
+    } uboVS;
+
+    struct PC
+    {
+        mat4 model;
+        vec4 color;
+    } pc;
+
+    UniformBuffer uniformBufferVS;
+    StaticDescriptorSet descriptorSet;
+};
+
 
 
 }  // namespace Vulkan

@@ -535,10 +535,13 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage)
 
     // geometryClearValues[0].color.setFloat32({geometryClearColor[0], geometryClearColor[1], geometryClearColor[2],
     // geometryClearColor[3]});
-    geometryClearValues[0].color.setFloat32({0.0f, 0.0f, 0.0f, 0.0f});
+    // This is blender's default viewport background color :)
+
+    vec4 clearColor = vec4(57, 57, 57, 255) / 255.0f;
+    geometryClearValues[0].color.setFloat32({clearColor[0], clearColor[1], clearColor[2], clearColor[3]});
     geometryClearValues[1].color.setFloat32({0.0f, 0.0f, 0.0f, 0.0f});
     geometryClearValues[2].color.setFloat32({0.0f, 0.0f, 0.0f, 0.0f});
-    geometryClearValues[3].color.setFloat32({0.0f, 0.0f, 0.0f, 0.0f});
+    geometryClearValues[3].color.setFloat32({0.0f, 0.0f, 0.0f, 1.0f});
     geometryClearValues[4].depthStencil.setDepth(1.0f);
     geometryClearValues[4].depthStencil.setStencil(0);
 
@@ -597,8 +600,6 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage)
     //    cmdBufInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
     ;
 
-    // This is blender's default viewport background color :)
-    vec4 clearColor = vec4(57, 57, 57, 255) / 255.0f;
     vk::ClearValue clearValues[2];
     clearValues[0].color.setFloat32({clearColor[0], clearColor[1], clearColor[2], clearColor[3]});
     clearValues[1].depthStencil.setDepth(1.0f);
