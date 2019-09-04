@@ -28,7 +28,7 @@ void main()
     //vec3 specular = pow(max(dot(R, V), 0.0), 16.0) * vec3(0.2);
     //outFragColor = vec4(diffuse * color + specular, 1.0);
     outDiffuse = vec4(color, 1.f);
-    outSpecular = vec4(vec3(0.75f), 16.f /256.f);
+    outSpecular = vec4(vec3(0.2f), 16.f /256.f);
     outNormal = vec4(N, 1.f);
     outAdditional = vec4(V, 0.f);
         //outFragColor = vec4(0.5);

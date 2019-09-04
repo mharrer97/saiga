@@ -82,10 +82,9 @@ void VulkanRenderer::init()
     // We can start rendering now :).
     state = State::RENDERABLE;
     std::cout << "Init VulkanRenderer -- FINISHED" << std::endl;
-
 }
 
-void VulkanRenderer::render(Camera*)
+void VulkanRenderer::render(Camera* cam)
 {
     if (state == State::RESET)
     {
