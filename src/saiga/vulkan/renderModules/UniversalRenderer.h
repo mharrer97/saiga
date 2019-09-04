@@ -21,6 +21,7 @@ namespace Saiga
 {
 namespace Vulkan
 {
+/*
 //!
 //! \brief The UniversalAssetRenderer class
 //! contains deferred and forward renderers for easier handling
@@ -49,7 +50,8 @@ class SAIGA_VULKAN_API UniversalAssetRenderer
     Saiga::Vulkan::DeferredAssetRenderer deferredRenderer;
     Saiga::Vulkan::AssetRenderer forwardRenderer;
 };
-
+*/
+/*
 //!
 //! \brief The UniversalLineAssetRenderer class
 //! contains deferred and forward renderers for easier handling
@@ -79,7 +81,8 @@ class SAIGA_VISION_API UniversalLineAssetRenderer
     Saiga::Vulkan::DeferredLineAssetRenderer deferredRenderer;
     Saiga::Vulkan::LineAssetRenderer forwardRenderer;
 };
-
+*/
+/*
 //!
 //! \brief The UniversalPointCloudRenderer class
 //! contains deferred and forward renderers for easier handling
@@ -109,6 +112,34 @@ class SAIGA_VULKAN_API UniversalPointCloudRenderer
     Saiga::Vulkan::DeferredPointCloudRenderer deferredRenderer;
     Saiga::Vulkan::PointCloudRenderer forwardRenderer;
 };
+*/
 
+template <typename Deferred, typename Forward>
+class SAIGA_VULKAN_API UniversalRenderer
+{
+   public:
+    ~UniversalRenderer() { destroy(); }
+
+    void destroy()
+    {
+        deferred.destroy();
+        forward.destroy();
+    }
+
+    void reload()
+    {
+        deferred.reload();
+        forward.reload();
+    }
+
+    Deferred deferred;
+    Forward forward;
+};
+
+using UniversalAssetRenderer         = UniversalRenderer<DeferredAssetRenderer, AssetRenderer>;
+using UniversalPointCloudRenderer    = UniversalRenderer<DeferredPointCloudRenderer, PointCloudRenderer>;
+using UniversalLineAssetRenderer     = UniversalRenderer<DeferredLineAssetRenderer, LineAssetRenderer>;
+using UniversalTexturedAssetRenderer = UniversalRenderer<DeferredTexturedAssetRenderer, TexturedAssetRenderer>;
+using UniversalTextureDisplay        = UniversalRenderer<DeferredTextureDisplay, TextureDisplay>;
 }  // namespace Vulkan
 }  // namespace Saiga

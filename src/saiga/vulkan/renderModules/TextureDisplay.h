@@ -46,6 +46,32 @@ class SAIGA_VULKAN_API TextureDisplay : public Pipeline
     Saiga::Vulkan::VulkanVertexColoredAsset blitMesh;
 };
 
+// Deferred renderer
+class SAIGA_VULKAN_API DeferredTextureDisplay : public Pipeline
+{
+   public:
+    using VertexType = VertexNC;
+
+
+    ~DeferredTextureDisplay() { destroy(); }
+    void destroy();
+
+
+    /**
+     * Render the texture at the given pixel position and size
+     */
+    void renderTexture(vk::CommandBuffer cmd, DescriptorSet& descriptor, vec2 position, vec2 size);
+
+
+
+    void init(Saiga::Vulkan::VulkanBase& vulkanDevice, VkRenderPass renderPass);
+
+
+    StaticDescriptorSet createAndUpdateDescriptorSet(Texture& texture);
+
+   private:
+    Saiga::Vulkan::VulkanVertexColoredAsset blitMesh;
+};
 
 
 }  // namespace Vulkan

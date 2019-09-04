@@ -22,9 +22,10 @@ void ColorBuffer::destroy()
     }
 }
 
-void ColorBuffer::init(VulkanBase& base, int width, int height, vk::ImageUsageFlags usage)
+void ColorBuffer::init(VulkanBase& base, int width, int height, vk::ImageUsageFlags usage, vk::Format format)
 {
-    this->base = &base;
+    this->format = format;
+    this->base   = &base;
     {
         // color buffer
         vk::ImageCreateInfo image_info = {};

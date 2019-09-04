@@ -24,7 +24,8 @@ class SAIGA_VULKAN_API ColorBuffer
     // depth image
     vk::Format format;
 
-    void init(Saiga::Vulkan::VulkanBase& base, int width, int height, vk::ImageUsageFlags usage);
+    void init(Saiga::Vulkan::VulkanBase& base, int width, int height, vk::ImageUsageFlags usage,
+              vk::Format format = vk::Format::eR16G16B16A16Sfloat);
     void destroy();
 
     Memory::ImageMemoryLocation* location = nullptr;

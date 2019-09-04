@@ -1,4 +1,4 @@
-#include "DeferredRenderer.h"
+#include "UniversalRenderer.h"
 
 #if defined(SAIGA_OPENGL_INCLUDED)
 #    error OpenGL was included somewhere.
@@ -9,7 +9,7 @@ namespace Saiga
 namespace Vulkan
 {
 // Asset Renderer
-void UniversalAssetRenderer::destroy()
+/*void UniversalAssetRenderer::destroy()
 {
     deferredRenderer.destroy();
     forwardRenderer.destroy();
@@ -55,10 +55,10 @@ void UniversalAssetRenderer::reload()
 {
     deferredRenderer.reload();
     forwardRenderer.reload();
-}
+}*/
 
 // Line Asset Renderer
-void UniversalLineAssetRenderer::destroy()
+/*void UniversalLineAssetRenderer::destroy()
 {
     deferredRenderer.destroy();
     forwardRenderer.destroy();
@@ -105,10 +105,10 @@ void UniversalLineAssetRenderer::reload()
 {
     deferredRenderer.reload();
     forwardRenderer.reload();
-}
+}*/
 
 // Point Cloud Renderer
-void UniversalPointCloudRenderer::destroy()
+/*void UniversalPointCloudRenderer::destroy()
 {
     deferredRenderer.destroy();
     forwardRenderer.destroy();
@@ -155,6 +155,6 @@ void UniversalPointCloudRenderer::reload()
 {
     deferredRenderer.reload();
     forwardRenderer.reload();
-}
+}*/
 }  // namespace Vulkan
 }  // namespace Saiga

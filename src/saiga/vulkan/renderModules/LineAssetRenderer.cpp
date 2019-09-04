@@ -117,7 +117,7 @@ void DeferredLineAssetRenderer::init(VulkanBase& vulkanDevice, VkRenderPass rend
     PipelineBase::init(vulkanDevice, 1);
     addDescriptorSetLayout({{0, {7, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex}}});
     addPushConstantRange({vk::ShaderStageFlagBits::eVertex, 0, sizeof(PC)});
-    shaderPipeline.load(device, {"vulkan/lineDeferred.vert", "vulkan/lineDeferred.frag"});
+    shaderPipeline.load(device, {"vulkan/line.vert", "vulkan/lineDeferred.frag"});
     PipelineInfo info;
     info.inputAssemblyState.topology = vk::PrimitiveTopology::eLineList;
     if (base->enabledFeatures.wideLines)

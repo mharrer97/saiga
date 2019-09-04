@@ -67,5 +67,55 @@ StaticDescriptorSet TextureDisplay::createAndUpdateDescriptorSet(Texture& textur
     return set;
 }
 
+
+// deferred renderer
+void DeferredTextureDisplay::destroy()
+{
+    Pipeline::destroy();
+}
+
+void DeferredTextureDisplay::renderTexture(vk::CommandBuffer cmd, DescriptorSet& descriptor, vec2 position, vec2 size)
+{
+    bindDescriptorSet(cmd, descriptor);
+    vk::Viewport vp(position[0], position[1], size[0], size[1]);
+    cmd.setViewport(0, vp);
+    blitMesh.render(cmd);
+}
+
+
+
+void DeferredTextureDisplay::init(VulkanBase& vulkanDevice, VkRenderPass renderPass)
+{
+    PipelineBase::init(vulkanDevice, 1);
+    addDescriptorSetLayout({
+        {0, {11, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment}},
+    });
+    addPushConstantRange({vk::ShaderStageFlagBits::eVertex, 0, sizeof(mat4)});
+    shaderPipeline.load(device, {"vulkan/blit.vert", "vulkan/blitDeferred.frag"});
+    PipelineInfo info;
+    info.addVertexInfo<VertexType>();
+    info.rasterizationState.cullMode      = vk::CullModeFlagBits::eNone;
+    info.blendAttachmentState.blendEnable = VK_TRUE;
+
+    create(renderPass, info, 4);
+
+    blitMesh.createFullscreenQuad();
+    blitMesh.init(vulkanDevice);
+}
+
+StaticDescriptorSet DeferredTextureDisplay::createAndUpdateDescriptorSet(Texture& texture)
+{
+    auto set = createDescriptorSet();
+
+    vk::DescriptorImageInfo descriptorInfoTexture = texture.getDescriptorInfo();
+
+    device.updateDescriptorSets(
+        {
+            vk::WriteDescriptorSet(set, 11, 0, 1, vk::DescriptorType::eCombinedImageSampler, &descriptorInfoTexture,
+                                   nullptr, nullptr),
+        },
+        nullptr);
+    return set;
+}
 }  // namespace Vulkan
 }  // namespace Saiga

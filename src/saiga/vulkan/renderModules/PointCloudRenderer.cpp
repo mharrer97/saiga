@@ -103,7 +103,7 @@ void DeferredPointCloudRenderer::init(VulkanBase& vulkanDevice, VkRenderPass ren
     PipelineBase::init(vulkanDevice, 1);
     addDescriptorSetLayout({{0, {7, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex}}});
     addPushConstantRange({vk::ShaderStageFlagBits::eVertex, 0, sizeof(mat4)});
-    shaderPipeline.loadGLSL(device, {{"vulkan/pointDeferred.vert", vk::ShaderStageFlagBits::eVertex,
+    shaderPipeline.loadGLSL(device, {{"vulkan/point.vert", vk::ShaderStageFlagBits::eVertex,
                                       "#define POINT_SIZE " + std::to_string(pointSize)},
                                      {"vulkan/pointDeferred.frag", vk::ShaderStageFlagBits::eFragment, ""}});
     PipelineInfo info;

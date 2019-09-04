@@ -58,7 +58,7 @@ class SAIGA_VULKAN_API DeferredAssetRenderer : public Pipeline
 {
    public:
     // Change these strings before calling 'init' to use your own shaders
-    std::string vertexShader = "vulkan/coloredAssetDeferred.vert";
+    std::string vertexShader   = "vulkan/coloredAsset.vert";
     std::string fragmentShader = "vulkan/coloredAssetDeferred.frag";
 
     ~DeferredAssetRenderer() { destroy(); }

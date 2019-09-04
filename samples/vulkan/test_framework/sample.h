@@ -15,11 +15,11 @@
 #include "saiga/vulkan/memory/VulkanMemory.h"
 #include "saiga/vulkan/pipeline/DescriptorSet.h"
 #include "saiga/vulkan/renderModules/AssetRenderer.h"
-#include "saiga/vulkan/renderModules/DeferredRenderer.h"
 #include "saiga/vulkan/renderModules/LineAssetRenderer.h"
 #include "saiga/vulkan/renderModules/PointCloudRenderer.h"
 #include "saiga/vulkan/renderModules/TextureDisplay.h"
 #include "saiga/vulkan/renderModules/TexturedAssetRenderer.h"
+#include "saiga/vulkan/renderModules/UniversalRenderer.h"
 
 #include <vector>
 using namespace Saiga;
@@ -58,11 +58,11 @@ class VulkanExample : public Saiga::Updating,
     Saiga::Vulkan::UniversalAssetRenderer assetRenderer;
     Saiga::Vulkan::UniversalLineAssetRenderer lineAssetRenderer;
     Saiga::Vulkan::UniversalPointCloudRenderer pointCloudRenderer;
-    Saiga::Vulkan::TexturedAssetRenderer texturedAssetRenderer;
+    Saiga::Vulkan::UniversalTexturedAssetRenderer texturedAssetRenderer;
 
     //
     Saiga::Vulkan::StaticDescriptorSet textureDes;
-    Saiga::Vulkan::TextureDisplay textureDisplay;
+    Saiga::Vulkan::UniversalTextureDisplay textureDisplay;
 
     Saiga::Vulkan::VulkanDeferredRenderer& renderer;
 

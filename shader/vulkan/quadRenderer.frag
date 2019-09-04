@@ -30,19 +30,19 @@ void main()
 {
 	
 	vec3 diffuseColor = texture(diffuseTexture, inData.tc).rgb;
-	vec4 specularAndRoughness = texture(diffuseTexture, inData.tc);
+	vec4 specularAndRoughness = texture(specularTexture, inData.tc);
 	vec4 additional = texture(additionalTexture, inData.tc); // <-- currently unused //w contains information if light calculation should be applied: 1 = no lighting
 	gl_FragDepth = texture(depthexture, inData.tc).r;
 
 	vec3 N = normalize(texture(normalTexture, inData.tc).rgb);
 	vec4 L4 = ubo.view * ubo.lightPos;
 	vec3 L = normalize(mat3(ubo.view) * ubo.lightPos.xyz);
-	vec3 V = vec3(0.f,0.f,1.f);
+	vec3 V = normalize(additional.rgb);//vec3(0.f,0.f,1.f);
 	vec3 R = reflect(-L, N);
 	
 	//float n_dot_l = clamp(dot(N, normalize(L)), 0.f, 1.f);
 	
-	vec3 diffuse = max(dot(N, L), 0.0) * diffuseColor;
+	vec3 diffuse = max(dot(N, L), 0.1) * diffuseColor;
 	vec3 specular = pow(max(dot(R, V), 0.0), specularAndRoughness.a * 256.f) * specularAndRoughness.rgb;
 	//vec3 specular = pow(max(dot(R, V), 0.0), 16.f) * vec3(0.75);// specularAndRoughness.rgb;
 	
@@ -51,7 +51,7 @@ void main()
 	if(additional.w > 0.99f) {
 		outColor = vec4(diffuseColor, 1.f);
 	}
-	outColor = vec4(diffuseColor, 1.f);
+	//outColor = vec4(N, 1.f);
     //outColor = texture(diffuseTexture,inData.tc) * texture(normalTexture,inData.tc) * max(1.f,texture(specularTexture,inData.tc).r + 0.75f) * texture(additionalTexture,inData.tc);
 	//outColor = ubo.lightPos;
 	

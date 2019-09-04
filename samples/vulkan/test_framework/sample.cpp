@@ -75,20 +75,26 @@ void VulkanExample::init(Saiga::Vulkan::VulkanBase& base)
     }
 
 
-    assetRenderer.init(base, renderer.renderPass, renderer.forwardPass);
-    lineAssetRenderer.init(base, renderer.renderPass, renderer.forwardPass, 2);
-    pointCloudRenderer.init(base, renderer.renderPass, renderer.forwardPass, 5);
-    texturedAssetRenderer.init(base, renderer.forwardPass);
-    textureDisplay.init(base, renderer.forwardPass);
+    assetRenderer.deferred.init(base, renderer.renderPass);
+    assetRenderer.forward.init(base, renderer.forwardPass);
+    lineAssetRenderer.deferred.init(base, renderer.renderPass, 2);
+    lineAssetRenderer.forward.init(base, renderer.forwardPass, 2);
+    pointCloudRenderer.deferred.init(base, renderer.renderPass, 5);
+    pointCloudRenderer.forward.init(base, renderer.forwardPass, 5);
+    texturedAssetRenderer.deferred.init(base, renderer.renderPass);
+    texturedAssetRenderer.forward.init(base, renderer.forwardPass);
+    textureDisplay.deferred.init(base, renderer.renderPass);
+    textureDisplay.forward.init(base, renderer.forwardPass);
 
-    textureDes = textureDisplay.createAndUpdateDescriptorSet(*texture);
+    textureDes = textureDisplay.forward.createAndUpdateDescriptorSet(*texture);
 
 
     box.loadObj("box.obj");
 
     ////    box.loadObj("cat.obj");
     box.init(renderer.base());
-    box.descriptor = texturedAssetRenderer.createAndUpdateDescriptorSet(*box.textures[0]);
+    box.descriptor = texturedAssetRenderer.forward.createAndUpdateDescriptorSet(*box.textures[0]);
+
 
     teapot.loadObj("teapot.obj");
     //        teapot.loadPly("dragon_10k.ply");
@@ -153,17 +159,18 @@ void VulkanExample::update(float dt)
 
 void VulkanExample::transfer(vk::CommandBuffer cmd)
 {
-    assetRenderer.updateUniformBuffersDeferred(cmd, camera.view, camera.proj);
-    pointCloudRenderer.updateUniformBuffersDeferred(cmd, camera.view, camera.proj);
-    lineAssetRenderer.updateUniformBuffersDeferred(cmd, camera.view, camera.proj);
+    assetRenderer.deferred.updateUniformBuffers(cmd, camera.view, camera.proj);
+    pointCloudRenderer.deferred.updateUniformBuffers(cmd, camera.view, camera.proj);
+    lineAssetRenderer.deferred.updateUniformBuffers(cmd, camera.view, camera.proj);
+    texturedAssetRenderer.deferred.updateUniformBuffers(cmd, camera.view, camera.proj);
 }
 
 void VulkanExample::transferForward(vk::CommandBuffer cmd)
 {
-    assetRenderer.updateUniformBuffersForward(cmd, camera.view, camera.proj);
-    pointCloudRenderer.updateUniformBuffersForward(cmd, camera.view, camera.proj);
-    lineAssetRenderer.updateUniformBuffersForward(cmd, camera.view, camera.proj);
-    texturedAssetRenderer.updateUniformBuffers(cmd, camera.view, camera.proj);
+    assetRenderer.forward.updateUniformBuffers(cmd, camera.view, camera.proj);
+    pointCloudRenderer.forward.updateUniformBuffers(cmd, camera.view, camera.proj);
+    lineAssetRenderer.forward.updateUniformBuffers(cmd, camera.view, camera.proj);
+    texturedAssetRenderer.forward.updateUniformBuffers(cmd, camera.view, camera.proj);
 
     // upload everything every frame
     if (uploadChanges)
@@ -178,30 +185,42 @@ void VulkanExample::render(vk::CommandBuffer cmd)
 {
     if (displayModels)
     {
-        if (assetRenderer.bindDeferred(cmd))
+        if (assetRenderer.deferred.bind(cmd))
         {
-            assetRenderer.pushModelDeferred(cmd, identityMat4());
+            assetRenderer.deferred.pushModel(cmd, identityMat4());
             plane.render(cmd);
 
-            assetRenderer.pushModelDeferred(cmd, teapotTrans.model);
+            assetRenderer.deferred.pushModel(cmd, teapotTrans.model);
             teapot.render(cmd);
         }
 
-        if (pointCloudRenderer.bindDeferred(cmd))
+        if (pointCloudRenderer.deferred.bind(cmd))
         {
-            pointCloudRenderer.pushModelDeferred(cmd, translate(vec3(10, 2.5f, 0)));
+            pointCloudRenderer.deferred.pushModel(cmd, translate(vec3(10, 2.5f, 0)));
             pointCloud.render(cmd, 0, pointCloud.capacity);
         }
 
-        if (lineAssetRenderer.bindDeferred(cmd))
+        if (lineAssetRenderer.deferred.bind(cmd))
         {
-            lineAssetRenderer.pushModelDeferred(cmd, translate(vec3(-10.f, 1.5f, 0)));
+            lineAssetRenderer.deferred.pushModel(cmd, translate(vec3(-10.f, 1.5f, 0)));
             teapot.render(cmd);
 
             auto gridMatrix = rotate(0.5f * pi<float>(), vec3(1, 0, 0));
             gridMatrix      = translate(gridMatrix, vec3(0, -10, 0));
-            lineAssetRenderer.pushModelDeferred(cmd, gridMatrix);
+            lineAssetRenderer.deferred.pushModel(cmd, gridMatrix);
             grid.render(cmd);
+        }
+
+        if (texturedAssetRenderer.deferred.bind(cmd))
+        {
+            texturedAssetRenderer.deferred.pushModel(cmd, translate(vec3(-10.f, 1, -5.f)));
+            texturedAssetRenderer.deferred.bindTexture(cmd, box.descriptor);
+            box.render(cmd);
+        }
+
+        if (textureDisplay.deferred.bind(cmd))
+        {
+            textureDisplay.deferred.renderTexture(cmd, textureDes, vec2(150, 10), vec2(100, 50));
         }
     }
 }
@@ -210,39 +229,42 @@ void VulkanExample::renderForward(vk::CommandBuffer cmd)
 {
     if (displayModels)
     {
-        if (assetRenderer.bindForward(cmd))
+        if (assetRenderer.forward.bind(cmd))
         {
-            assetRenderer.pushModelForward(cmd, teapotTrans.model * translate(vec3(5.f, 0.f, 5.f)));
+            assetRenderer.forward.pushModel(cmd, identityMat4());
+            // plane.render(cmd);
+
+            assetRenderer.forward.pushModel(cmd, teapotTrans.model * translate(vec3(5.f, 0.f, 5.f)));
             teapot.render(cmd);
         }
-        if (pointCloudRenderer.bindForward(cmd))
+        if (pointCloudRenderer.forward.bind(cmd))
         {
-            pointCloudRenderer.pushModelForward(cmd, translate(vec3(10, 2.5f, 0)));
+            pointCloudRenderer.forward.pushModel(cmd, translate(vec3(10, 2.5f, 0)));
             // pointCloud.render(cmd, 0, pointCloud.capacity);
         }
-        if (lineAssetRenderer.bindForward(cmd))
+        if (lineAssetRenderer.forward.bind(cmd))
         {
-            lineAssetRenderer.pushModelForward(cmd, translate(vec3(-10.f, 1.5f, 0)));
+            lineAssetRenderer.forward.pushModel(cmd, translate(vec3(-10.f, 1.5f, 0)));
             // teapot.render(cmd);
 
             auto gridMatrix = rotate(0.5f * pi<float>(), vec3(1, 0, 0));
             gridMatrix      = translate(gridMatrix, vec3(0, -10, 0));
-            lineAssetRenderer.pushModelForward(cmd, gridMatrix);
+            lineAssetRenderer.forward.pushModel(cmd, gridMatrix);
             // grid.render(cmd);
         }
 
 
 
-        if (texturedAssetRenderer.bind(cmd))
+        if (texturedAssetRenderer.forward.bind(cmd))
         {
-            texturedAssetRenderer.pushModel(cmd, translate(vec3(-7.5f, 1, -5.f)));
-            texturedAssetRenderer.bindTexture(cmd, box.descriptor);
+            texturedAssetRenderer.forward.pushModel(cmd, translate(vec3(-7.5f, 1, -5.f)));
+            texturedAssetRenderer.forward.bindTexture(cmd, box.descriptor);
             box.render(cmd);
         }
     }
-    if (textureDisplay.bind(cmd))
+    if (textureDisplay.forward.bind(cmd))
     {
-        textureDisplay.renderTexture(cmd, textureDes, vec2(10, 10), vec2(100, 50));
+        textureDisplay.forward.renderTexture(cmd, textureDes, vec2(10, 10), vec2(100, 50));
     }
 }
 
