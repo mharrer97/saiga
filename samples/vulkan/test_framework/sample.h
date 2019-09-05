@@ -1,11 +1,10 @@
-﻿/*
- * Vulkan Example - imGui (https://github.com/ocornut/imgui)
+﻿/**
+ * Copyright (c) 2017 Darius Rückert
+ * Licensed under the MIT License.
+ * See LICENSE file for more information.
  *
- * Copyright (C) 2017 by Sascha Willems - www.saschawillems.de
- *
- * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
+ * Created by Mathias Harrer: mathias.mh.harrer@fau.de
  */
-
 #pragma once
 
 #include "saiga/core/sdl/sdl_camera.h"
@@ -35,11 +34,10 @@ class VulkanExample : public Saiga::Updating,
 
 
     void update(float dt) override;
-    void transfer(vk::CommandBuffer cmd) override;
-    void transferForward(vk::CommandBuffer cmd) override;
-    void render(vk::CommandBuffer cmd) override;
-    void renderForward(vk::CommandBuffer cmd) override;
-    mat4 getCameraView() override;  // TODO eleganter loesen
+    void transfer(vk::CommandBuffer cmd, Camera* cam) override;
+    void transferForward(vk::CommandBuffer cmd, Camera* cam) override;
+    void render(vk::CommandBuffer cmd, Camera* cam) override;
+    void renderForward(vk::CommandBuffer cmd, Camera* cam) override;
     void renderGUI() override;
 
    private:

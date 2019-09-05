@@ -1,9 +1,9 @@
-﻿/*
- * Vulkan Example - imGui (https://github.com/ocornut/imgui)
+﻿/**
+ * Copyright (c) 2017 Darius Rückert
+ * Licensed under the MIT License.
+ * See LICENSE file for more information.
  *
- * Copyright (C) 2017 by Sascha Willems - www.saschawillems.de
- *
- * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
+ * Created by Mathias Harrer: mathias.mh.harrer@fau.de
  */
 
 #include "sample.h"
@@ -157,20 +157,20 @@ void VulkanExample::update(float dt)
     // camera.setInput(!ImGui::GetIO().WantCaptureKeyboard && !ImGui::GetIO().WantCaptureMouse);
 }
 
-void VulkanExample::transfer(vk::CommandBuffer cmd)
+void VulkanExample::transfer(vk::CommandBuffer cmd, Camera* cam)
 {
-    assetRenderer.deferred.updateUniformBuffers(cmd, camera.view, camera.proj);
-    pointCloudRenderer.deferred.updateUniformBuffers(cmd, camera.view, camera.proj);
-    lineAssetRenderer.deferred.updateUniformBuffers(cmd, camera.view, camera.proj);
-    texturedAssetRenderer.deferred.updateUniformBuffers(cmd, camera.view, camera.proj);
+    assetRenderer.deferred.updateUniformBuffers(cmd, cam->view, cam->proj);
+    pointCloudRenderer.deferred.updateUniformBuffers(cmd, cam->view, cam->proj);
+    lineAssetRenderer.deferred.updateUniformBuffers(cmd, cam->view, cam->proj);
+    texturedAssetRenderer.deferred.updateUniformBuffers(cmd, cam->view, cam->proj);
 }
 
-void VulkanExample::transferForward(vk::CommandBuffer cmd)
+void VulkanExample::transferForward(vk::CommandBuffer cmd, Camera* cam)
 {
-    assetRenderer.forward.updateUniformBuffers(cmd, camera.view, camera.proj);
-    pointCloudRenderer.forward.updateUniformBuffers(cmd, camera.view, camera.proj);
-    lineAssetRenderer.forward.updateUniformBuffers(cmd, camera.view, camera.proj);
-    texturedAssetRenderer.forward.updateUniformBuffers(cmd, camera.view, camera.proj);
+    assetRenderer.forward.updateUniformBuffers(cmd, cam->view, cam->proj);
+    pointCloudRenderer.forward.updateUniformBuffers(cmd, cam->view, cam->proj);
+    lineAssetRenderer.forward.updateUniformBuffers(cmd, cam->view, cam->proj);
+    texturedAssetRenderer.forward.updateUniformBuffers(cmd, cam->view, cam->proj);
 
     // upload everything every frame
     if (uploadChanges)
@@ -181,7 +181,7 @@ void VulkanExample::transferForward(vk::CommandBuffer cmd)
     }
 }
 
-void VulkanExample::render(vk::CommandBuffer cmd)
+void VulkanExample::render(vk::CommandBuffer cmd, Camera* cam)
 {
     if (displayModels)
     {
@@ -225,7 +225,7 @@ void VulkanExample::render(vk::CommandBuffer cmd)
     }
 }
 
-void VulkanExample::renderForward(vk::CommandBuffer cmd)
+void VulkanExample::renderForward(vk::CommandBuffer cmd, Camera* cam)
 {
     if (displayModels)
     {
@@ -268,10 +268,7 @@ void VulkanExample::renderForward(vk::CommandBuffer cmd)
     }
 }
 
-mat4 VulkanExample::getCameraView()  // TODO eleganter loesen
-{
-    return camera.view;
-}
+
 void VulkanExample::renderGUI()
 {
     ImGui::SetNextWindowSize(ImVec2(200, 200));

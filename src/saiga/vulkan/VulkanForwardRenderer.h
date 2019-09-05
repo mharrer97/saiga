@@ -44,7 +44,7 @@ class SAIGA_VULKAN_API VulkanForwardRenderer : public VulkanRenderer
     VulkanForwardRenderer(VulkanWindow& window, VulkanParameters vulkanParameters);
     virtual ~VulkanForwardRenderer() override;
 
-    virtual void render(FrameSync& sync, int currentImage) override;
+    virtual void render(FrameSync& sync, int currentImage, Camera* cam) override;
 
     virtual void createBuffers(int numImages, int w, int h) override;
     void setupRenderPass();

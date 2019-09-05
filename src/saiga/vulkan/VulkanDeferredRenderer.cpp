@@ -1,11 +1,10 @@
-﻿/*
- * Vulkan Example base class
+﻿/**
+ * Copyright (c) 2017 Darius Rückert
+ * Licensed under the MIT License.
+ * See LICENSE file for more information.
  *
- * Copyright (C) 2016-2017 by Sascha Willems - www.saschawillems.de
- *
- * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
+ * Created by Mathias Harrer: mathias.mh.harrer@fau.de
  */
-
 
 #include "VulkanDeferredRenderer.h"
 
@@ -448,7 +447,7 @@ void VulkanDeferredRenderer::setupRenderPass()
 //!
 //! creates the command buffers for rendering from the gbuffer to the actual swapchain
 //!
-void VulkanDeferredRenderer::setupCommandBuffer(int currentImage)
+void VulkanDeferredRenderer::setupCommandBuffer(int currentImage, Camera* cam)
 {
     vk::CommandBufferBeginInfo cmdBufBeginInfo = vks::initializers::commandBufferBeginInfo();
 
@@ -482,10 +481,8 @@ void VulkanDeferredRenderer::setupCommandBuffer(int currentImage)
     // begin recording cmdBuffer
     drawCmdBuffers[currentImage].begin(cmdBufBeginInfo);
 
-    // update unfiform buffer ... first get view matrix
-    VulkanDeferredRenderingInterface* renderingInterface = dynamic_cast<VulkanDeferredRenderingInterface*>(rendering);
-    SAIGA_ASSERT(renderingInterface);  // TODO iwie übergeben!!!!!!!!!!!
-    mat4 view = renderingInterface->getCameraView();
+
+    mat4 view = cam->view;
     quadRenderer.updateUniformBuffers(drawCmdBuffers[currentImage], view, vec4(5.f, 5.f, 5.f, 0.f));
     drawCmdBuffers[currentImage].beginRenderPass(&renderPassBeginInfo, vk::SubpassContents::eInline);
 
@@ -509,7 +506,7 @@ void VulkanDeferredRenderer::setupCommandBuffer(int currentImage)
 }
 
 
-void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage)
+void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage, Camera* cam)
 {
     VulkanDeferredRenderingInterface* renderingInterface = dynamic_cast<VulkanDeferredRenderingInterface*>(rendering);
     SAIGA_ASSERT(renderingInterface);
@@ -562,7 +559,7 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage)
     timings.enterSection("TRANSFER", cmd);
 
     // VK_CHECK_RESULT(vkBeginCommandBuffer(cmd, &cmdBufInfo));
-    renderingInterface->transfer(cmd);
+    renderingInterface->transfer(cmd, cam);
     timings.leaveSection("TRANSFER", cmd);
 
 
@@ -579,7 +576,7 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage)
     {
         // Actual rendering
         timings.enterSection("MAIN", cmd);
-        renderingInterface->render(cmd);
+        renderingInterface->render(cmd, cam);
         timings.leaveSection("MAIN", cmd);
         // timings.enterSection("IMGUI", cmd);
         // if (imGui) imGui->render(cmd, currentImage);
@@ -625,7 +622,7 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage)
     timings.enterSection("TRANSFER", fwdCmd);
 
     // VK_CHECK_RESULT(vkBeginCommandBuffer(cmd, &cmdBufInfo));
-    renderingInterface->transferForward(fwdCmd);
+    renderingInterface->transferForward(fwdCmd, cam);
 
     timings.leaveSection("TRANSFER", fwdCmd);
 
@@ -644,7 +641,7 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage)
     {
         // Actual rendering
         timings.enterSection("MAIN", fwdCmd);
-        renderingInterface->renderForward(fwdCmd);
+        renderingInterface->renderForward(fwdCmd, cam);
         timings.leaveSection("MAIN", fwdCmd);
         timings.enterSection("IMGUI", fwdCmd);
         if (imGui && renderImgui) imGui->render(fwdCmd, currentImage);
@@ -687,7 +684,7 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage)
 
 
     // prepare the command nuffer
-    setupCommandBuffer(currentImage);
+    setupCommandBuffer(currentImage, cam);
     vk::SubmitInfo submitInfo;
     //    submitInfo = vks::initializers::submitInfo();
     submitInfo.pWaitDstStageMask    = &submitPipelineStages;

@@ -131,7 +131,7 @@ void VulkanForwardRenderer::setupRenderPass()
 
 
 
-void VulkanForwardRenderer::render(FrameSync& sync, int currentImage)
+void VulkanForwardRenderer::render(FrameSync& sync, int currentImage, Camera* cam)
 {
     VulkanForwardRenderingInterface* renderingInterface = dynamic_cast<VulkanForwardRenderingInterface*>(rendering);
     SAIGA_ASSERT(renderingInterface);

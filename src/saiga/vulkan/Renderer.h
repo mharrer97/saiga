@@ -76,7 +76,7 @@ class SAIGA_VULKAN_API VulkanRenderer : public RendererBase
      * The main render functions for the derived renderers.
      * This should then call all required subpasses.
      */
-    virtual void render(FrameSync& sync, int currentImage) = 0;
+    virtual void render(FrameSync& sync, int currentImage, Camera* cam) = 0;
 
 
 

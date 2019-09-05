@@ -1,13 +1,14 @@
-﻿/*
- * Vulkan Example base class
+﻿/**
+ * Copyright (c) 2017 Darius Rückert
+ * Licensed under the MIT License.
+ * See LICENSE file for more information.
  *
- * Copyright (C) 2016 by Sascha Willems - www.saschawillems.de
- *
- * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
+ * Created by Mathias Harrer: mathias.mh.harrer@fau.de
  */
 
 #pragma once
 
+#include "saiga/core/camera/all.h"
 #include "saiga/core/math/math.h"
 #include "saiga/core/util/assert.h"
 #include "saiga/vulkan/CommandPool.h"
@@ -33,11 +34,10 @@ class SAIGA_VULKAN_API VulkanDeferredRenderingInterface : public RenderingInterf
     VulkanDeferredRenderingInterface(RendererBase& parent) : RenderingInterfaceBase(parent) {}
     virtual ~VulkanDeferredRenderingInterface() {}
 
-    virtual void transfer(vk::CommandBuffer cmd) {}
-    virtual void transferForward(vk::CommandBuffer cmd) {}
-    virtual void render(vk::CommandBuffer cmd) {}
-    virtual void renderForward(vk::CommandBuffer cmd) {}
-    virtual mat4 getCameraView() { return identityMat4(); }  // TODO ?? nicht die eleganteste lösung?
+    virtual void transfer(vk::CommandBuffer cmd, Camera* cam) {}
+    virtual void transferForward(vk::CommandBuffer cmd, Camera* cam) {}
+    virtual void render(vk::CommandBuffer cmd, Camera* cam) {}
+    virtual void renderForward(vk::CommandBuffer cmd, Camera* cam) {}
     virtual void renderGUI() {}
 };
 
@@ -61,7 +61,7 @@ class SAIGA_VULKAN_API VulkanDeferredRenderer : public VulkanRenderer
     VulkanDeferredRenderer(VulkanWindow& window, VulkanParameters vulkanParameters);
     virtual ~VulkanDeferredRenderer() override;
 
-    virtual void render(FrameSync& sync, int currentImage) override;
+    virtual void render(FrameSync& sync, int currentImage, Camera* cam) override;
     //    virtual void render(Camera* cam) override;
 
 
@@ -73,7 +73,7 @@ class SAIGA_VULKAN_API VulkanDeferredRenderer : public VulkanRenderer
 
     void setupRenderPass();
 
-    void setupCommandBuffer(int currentImage);
+    void setupCommandBuffer(int currentImage, Camera* cam);
 
    protected:
     DepthBuffer depthBuffer;

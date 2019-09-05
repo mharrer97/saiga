@@ -112,7 +112,7 @@ void VulkanRenderer::render(Camera* cam)
     VK_CHECK_RESULT(err);
 
 
-    render(sync, currentBuffer);
+    render(sync, currentBuffer, cam);
 
 
     err = swapChain.queuePresent(base().mainQueue, currentBuffer, sync.renderComplete);
