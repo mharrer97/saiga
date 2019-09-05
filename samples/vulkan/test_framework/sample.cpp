@@ -129,7 +129,7 @@ void VulkanExample::init(Saiga::Vulkan::VulkanBase& base)
 
 void VulkanExample::update(float dt)
 {
-    camera.setView(rotate(camera.view, dt, vec3(0.f, 1.f, 0.f)));
+    // camera.setView(rotate(camera.view, dt / 100.f, vec3(0.f, 1.f, 0.f)));
 
     if (!ImGui::captureKeyboard())
     {

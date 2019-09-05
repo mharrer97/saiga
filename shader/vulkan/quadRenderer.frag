@@ -43,11 +43,11 @@ void main()
 
 	vec3 N = normalize(texture(normalTexture, inData.tc).rgb);
 	vec4 L4 = ubo.view * ubo.lightPos;
-	vec3 L = normalize(mat3(ubo.view) * ubo.lightPos.xyz);
 	vec3 v = normalize(additional.rgb);//vec3(0.f,0.f,1.f);
 	vec3 V = -normalize(reconstructPosition(depth, inData.tc));
+	vec3 L = normalize((mat3(ubo.view) * ubo.lightPos.xyz) - V);
 	vec3 R = reflect(-L, N);
-	
+
 	//float n_dot_l = clamp(dot(N, normalize(L)), 0.f, 1.f);
 	
 	vec3 diffuse = max(dot(N, L), 0.1) * diffuseColor;
