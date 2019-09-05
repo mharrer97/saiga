@@ -12,9 +12,10 @@ layout(binding = 15) uniform sampler2D depthexture;
 
 layout (binding = 16) uniform UBO2 
 {
-//	mat4 projection;
+	mat4 projection;
 	mat4 view;
 	vec4 lightPos;
+	bool debug;
 } ubo;
 
 
@@ -51,6 +52,20 @@ void main()
 	if(additional.w > 0.99f) {
 		outColor = vec4(diffuseColor, 1.f);
 	}
+		
+	if(ubo.debug) {
+		vec2 tc2 = inData.tc * 2.f;
+		if (inData.tc.x < 0.5 && inData.tc.y >= 0.5) //linker unterer bereich der anzeige
+				outColor = vec4(vec3(texture(depthexture, tc2 -vec2(0,1)).r), 1);
+		else if (inData.tc.x >= 0.5 && inData.tc.y >= 0.5) //rechter unterer bereich der anzeige
+				outColor = vec4(texture(additionalTexture, tc2 - vec2(1,1)).rgb, 1);
+		else if (inData.tc.x < 0.5 && inData.tc.y < 0.5) //linker oberer
+				outColor = vec4(texture(diffuseTexture, tc2).rgb, 1);
+		else //rechter oberer
+				outColor = vec4(texture(normalTexture, tc2 - vec2(1,0)).rgb, 1);
+	}
+	
+	
 	//outColor = vec4(N, 1.f);
     //outColor = texture(diffuseTexture,inData.tc) * texture(normalTexture,inData.tc) * max(1.f,texture(specularTexture,inData.tc).r + 0.75f) * texture(additionalTexture,inData.tc);
 	//outColor = ubo.lightPos;
