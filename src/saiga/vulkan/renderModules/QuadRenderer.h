@@ -41,7 +41,7 @@ class SAIGA_VULKAN_API QuadRenderer : public Pipeline
 
     void init(Saiga::Vulkan::VulkanBase& vulkanDevice, VkRenderPass renderPass);
 
-    void updateUniformBuffers(vk::CommandBuffer, mat4 view, vec4 lightPosition);
+    void updateUniformBuffers(vk::CommandBuffer, mat4 proj, mat4 view, vec4 lightPosition, bool debug);
 
     void createAndUpdateDescriptorSet(Saiga::Vulkan::Memory::ImageMemoryLocation* diffuse,
                                       Saiga::Vulkan::Memory::ImageMemoryLocation* specular,
@@ -52,9 +52,10 @@ class SAIGA_VULKAN_API QuadRenderer : public Pipeline
    private:
     struct UBOVS
     {
-        //    mat4 projection;
+        mat4 proj;
         mat4 view;
         vec4 lightPos;
+        bool debug;
     } uboVS;
 
     UniformBuffer uniformBufferVS;

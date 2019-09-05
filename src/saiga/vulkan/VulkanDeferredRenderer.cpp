@@ -67,9 +67,9 @@ VulkanDeferredRenderer::~VulkanDeferredRenderer()
 
 //!
 //! \brief VulkanDeferredRenderer::createBuffers creates all framebuffers and attachments for deferred rendering
-//! \param numImages
-//! \param w
-//! \param h
+//! \param numImages number of images in the swap chain
+//! \param w width of the swap chain
+//! \param h height of the swap chain
 //!
 void VulkanDeferredRenderer::createBuffers(int numImages, int w, int h)
 {
@@ -108,7 +108,6 @@ void VulkanDeferredRenderer::createBuffers(int numImages, int w, int h)
 
     std::cout << "  Framebuffer Creation -- FINISHED" << std::endl;
 
-    // TODO use gbuffer correctly
     gBuffer.destroy();
     gBuffer.createGBuffer(w, h, diffuseAttachment.location->data.view, specularAttachment.location->data.view,
                           normalAttachment.location->data.view, additionalAttachment.location->data.view,
@@ -134,35 +133,11 @@ void VulkanDeferredRenderer::createBuffers(int numImages, int w, int h)
     if (imGui) imGui->initResources(base(), forwardPass);
 
     std::cout << "QuadRenderer DescriptorSet Update/Creation -- CALL" << std::endl;
-    //    quadRenderer.createAndUpdateDescriptorSet(diffuseAttachment.location, specularAttachment.location,
-    //                                              normalAttachment.location, additionalAttachment.location);
 
-
-
-    /* {
-         auto tex = std::make_shared<Saiga::Vulkan::Texture2D>();
-         Saiga::Image img("box.png");
-         if (img.type == Saiga::UC3)
-         {
-             std::cout << "adding alplha channel" << std::endl;
-             Saiga::TemplatedImage<ucvec4> img2(img.height, img.width);
-             std::cout << img << " " << img2 << std::endl;
-             Saiga::ImageTransformation::addAlphaChannel(img.getImageView<ucvec3>(),
-     img2.getImageView(), 255); tex->fromImage(base(), img2);
-         }
-         else
-         {
-             std::cout << img << std::endl;
-             tex->fromImage(base(), img);
-         }
-         texture = tex;
-     }*/
     quadRenderer.createAndUpdateDescriptorSet(diffuseAttachment.location, specularAttachment.location,
                                               normalAttachment.location, additionalAttachment.location,
                                               gBufferDepthBuffer.location);
     std::cout << "QuadRenderer DescriptorSet Update/Creation -- CALL RETURN" << std::endl;
-
-
 
     std::cout << "Buffer Creation -- FINISHED" << std::endl;
 }
@@ -272,15 +247,13 @@ void VulkanDeferredRenderer::setupRenderPass()
     gBufferDependencies[1].dependencyFlags = vk::DependencyFlagBits::eByRegion;
 
     vk::RenderPassCreateInfo gBufferRenderPassInfo = {};
-    // gBufferRenderPassInfo.sType                  = vk::StructureType::eRenderPassCreateInfo;
-    gBufferRenderPassInfo.attachmentCount = static_cast<uint32_t>(gBufferAttachments.size());
-    gBufferRenderPassInfo.pAttachments    = gBufferAttachments.data();
-    gBufferRenderPassInfo.subpassCount    = 1;
-    gBufferRenderPassInfo.pSubpasses      = &gBufferSubpassDescription;
-    gBufferRenderPassInfo.dependencyCount = static_cast<uint32_t>(gBufferDependencies.size());
-    gBufferRenderPassInfo.pDependencies   = gBufferDependencies.data();
+    gBufferRenderPassInfo.attachmentCount          = static_cast<uint32_t>(gBufferAttachments.size());
+    gBufferRenderPassInfo.pAttachments             = gBufferAttachments.data();
+    gBufferRenderPassInfo.subpassCount             = 1;
+    gBufferRenderPassInfo.pSubpasses               = &gBufferSubpassDescription;
+    gBufferRenderPassInfo.dependencyCount          = static_cast<uint32_t>(gBufferDependencies.size());
+    gBufferRenderPassInfo.pDependencies            = gBufferDependencies.data();
 
-    // VK_CHECK_RESULT(vkCreateRenderPass(base().device, &gBufferRenderPassInfo, nullptr, &renderPass));
     base().device.createRenderPass(&gBufferRenderPassInfo, nullptr, &renderPass);
     SAIGA_ASSERT(renderPass);
     std::cout << "Creation Render Pass 1 -- FINISHED" << std::endl;
@@ -349,13 +322,12 @@ void VulkanDeferredRenderer::setupRenderPass()
     dependencies[1].dependencyFlags = vk::DependencyFlagBits::eByRegion;
 
     vk::RenderPassCreateInfo renderPassInfo = {};
-    // renderPassInfo.sType                  = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-    renderPassInfo.attachmentCount = 2;  // static_cast<uint32_t>(attachments.size());
-    renderPassInfo.pAttachments    = attachments.data();
-    renderPassInfo.subpassCount    = 1;
-    renderPassInfo.pSubpasses      = &subpassDescription;
-    renderPassInfo.dependencyCount = 1;  // static_cast<uint32_t>(dependencies.size());
-    renderPassInfo.pDependencies   = dependencies.data();
+    renderPassInfo.attachmentCount          = 2;  // static_cast<uint32_t>(attachments.size());
+    renderPassInfo.pAttachments             = attachments.data();
+    renderPassInfo.subpassCount             = 1;
+    renderPassInfo.pSubpasses               = &subpassDescription;
+    renderPassInfo.dependencyCount          = 1;  // static_cast<uint32_t>(dependencies.size());
+    renderPassInfo.pDependencies            = dependencies.data();
 
     base().device.createRenderPass(&renderPassInfo, nullptr, &lightingPass);
     SAIGA_ASSERT(lightingPass);
@@ -440,19 +412,84 @@ void VulkanDeferredRenderer::setupRenderPass()
     std::cout << "Creation Render Passes -- FINISHED" << std::endl;
 }
 
+//!
+//! \brief VulkanDeferredRenderer::setupGeometryCommandBuffer
+//! \param currentImage indicates, which which cmdbuffer should be recorded
+//! \param cam the camera to be used while rendering
+//!
+//! creates the command buffers for rendering the scene into the gbuffer
+//!
+void VulkanDeferredRenderer::setupGeometryCommandBuffer(int currentImage, Camera* cam)
+{
+    VulkanDeferredRenderingInterface* renderingInterface = dynamic_cast<VulkanDeferredRenderingInterface*>(rendering);
+    SAIGA_ASSERT(renderingInterface);
 
+    // create and fill infos for cmd buffer recording
+    vk::CommandBufferBeginInfo geometryCmdBufInfo = vks::initializers::commandBufferBeginInfo();
+
+    std::array<vk::ClearValue, 5> geometryClearValues;
+
+    // This is blender's default viewport background color :)
+    vec4 clearColor = vec4(57, 57, 57, 255) / 255.0f;
+    geometryClearValues[0].color.setFloat32({clearColor[0], clearColor[1], clearColor[2], clearColor[3]});
+    geometryClearValues[1].color.setFloat32({0.0f, 0.0f, 0.0f, 0.0f});
+    geometryClearValues[2].color.setFloat32({0.0f, 0.0f, 0.0f, 0.0f});
+    geometryClearValues[3].color.setFloat32({0.0f, 0.0f, 0.0f, 1.0f});
+    geometryClearValues[4].depthStencil.setDepth(1.0f);
+    geometryClearValues[4].depthStencil.setStencil(0);
+
+    vk::RenderPassBeginInfo geometryRenderPassBeginInfo  = vks::initializers::renderPassBeginInfo();
+    geometryRenderPassBeginInfo.renderPass               = renderPass;
+    geometryRenderPassBeginInfo.framebuffer              = gBuffer.framebuffer;
+    geometryRenderPassBeginInfo.renderArea.extent.width  = surfaceWidth;
+    geometryRenderPassBeginInfo.renderArea.extent.height = SurfaceHeight;
+    geometryRenderPassBeginInfo.clearValueCount          = static_cast<uint32_t>(geometryClearValues.size());
+    geometryRenderPassBeginInfo.pClearValues             = geometryClearValues.data();
+
+    vk::CommandBuffer& cmd = geometryCmdBuffers[currentImage];
+
+    // start recording
+    cmd.begin(geometryCmdBufInfo);
+    timings.resetFrame(cmd);
+    timings.enterSection("TRANSFER", cmd);
+
+    // add commands for transfer of sample data
+    renderingInterface->transfer(cmd, cam);
+    timings.leaveSection("TRANSFER", cmd);
+
+    // add render commands
+    cmd.beginRenderPass(&geometryRenderPassBeginInfo, vk::SubpassContents::eInline);
+
+    vk::Viewport gBufferViewport = vks::initializers::viewport((float)surfaceWidth, (float)SurfaceHeight, 0.0f, 1.0f);
+    cmd.setViewport(0, 1, &gBufferViewport);
+    vk::Rect2D gBufferScissor = vks::initializers::rect2D(surfaceWidth, SurfaceHeight, 0, 0);
+    cmd.setScissor(0, 1, &gBufferScissor);
+
+
+    {
+        // Actual rendering
+        timings.enterSection("MAIN", cmd);
+        renderingInterface->render(cmd, cam);
+        timings.leaveSection("MAIN", cmd);
+    }
+
+    // end render commands
+    cmd.endRenderPass();
+    // end recording
+    cmd.end();
+}
 
 //!
-//! \brief VulkanDeferredRenderer::setupCommandBuffers
+//! \brief VulkanDeferredRenderer::setupDrawCommandBuffer
+//! \param currentImage indicates, which which cmdbuffer should be recorded
+//! \param cam the camera to be used while rendering
 //!
 //! creates the command buffers for rendering from the gbuffer to the actual swapchain
 //!
-void VulkanDeferredRenderer::setupCommandBuffer(int currentImage, Camera* cam)
+void VulkanDeferredRenderer::setupDrawCommandBuffer(int currentImage, Camera* cam)
 {
     vk::CommandBufferBeginInfo cmdBufBeginInfo = vks::initializers::commandBufferBeginInfo();
 
-
-    // following create infos etc are all the same for each draw cmd buffer
     // clear values for each attachment
     // This is blender's default viewport background color :)
     vec4 clearColor = vec4(57, 57, 57, 255) / 255.0f;
@@ -482,8 +519,8 @@ void VulkanDeferredRenderer::setupCommandBuffer(int currentImage, Camera* cam)
     drawCmdBuffers[currentImage].begin(cmdBufBeginInfo);
 
 
-    mat4 view = cam->view;
-    quadRenderer.updateUniformBuffers(drawCmdBuffers[currentImage], view, vec4(5.f, 5.f, 5.f, 0.f));
+    quadRenderer.updateUniformBuffers(drawCmdBuffers[currentImage], cam->proj, cam->view, vec4(5.f, 5.f, 5.f, 0.f),
+                                      debug);
     drawCmdBuffers[currentImage].beginRenderPass(&renderPassBeginInfo, vk::SubpassContents::eInline);
 
     // setup viewport & scissor
@@ -505,97 +542,21 @@ void VulkanDeferredRenderer::setupCommandBuffer(int currentImage, Camera* cam)
     drawCmdBuffers[currentImage].end();
 }
 
-
-void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage, Camera* cam)
+//! \brief VulkanDeferredRenderer::setupForwardCommandBuffer
+//! \param currentImage indicates, which which cmdbuffer should be recorded
+//! \param cam the camera to be used while rendering
+//!
+//! creates the command buffers for rendering parts of the scene in forward rendering e.g. transparent objects
+//!
+void VulkanDeferredRenderer::setupForwardCommandBuffer(int currentImage, Camera* cam)
 {
     VulkanDeferredRenderingInterface* renderingInterface = dynamic_cast<VulkanDeferredRenderingInterface*>(rendering);
     SAIGA_ASSERT(renderingInterface);
 
-    //    cout << "VulkanDeferredRenderer::render" << endl;
-    if (imGui)
-    {
-        //        std::thread t([&](){
-        imGui->beginFrame();
-        renderingInterface->renderGUI();
-        imGui->endFrame();
-        //        });
-        //        t.join();
-    }
-
-
-
-    vk::CommandBufferBeginInfo geometryCmdBufInfo = vks::initializers::commandBufferBeginInfo();
-    //    cmdBufInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
-
-    std::array<vk::ClearValue, 5> geometryClearValues;
-
-
-    // geometryClearValues[0].color.setFloat32({geometryClearColor[0], geometryClearColor[1], geometryClearColor[2],
-    // geometryClearColor[3]});
-    // This is blender's default viewport background color :)
+    // record forwardRenderPass CmdBuffers
+    VkCommandBufferBeginInfo fwdCmdBufInfo = vks::initializers::commandBufferBeginInfo();
 
     vec4 clearColor = vec4(57, 57, 57, 255) / 255.0f;
-    geometryClearValues[0].color.setFloat32({clearColor[0], clearColor[1], clearColor[2], clearColor[3]});
-    geometryClearValues[1].color.setFloat32({0.0f, 0.0f, 0.0f, 0.0f});
-    geometryClearValues[2].color.setFloat32({0.0f, 0.0f, 0.0f, 0.0f});
-    geometryClearValues[3].color.setFloat32({0.0f, 0.0f, 0.0f, 1.0f});
-    geometryClearValues[4].depthStencil.setDepth(1.0f);
-    geometryClearValues[4].depthStencil.setStencil(0);
-
-    vk::RenderPassBeginInfo geometryRenderPassBeginInfo  = vks::initializers::renderPassBeginInfo();
-    geometryRenderPassBeginInfo.renderPass               = renderPass;
-    geometryRenderPassBeginInfo.framebuffer              = gBuffer.framebuffer;
-    geometryRenderPassBeginInfo.renderArea.extent.width  = surfaceWidth;
-    geometryRenderPassBeginInfo.renderArea.extent.height = SurfaceHeight;
-    geometryRenderPassBeginInfo.clearValueCount          = static_cast<uint32_t>(geometryClearValues.size());
-    geometryRenderPassBeginInfo.pClearValues             = geometryClearValues.data();
-
-    vk::CommandBuffer& cmd = geometryCmdBuffers[currentImage];
-    // cmd.reset(vk::CommandBufferResetFlagBits::eReleaseResources);
-    // Set target frame buffer
-
-    cmd.begin(geometryCmdBufInfo);
-    timings.resetFrame(cmd);
-    timings.enterSection("TRANSFER", cmd);
-
-    // VK_CHECK_RESULT(vkBeginCommandBuffer(cmd, &cmdBufInfo));
-    renderingInterface->transfer(cmd, cam);
-    timings.leaveSection("TRANSFER", cmd);
-
-
-    // if (imGui) imGui->updateBuffers(cmd, currentImage);
-
-    cmd.beginRenderPass(&geometryRenderPassBeginInfo, vk::SubpassContents::eInline);
-
-    vk::Viewport gBufferViewport = vks::initializers::viewport((float)surfaceWidth, (float)SurfaceHeight, 0.0f, 1.0f);
-    cmd.setViewport(0, 1, &gBufferViewport);
-    vk::Rect2D gBufferScissor = vks::initializers::rect2D(surfaceWidth, SurfaceHeight, 0, 0);
-    cmd.setScissor(0, 1, &gBufferScissor);
-
-
-    {
-        // Actual rendering
-        timings.enterSection("MAIN", cmd);
-        renderingInterface->render(cmd, cam);
-        timings.leaveSection("MAIN", cmd);
-        // timings.enterSection("IMGUI", cmd);
-        // if (imGui) imGui->render(cmd, currentImage);
-        // timings.leaveSection("IMGUI", cmd);
-    }
-
-    cmd.endRenderPass();
-
-
-    // VK_CHECK_RESULT(vkEndCommandBuffer(cmd));
-    cmd.end();
-
-
-
-    // record forwardRenderPass CmdBuffers
-
-    VkCommandBufferBeginInfo fwdCmdBufInfo = vks::initializers::commandBufferBeginInfo();
-    //    cmdBufInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
-    ;
 
     vk::ClearValue clearValues[2];
     clearValues[0].color.setFloat32({clearColor[0], clearColor[1], clearColor[2], clearColor[3]});
@@ -613,7 +574,7 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage, Camera* c
 
 
     vk::CommandBuffer& fwdCmd = forwardCmdBuffers[currentImage];
-    // cmd.reset(vk::CommandBufferResetFlagBits::eReleaseResources);
+
     // Set target frame buffer
     fwdRenderPassBeginInfo.framebuffer = frameBuffers[currentImage].framebuffer;
 
@@ -621,7 +582,6 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage, Camera* c
     timings.resetFrame(fwdCmd);
     timings.enterSection("TRANSFER", fwdCmd);
 
-    // VK_CHECK_RESULT(vkBeginCommandBuffer(cmd, &cmdBufInfo));
     renderingInterface->transferForward(fwdCmd, cam);
 
     timings.leaveSection("TRANSFER", fwdCmd);
@@ -641,8 +601,9 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage, Camera* c
     {
         // Actual rendering
         timings.enterSection("MAIN", fwdCmd);
-        renderingInterface->renderForward(fwdCmd, cam);
+        if (!debug) renderingInterface->renderForward(fwdCmd, cam);  // dont render forward if in gbuffer debug mode
         timings.leaveSection("MAIN", fwdCmd);
+        // add imgui rendering here -- end of forward rendering
         timings.enterSection("IMGUI", fwdCmd);
         if (imGui && renderImgui) imGui->render(fwdCmd, currentImage);
         timings.leaveSection("IMGUI", fwdCmd);
@@ -651,6 +612,34 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage, Camera* c
     fwdCmd.endRenderPass();
     fwdCmd.end();
     SAIGA_ASSERT(fwdCmd);
+}
+
+void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage, Camera* cam)
+{
+    VulkanDeferredRenderingInterface* renderingInterface = dynamic_cast<VulkanDeferredRenderingInterface*>(rendering);
+    SAIGA_ASSERT(renderingInterface);
+
+    //    cout << "VulkanDeferredRenderer::render" << endl;
+    if (imGui)
+    {
+        //        std::thread t([&](){
+        imGui->beginFrame();
+        ImGui::SetNextWindowSize(ImVec2(200, 200));
+        ImGui::Begin("Deferred Renderer Settings");
+        ImGui::Checkbox("Debug Mode", &debug);
+        ImGui::End();
+
+
+        renderingInterface->renderGUI();
+        imGui->endFrame();
+        //        });
+        //        t.join();
+    }
+
+    // prepare the command buffers
+    setupGeometryCommandBuffer(currentImage, cam);
+    setupDrawCommandBuffer(currentImage, cam);
+    setupForwardCommandBuffer(currentImage, cam);
 
     // TODO
     // think about synchronization ...
@@ -664,7 +653,7 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage, Camera* c
     // signal that offscreen rendering is finished (geometrysemaphore)
     vk::SubmitInfo gBufferPassSubmitinfo       = vks::initializers::submitInfo();
     gBufferPassSubmitinfo.commandBufferCount   = 1;
-    gBufferPassSubmitinfo.pCommandBuffers      = &cmd;
+    gBufferPassSubmitinfo.pCommandBuffers      = &geometryCmdBuffers[currentImage];
     gBufferPassSubmitinfo.pWaitDstStageMask    = &gBufferSubmitPipelineStages;
     gBufferPassSubmitinfo.pWaitSemaphores      = &sync.imageAvailable;
     gBufferPassSubmitinfo.waitSemaphoreCount   = 1;
@@ -675,16 +664,12 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage, Camera* c
     base().mainQueue.submit(gBufferPassSubmitinfo, nullptr);
 
 
-    // vk::PipelineStageFlags submitPipelineStages = vk::PipelineStageFlagBits::eColorAttachmentOutput;
-
 
     vk::PipelineStageFlags submitPipelineStages =
         vk::PipelineStageFlagBits::eColorAttachmentOutput;  // TODO not right yet
 
 
 
-    // prepare the command nuffer
-    setupCommandBuffer(currentImage, cam);
     vk::SubmitInfo submitInfo;
     //    submitInfo = vks::initializers::submitInfo();
     submitInfo.pWaitDstStageMask    = &submitPipelineStages;
@@ -713,7 +698,7 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage, Camera* c
     fwdSubmitInfo.pSignalSemaphores    = signalSemaphores.data();
 
     fwdSubmitInfo.commandBufferCount = 1;
-    fwdSubmitInfo.pCommandBuffers    = &fwdCmd;  // use correct cmd buffer
+    fwdSubmitInfo.pCommandBuffers    = &forwardCmdBuffers[currentImage];  // use correct cmd buffer
     //    VK_CHECK_RESULT(vkQueueSubmit(graphicsQueue, 1, &submitInfo, sync.frameFence));
     base().mainQueue.submit(fwdSubmitInfo, sync.frameFence);
 
@@ -721,102 +706,6 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage, Camera* c
 
     //    VK_CHECK_RESULT(swapChain.queuePresent(presentQueue, currentBuffer,  sync.renderComplete));
     base().finish_frame();
-
-
-    // TODO:
-    // create descriptor sets for lighting pass -> use the sampler
-    // make cmd buffer to render a quad
-    // change everything to compute shader
-    // TODO
-
-    /*
-        //lighting pass
-
-        VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
-        //    cmdBufInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
-
-        VkClearValue clearValues[2];
-
-        // This is blender's default viewport background color :)
-        vec4 clearColor             = vec4(57, 57, 57, 255) / 255.0f;
-        clearValues[0].color        = {{clearColor[0], clearColor[1], clearColor[2], clearColor[3]}};
-        clearValues[1].depthStencil = {1.0f, 0};
-
-        VkRenderPassBeginInfo renderPassBeginInfo    = vks::initializers::renderPassBeginInfo();
-        renderPassBeginInfo.renderPass               = renderPass;
-        renderPassBeginInfo.renderArea.offset.x      = 0;
-        renderPassBeginInfo.renderArea.offset.y      = 0;
-        renderPassBeginInfo.renderArea.extent.width  = surfaceWidth;
-        renderPassBeginInfo.renderArea.extent.height = SurfaceHeight;
-        renderPassBeginInfo.clearValueCount          = 2;
-        renderPassBeginInfo.pClearValues             = clearValues;
-
-
-        vk::CommandBuffer& cmd = drawCmdBuffers[currentImage];
-        // cmd.reset(vk::CommandBufferResetFlagBits::eReleaseResources);
-        // Set target frame buffer
-        renderPassBeginInfo.framebuffer = frameBuffers[currentImage].framebuffer;
-
-        cmd.begin(cmdBufInfo);
-        timings.resetFrame(cmd);
-        timings.enterSection("TRANSFER", cmd);
-
-        // VK_CHECK_RESULT(vkBeginCommandBuffer(cmd, &cmdBufInfo));
-        renderingInterface->transfer(cmd);
-
-        timings.leaveSection("TRANSFER", cmd);
-
-
-        //if (imGui) imGui->updateBuffers(cmd, currentImage);
-
-        vkCmdBeginRenderPass(cmd, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-        VkViewport viewport = vks::initializers::viewport((float)surfaceWidth, (float)SurfaceHeight, 0.0f, 1.0f);
-        vkCmdSetViewport(cmd, 0, 1, &viewport);
-
-        VkRect2D scissor = vks::initializers::rect2D(surfaceWidth, SurfaceHeight, 0, 0);
-        vkCmdSetScissor(cmd, 0, 1, &scissor);
-
-
-        {
-            // Actual rendering
-            timings.enterSection("MAIN", cmd);
-            renderingInterface->render(cmd);
-            timings.leaveSection("MAIN", cmd);
-            timings.enterSection("IMGUI", cmd);
-            if (imGui) imGui->render(cmd, currentImage);
-            timings.leaveSection("IMGUI", cmd);
-        }
-
-        vkCmdEndRenderPass(cmd);
-
-
-        VK_CHECK_RESULT(vkEndCommandBuffer(cmd));
-
-        vk::PipelineStageFlags submitPipelineStages = vk::PipelineStageFlagBits::eColorAttachmentOutput;
-
-        std::array<vk::Semaphore, 2> signalSemaphores{sync.renderComplete, sync.defragMayStart};
-
-        vk::SubmitInfo submitInfo;
-        //    submitInfo = vks::initializers::submitInfo();
-        submitInfo.pWaitDstStageMask    = &submitPipelineStages;
-        submitInfo.waitSemaphoreCount   = 1;
-        submitInfo.pWaitSemaphores      = &sync.imageAvailable;
-        submitInfo.signalSemaphoreCount = 2;
-        submitInfo.pSignalSemaphores    = signalSemaphores.data();
-
-        submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers    = &cmd;
-        //    VK_CHECK_RESULT(vkQueueSubmit(graphicsQueue, 1, &submitInfo, sync.frameFence));
-        base().mainQueue.submit(submitInfo, sync.frameFence);
-
-        timings.finishFrame(sync.defragMayStart);
-        //    graphicsQueue.queue.submit(submitInfo,vk::Fence());
-
-        //    VK_CHECK_RESULT(swapChain.queuePresent(presentQueue, currentBuffer,  sync.renderComplete));
-        base().finish_frame();
-
-        */
 }
 
 

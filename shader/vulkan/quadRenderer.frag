@@ -12,7 +12,7 @@ layout(binding = 15) uniform sampler2D depthexture;
 
 layout (binding = 16) uniform UBO2 
 {
-	mat4 projection;
+	mat4 proj;
 	mat4 view;
 	vec4 lightPos;
 	bool debug;
@@ -26,6 +26,11 @@ layout(location=0) in VertexData
     vec2 tc;
 } inData;
 
+vec3 reconstructPosition(float d, vec2 tc){
+    vec4 p = vec4(tc.x,tc.y,d,1)*2.0f - 1.0f;
+    p = inverse(ubo.proj) * p; //TODO outsource inverse to cpu?
+    return p.xyz/p.w;
+}
 
 void main() 
 {
@@ -33,12 +38,14 @@ void main()
 	vec3 diffuseColor = texture(diffuseTexture, inData.tc).rgb;
 	vec4 specularAndRoughness = texture(specularTexture, inData.tc);
 	vec4 additional = texture(additionalTexture, inData.tc); // <-- currently unused //w contains information if light calculation should be applied: 1 = no lighting
-	gl_FragDepth = texture(depthexture, inData.tc).r;
+	float depth = texture(depthexture, inData.tc).r;
+	gl_FragDepth = depth;
 
 	vec3 N = normalize(texture(normalTexture, inData.tc).rgb);
 	vec4 L4 = ubo.view * ubo.lightPos;
 	vec3 L = normalize(mat3(ubo.view) * ubo.lightPos.xyz);
-	vec3 V = normalize(additional.rgb);//vec3(0.f,0.f,1.f);
+	vec3 v = normalize(additional.rgb);//vec3(0.f,0.f,1.f);
+	vec3 V = -normalize(reconstructPosition(depth, inData.tc));
 	vec3 R = reflect(-L, N);
 	
 	//float n_dot_l = clamp(dot(N, normalize(L)), 0.f, 1.f);
@@ -56,7 +63,9 @@ void main()
 	if(ubo.debug) {
 		vec2 tc2 = inData.tc * 2.f;
 		if (inData.tc.x < 0.5 && inData.tc.y >= 0.5) //linker unterer bereich der anzeige
-				outColor = vec4(vec3(texture(depthexture, tc2 -vec2(0,1)).r), 1);
+				//outColor = vec4(vec3(depth), 1);
+				outColor = vec4(texture(specularTexture, tc2 -vec2(0,1)).rgb, 1);
+				//outColor = vec4(vec3(dot(v, V)),1.f);
 		else if (inData.tc.x >= 0.5 && inData.tc.y >= 0.5) //rechter unterer bereich der anzeige
 				outColor = vec4(texture(additionalTexture, tc2 - vec2(1,1)).rgb, 1);
 		else if (inData.tc.x < 0.5 && inData.tc.y < 0.5) //linker oberer
@@ -71,5 +80,6 @@ void main()
 	//outColor = ubo.lightPos;
 	
 }
+
 
 

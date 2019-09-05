@@ -73,7 +73,11 @@ class SAIGA_VULKAN_API VulkanDeferredRenderer : public VulkanRenderer
 
     void setupRenderPass();
 
-    void setupCommandBuffer(int currentImage, Camera* cam);
+    void setupGeometryCommandBuffer(int currentImage, Camera* cam);
+
+    void setupDrawCommandBuffer(int currentImage, Camera* cam);
+
+    void setupForwardCommandBuffer(int currentImage, Camera* cam);
 
    protected:
     DepthBuffer depthBuffer;
@@ -90,6 +94,7 @@ class SAIGA_VULKAN_API VulkanDeferredRenderer : public VulkanRenderer
     ColorBuffer diffuseAttachment, specularAttachment, normalAttachment, additionalAttachment;
     DepthBuffer gBufferDepthBuffer;
 
+    bool debug = false;
 
     // TODO test
     Saiga::Vulkan::QuadRenderer quadRenderer;
