@@ -163,7 +163,7 @@ void VulkanExample::update(float dt)
     if (renderer.lightRotate)
     {
         timingLoop = fmod(timingLoop + dt, 2.f * 3.1415f);
-        vec3 pos   = vec3(sin(timingLoop) * 5.f, 5.f, cos(timingLoop) * 5.f);
+        vec3 pos   = vec3(sin(timingLoop) * 7.5f, 7.5f, cos(timingLoop) * 7.5f);
         renderer.pointLight.setPosition(pos);
         renderer.pointLight.setDirection(-pos);
     }

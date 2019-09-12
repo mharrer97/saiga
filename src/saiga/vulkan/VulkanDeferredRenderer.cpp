@@ -520,9 +520,9 @@ void VulkanDeferredRenderer::setupDrawCommandBuffer(int currentImage, Camera* ca
 
     vec3 lightpos = pointLight.getPosition();
     vec3 lightdir = pointLight.getDirection();
-    quadRenderer.updateUniformBuffers(drawCmdBuffers[currentImage], cam->proj, cam->view,
-                                      vec4(lightpos[0], lightpos[1], lightpos[2], 1.f),
-                                      vec4(lightdir[0], lightdir[1], lightdir[2], 0.f), pointLight.getAngle(), debug);
+    quadRenderer.updateUniformBuffers(
+        drawCmdBuffers[currentImage], cam->proj, cam->view, vec4(lightpos[0], lightpos[1], lightpos[2], 1.f),
+        vec4(lightdir[0], lightdir[1], lightdir[2], 0.f), pointLight.getAngle(), debug, lightIntensity);
     drawCmdBuffers[currentImage].beginRenderPass(&renderPassBeginInfo, vk::SubpassContents::eInline);
 
     // setup viewport & scissor
@@ -626,10 +626,12 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage, Camera* c
     {
         //        std::thread t([&](){
         imGui->beginFrame();
-        ImGui::SetNextWindowSize(ImVec2(200, 400));
+        ImGui::SetNextWindowSize(ImVec2(300, 400));
         ImGui::Begin("Deferred Renderer Settings");
         ImGui::Checkbox("Debug Mode", &debug);
         ImGui::DragFloat("Light Angle", &pointLight.angle, 1.f, 0.f, 180.f);
+        ImGui::DragFloat("Light Intensity", &lightIntensity, 1.f, 0.f, 100.f);
+
         ImGui::Direction("Light Dir", pointLight.light_dir);
         ImGui::Checkbox("Rotate Light", &lightRotate);
 

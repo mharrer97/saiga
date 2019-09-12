@@ -62,7 +62,7 @@ void QuadRenderer::init(VulkanBase& vulkanDevice, VkRenderPass renderPass)
 }
 
 void QuadRenderer::updateUniformBuffers(vk::CommandBuffer cmd, mat4 proj, mat4 view, vec4 lightPosition,
-                                        vec4 lightDirection, float lightAngle, bool debug)
+                                        vec4 lightDirection, float lightAngle, bool debug, float intensity)
 {
     uboVS.proj       = proj;
     uboVS.view       = view;
@@ -70,6 +70,7 @@ void QuadRenderer::updateUniformBuffers(vk::CommandBuffer cmd, mat4 proj, mat4 v
     uboVS.lightDir   = lightDirection;
     uboVS.lightAngle = lightAngle;
     uboVS.debug      = debug;
+    uboVS.intensity  = intensity;
     uniformBufferVS.update(cmd, sizeof(uboVS), &uboVS);
 }
 

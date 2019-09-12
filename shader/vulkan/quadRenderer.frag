@@ -18,6 +18,7 @@ layout (binding = 16) uniform UBO2
 	vec4 lightDir;
 	float lightAngle;
 	bool debug;
+	float intensity;
 } ubo;
 
 
@@ -53,7 +54,7 @@ void main()
 	vec3 R = reflect(normalize(L), N.xyz);
 	vec3 V = normalize(P.xyz);
 	
-	float intensity = 20.f/pow(length(L), 2.f);
+	float intensity = ubo.intensity/pow(length(L), 2.f);
 	
 	vec3 diffuse = max(dot(normalize(N.xyz), normalize(L)) * intensity, 0.05f) * diffuseColor;
 	vec3 specular = pow(max(dot(R,V), 0.f), specularAndRoughness.a * 256.f) * specularAndRoughness.rgb * intensity;

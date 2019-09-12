@@ -42,7 +42,7 @@ class SAIGA_VULKAN_API QuadRenderer : public Pipeline
     void init(Saiga::Vulkan::VulkanBase& vulkanDevice, VkRenderPass renderPass);
 
     void updateUniformBuffers(vk::CommandBuffer, mat4 proj, mat4 view, vec4 lightPosition, vec4 lightDirection,
-                              float lightAngle, bool debug);
+                              float lightAngle, bool debug, float intensity);
 
     void createAndUpdateDescriptorSet(Saiga::Vulkan::Memory::ImageMemoryLocation* diffuse,
                                       Saiga::Vulkan::Memory::ImageMemoryLocation* specular,
@@ -59,6 +59,7 @@ class SAIGA_VULKAN_API QuadRenderer : public Pipeline
         vec4 lightDir;
         float lightAngle;
         bool debug;
+        float intensity;
     } uboVS;
 
     UniformBuffer uniformBufferVS;
