@@ -12,8 +12,8 @@
 #include "saiga/core/math/random.h"
 #include "saiga/core/util/color.h"
 
+#include <eigen3/Eigen/Core>
 #include <saiga/core/imgui/imgui.h>
-
 #if defined(SAIGA_OPENGL_INCLUDED)
 #    error OpenGL was included somewhere.
 #endif
@@ -109,6 +109,9 @@ void VulkanExample::init(Saiga::Vulkan::VulkanBase& base)
     plane.createCheckerBoard(ivec2(20, 20), 1.0f, Saiga::Colors::firebrick, Saiga::Colors::gray);
     plane.init(renderer.base());
 
+    sphere.loadObj("box.obj");
+    sphere.init(renderer.base());
+
     grid.createGrid(10, 10);
     grid.init(renderer.base());
 
@@ -129,8 +132,6 @@ void VulkanExample::init(Saiga::Vulkan::VulkanBase& base)
 
 void VulkanExample::update(float dt)
 {
-    // camera.setView(rotate(camera.view, dt / 100.f, vec3(0.f, 1.f, 0.f)));
-
     if (!ImGui::captureKeyboard())
     {
         camera.update(dt);
@@ -157,6 +158,15 @@ void VulkanExample::update(float dt)
     }
 
     // camera.setInput(!ImGui::GetIO().WantCaptureKeyboard && !ImGui::GetIO().WantCaptureMouse);
+
+
+    if (renderer.lightRotate)
+    {
+        timingLoop = fmod(timingLoop + dt, 2.f * 3.1415f);
+        vec3 pos   = vec3(sin(timingLoop) * 5.f, 5.f, cos(timingLoop) * 5.f);
+        renderer.pointLight.setPosition(pos);
+        renderer.pointLight.setDirection(-pos);
+    }
 }
 
 void VulkanExample::transfer(vk::CommandBuffer cmd, Camera* cam)
@@ -235,6 +245,10 @@ void VulkanExample::renderForward(vk::CommandBuffer cmd, Camera* cam)
         {
             assetRenderer.forward.pushModel(cmd, identityMat4());
             // plane.render(cmd);
+
+            assetRenderer.forward.pushModel(
+                cmd, scale(translate(renderer.pointLight.getPosition()), vec3(0.1f, 0.1f, 0.1f)));
+            sphere.render(cmd);
 
             assetRenderer.forward.pushModel(cmd, teapotTrans.model * translate(vec3(5.f, 0.f, 5.f)));
             teapot.render(cmd);

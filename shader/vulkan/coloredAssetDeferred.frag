@@ -29,6 +29,6 @@ void main()
 	outDiffuse = vec4(inColor, 1.0);
 	outSpecular = vec4(vec3(0.75f), 16.f/256.f);
 	outNormal = vec4(N, 1.f);
-	outAdditional = vec4(V, 0.f);// currently unused
+	outAdditional = vec4(inViewVec, 0.f);// currently unused
 	
 }

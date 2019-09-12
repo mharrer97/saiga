@@ -19,6 +19,7 @@
 #include "saiga/vulkan/buffer/ColorBuffer.h"
 #include "saiga/vulkan/buffer/DepthBuffer.h"
 #include "saiga/vulkan/buffer/Framebuffer.h"
+#include "saiga/vulkan/lighting/PointLight.h"
 #include "saiga/vulkan/renderModules/QuadRenderer.h"
 #include "saiga/vulkan/window/Window.h"
 
@@ -53,6 +54,9 @@ class SAIGA_VULKAN_API VulkanDeferredRenderingInterface : public RenderingInterf
 class SAIGA_VULKAN_API VulkanDeferredRenderer : public VulkanRenderer
 {
    public:
+    bool lightRotate = true;
+    Saiga::Vulkan::Lighting::PointLight pointLight;
+
     CommandPool renderCommandPool;
     vk::RenderPass renderPass;
     vk::RenderPass lightingPass;

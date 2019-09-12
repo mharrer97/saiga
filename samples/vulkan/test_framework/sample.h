@@ -47,10 +47,12 @@ class VulkanExample : public Saiga::Updating,
     bool uploadChanges = true;
     Saiga::Object3D teapotTrans;
 
+    float timingLoop = 0.f;  // used for rotating camera and light etc;
+
     std::shared_ptr<Saiga::Vulkan::Texture2D> texture;
 
     Saiga::Vulkan::VulkanTexturedAsset box;
-    Saiga::Vulkan::VulkanVertexColoredAsset teapot, plane;
+    Saiga::Vulkan::VulkanVertexColoredAsset teapot, plane, sphere;
     Saiga::Vulkan::VulkanLineVertexColoredAsset grid, frustum;
     Saiga::Vulkan::VulkanPointCloudAsset pointCloud;
     Saiga::Vulkan::UniversalAssetRenderer assetRenderer;

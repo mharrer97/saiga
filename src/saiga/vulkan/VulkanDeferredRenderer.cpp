@@ -22,7 +22,7 @@ namespace Saiga
 namespace Vulkan
 {
 VulkanDeferredRenderer::VulkanDeferredRenderer(VulkanWindow& window, VulkanParameters vulkanParameters)
-    : VulkanRenderer(window, vulkanParameters)
+    : VulkanRenderer(window, vulkanParameters), pointLight(vec3(5.f, 5.f, 5.f), vec3(-1.f, -1.f, -1.f), 45.f)
 {
     std::cout << "VulkanDeferredRenderer Creation -- START" << std::endl;
 
@@ -38,7 +38,7 @@ VulkanDeferredRenderer::VulkanDeferredRenderer(VulkanWindow& window, VulkanParam
 
     quadRenderer.init(base(), lightingPass);
 
-
+    // pointLight(vec3(5.f, 5.f, 5.f), vec3(-1.f, -1.f, -1.f), 45.f);
 
     // create semaphore for synchronization (offscreen rendering nad gbuffer usage)
     vk::SemaphoreCreateInfo semCreateInfo = vks::initializers::semaphoreCreateInfo();
@@ -518,9 +518,11 @@ void VulkanDeferredRenderer::setupDrawCommandBuffer(int currentImage, Camera* ca
     // begin recording cmdBuffer
     drawCmdBuffers[currentImage].begin(cmdBufBeginInfo);
 
-
-    quadRenderer.updateUniformBuffers(drawCmdBuffers[currentImage], cam->proj, cam->view, vec4(5.f, 5.f, 5.f, 0.f),
-                                      debug);
+    vec3 lightpos = pointLight.getPosition();
+    vec3 lightdir = pointLight.getDirection();
+    quadRenderer.updateUniformBuffers(drawCmdBuffers[currentImage], cam->proj, cam->view,
+                                      vec4(lightpos[0], lightpos[1], lightpos[2], 1.f),
+                                      vec4(lightdir[0], lightdir[1], lightdir[2], 0.f), pointLight.getAngle(), debug);
     drawCmdBuffers[currentImage].beginRenderPass(&renderPassBeginInfo, vk::SubpassContents::eInline);
 
     // setup viewport & scissor
@@ -624,9 +626,13 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage, Camera* c
     {
         //        std::thread t([&](){
         imGui->beginFrame();
-        ImGui::SetNextWindowSize(ImVec2(200, 200));
+        ImGui::SetNextWindowSize(ImVec2(200, 400));
         ImGui::Begin("Deferred Renderer Settings");
         ImGui::Checkbox("Debug Mode", &debug);
+        ImGui::DragFloat("Light Angle", &pointLight.angle, 1.f, 0.f, 180.f);
+        ImGui::Direction("Light Dir", pointLight.light_dir);
+        ImGui::Checkbox("Rotate Light", &lightRotate);
+
         ImGui::End();
 
 

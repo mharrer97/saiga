@@ -30,6 +30,6 @@ void main()
     outDiffuse = vec4(color, 1.f);
     outSpecular = vec4(vec3(0.2f), 16.f /256.f);
     outNormal = vec4(N, 1.f);
-    outAdditional = vec4(V, 0.f);
+    outAdditional = vec4(inViewVec, 0.f);
         //outFragColor = vec4(0.5);
 }
