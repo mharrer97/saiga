@@ -56,7 +56,7 @@ class SAIGA_VULKAN_API VulkanDeferredRenderer : public VulkanRenderer
    public:
     bool lightRotate     = true;
     float lightIntensity = 25.f;
-    Saiga::Vulkan::Lighting::PointLight pointLight;
+    Saiga::Vulkan::Lighting::OldPointLight pointLight;
 
     CommandPool renderCommandPool;
     vk::RenderPass renderPass;
