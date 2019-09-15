@@ -58,8 +58,9 @@ class SAIGA_VULKAN_API QuadRenderer : public Pipeline
         vec4 lightPos;
         vec4 lightDir;
         float lightAngle;
-        bool debug;
         float intensity;
+        bool debug;
+
     } uboVS;
 
     UniformBuffer uniformBufferVS;

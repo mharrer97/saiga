@@ -22,7 +22,9 @@ namespace Saiga
 namespace Vulkan
 {
 VulkanDeferredRenderer::VulkanDeferredRenderer(VulkanWindow& window, VulkanParameters vulkanParameters)
-    : VulkanRenderer(window, vulkanParameters), pointLight(vec3(5.f, 5.f, 5.f), vec3(-1.f, -1.f, -1.f), 45.f)
+    : VulkanRenderer(window, vulkanParameters),
+      pointLight(vec3(5.f, 5.f, 5.f), vec3(-1.f, -1.f, -1.f), 45.f),
+      lighting()
 {
     std::cout << "VulkanDeferredRenderer Creation -- START" << std::endl;
 
@@ -37,6 +39,10 @@ VulkanDeferredRenderer::VulkanDeferredRenderer(VulkanWindow& window, VulkanParam
 
 
     quadRenderer.init(base(), lightingPass);
+
+    // TODO change
+    lighting.attenuatedLightRenderer.init(base(), lightingPass);
+    attenuatedTestLight = lighting.createAttenuatedLight();
 
     // pointLight(vec3(5.f, 5.f, 5.f), vec3(-1.f, -1.f, -1.f), 45.f);
 
@@ -58,6 +64,8 @@ VulkanDeferredRenderer::~VulkanDeferredRenderer()
 
     base().device.destroySemaphore(geometrySemaphore);
     base().device.destroySemaphore(deferredSemaphore);
+    // TODO change?
+    lighting.attenuatedLightRenderer.destroy();
     //    quadRenderer.destroy();
     quadRenderer.destroy();
     base().device.destroyRenderPass(renderPass);
@@ -137,6 +145,9 @@ void VulkanDeferredRenderer::createBuffers(int numImages, int w, int h)
     quadRenderer.createAndUpdateDescriptorSet(diffuseAttachment.location, specularAttachment.location,
                                               normalAttachment.location, additionalAttachment.location,
                                               gBufferDepthBuffer.location);
+    lighting.attenuatedLightRenderer.createAndUpdateDescriptorSet(
+        diffuseAttachment.location, specularAttachment.location, normalAttachment.location,
+        additionalAttachment.location, gBufferDepthBuffer.location);
     std::cout << "QuadRenderer DescriptorSet Update/Creation -- CALL RETURN" << std::endl;
 
     std::cout << "Buffer Creation -- FINISHED" << std::endl;
@@ -145,6 +156,7 @@ void VulkanDeferredRenderer::createBuffers(int numImages, int w, int h)
 void VulkanDeferredRenderer::reload()
 {
     quadRenderer.reload();
+    lighting.attenuatedLightRenderer.reload();
 }
 
 //!
@@ -523,6 +535,13 @@ void VulkanDeferredRenderer::setupDrawCommandBuffer(int currentImage, Camera* ca
     quadRenderer.updateUniformBuffers(
         drawCmdBuffers[currentImage], cam->proj, cam->view, vec4(lightpos[0], lightpos[1], lightpos[2], 1.f),
         vec4(lightdir[0], lightdir[1], lightdir[2], 0.f), pointLight.getAngle(), debug, lightIntensity);
+
+    // TODO change!!!!!!!!!!!!!!!!!!!!!!!
+    vec4 pos =
+        vec4(attenuatedTestLight->position[0], attenuatedTestLight->position[1], attenuatedTestLight->position[2], 1.f);
+    lighting.attenuatedLightRenderer.updateUniformBuffers(drawCmdBuffers[currentImage], cam->proj, cam->view, pos, 25.f,
+                                                          true);
+
     drawCmdBuffers[currentImage].beginRenderPass(&renderPassBeginInfo, vk::SubpassContents::eInline);
 
     // setup viewport & scissor
@@ -537,7 +556,12 @@ void VulkanDeferredRenderer::setupDrawCommandBuffer(int currentImage, Camera* ca
     {
         quadRenderer.render(drawCmdBuffers[currentImage], vec2(0, 0), vec2(surfaceWidth, SurfaceHeight));
     }
-
+    if (lighting.attenuatedLightRenderer.bind(drawCmdBuffers[currentImage]))
+    {
+        // TODO change
+        lighting.attenuatedLightRenderer.render(drawCmdBuffers[currentImage], cam->proj, cam->view,
+                                                attenuatedTestLight);
+    }
 
     drawCmdBuffers[currentImage].endRenderPass();
 

@@ -117,3 +117,4 @@ class SAIGA_VULKAN_API OldPointLight
 }  // namespace Lighting
 }  // namespace Vulkan
 }  // namespace Saiga
+

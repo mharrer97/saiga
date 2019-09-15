@@ -10,7 +10,17 @@
 #pragma once
 
 #include "saiga/core/camera/camera.h"
+#include "saiga/core/geometry/triangle_mesh.h"
+#include "saiga/core/model/objModelLoader.h"
+#include "saiga/vulkan/Base.h"
+#include "saiga/vulkan/Shader/all.h"
+#include "saiga/vulkan/Vertex.h"
+#include "saiga/vulkan/VulkanAsset.h"
+#include "saiga/vulkan/VulkanBuffer.hpp"
+#include "saiga/vulkan/buffer/UniformBuffer.h"
 #include "saiga/vulkan/lighting/Light.h"
+#include "saiga/vulkan/pipeline/Pipeline.h"
+#include "saiga/vulkan/svulkan.h"
 
 namespace Saiga
 {
@@ -26,6 +36,14 @@ namespace Lighting
     virtual void checkUniforms();
     virtual void uploadA(vec3& attenuation, float cutoffRadius);
 };*/
+
+/**
+ * Copyright (c) 2017 Darius Rückert
+ * Licensed under the MIT License.
+ * See LICENSE file for more information.
+ */
+
+
 
 namespace AttenuationPresets
 {
@@ -46,6 +64,7 @@ class SAIGA_VULKAN_API AttenuatedLight : public Light
 {
     friend class DeferredLighting;
 
+   private:
    protected:
     /**
      * Quadratic attenuation of the form:
@@ -62,7 +81,6 @@ class SAIGA_VULKAN_API AttenuatedLight : public Light
      */
 
     vec3 attenuation = AttenuationPresets::Quadratic;
-
 
     /**
      * Distance after which the light intensity is clamped to 0.
@@ -97,6 +115,58 @@ class SAIGA_VULKAN_API AttenuatedLight : public Light
 
     bool cullLight(Camera* cam);
     // void renderImGui();
+
+    // TODO here?
+    vec3 position = vec3(-5.f, 5.f, 5.f);
+};
+
+
+class SAIGA_VULKAN_API AttenuatedLightRenderer : public Pipeline
+{
+   public:
+    using VertexType = VertexNC;
+
+    // Change these strings before calling 'init' to use your own shaders
+    std::string vertexShader   = "vulkan/quadRenderer.vert";              //"vulkan/coloredAsset.vert";
+    std::string fragmentShader = "vulkan/lighting/attenuatedLight.frag";  //"vulkan/coloredAssetDeferred.frag";
+
+    ~AttenuatedLightRenderer() { destroy(); }
+    void destroy();
+
+
+    /**
+     * Render the texture at the given pixel position and size
+     */
+    void render(vk::CommandBuffer cmd, mat4 proj, mat4 view, std::shared_ptr<AttenuatedLight> light);
+
+
+
+    void init(Saiga::Vulkan::VulkanBase& vulkanDevice, VkRenderPass renderPass);
+
+    void updateUniformBuffers(vk::CommandBuffer, mat4 proj, mat4 view, vec4 lightPosition, float intensity, bool debug);
+
+    void createAndUpdateDescriptorSet(Saiga::Vulkan::Memory::ImageMemoryLocation* diffuse,
+                                      Saiga::Vulkan::Memory::ImageMemoryLocation* specular,
+                                      Saiga::Vulkan::Memory::ImageMemoryLocation* normal,
+                                      Saiga::Vulkan::Memory::ImageMemoryLocation* additional,
+                                      Saiga::Vulkan::Memory::ImageMemoryLocation* depth);
+
+   private:
+    struct UBOVS
+    {
+        mat4 proj;
+        mat4 view;
+        vec4 lightPos;
+        float intensity;
+        bool debug;
+
+    } uboVS;
+
+    UniformBuffer uniformBufferVS;
+
+
+    Saiga::Vulkan::StaticDescriptorSet descriptorSet;
+    Saiga::Vulkan::VulkanVertexColoredAsset lightMesh;
 };
 
 }  // namespace Lighting

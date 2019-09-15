@@ -18,7 +18,10 @@ DeferredLighting::DeferredLighting()
 {
     // TODO create lgith meshes here
 }
-DeferredLighting::~DeferredLighting() {}
+DeferredLighting::~DeferredLighting()
+{
+    attenuatedLightRenderer.destroy();
+}
 void DeferredLighting::init() {}
 
 std::shared_ptr<PointLight> DeferredLighting::createPointLight()
@@ -31,6 +34,20 @@ std::shared_ptr<PointLight> DeferredLighting::createPointLight()
 void DeferredLighting::removeLight(std::shared_ptr<PointLight> l)
 {
     pointLights.erase(std::find(pointLights.begin(), pointLights.end(), l));
+}
+
+
+// TODO delete
+std::shared_ptr<AttenuatedLight> DeferredLighting::createAttenuatedLight()
+{
+    std::shared_ptr<AttenuatedLight> l = std::make_shared<AttenuatedLight>();
+    attenuatedLights.push_back(l);
+    return l;
+}
+
+void DeferredLighting::removeLight(std::shared_ptr<AttenuatedLight> l)
+{
+    attenuatedLights.erase(std::find(attenuatedLights.begin(), attenuatedLights.end(), l));
 }
 }  // namespace Lighting
 

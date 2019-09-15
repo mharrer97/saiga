@@ -19,6 +19,7 @@
 #include "saiga/vulkan/buffer/ColorBuffer.h"
 #include "saiga/vulkan/buffer/DepthBuffer.h"
 #include "saiga/vulkan/buffer/Framebuffer.h"
+#include "saiga/vulkan/lighting/DeferredLighting.h"
 #include "saiga/vulkan/lighting/PointLight.h"
 #include "saiga/vulkan/renderModules/QuadRenderer.h"
 #include "saiga/vulkan/window/Window.h"
@@ -57,6 +58,10 @@ class SAIGA_VULKAN_API VulkanDeferredRenderer : public VulkanRenderer
     bool lightRotate     = true;
     float lightIntensity = 25.f;
     Saiga::Vulkan::Lighting::OldPointLight pointLight;
+
+    // TODO change?
+    Saiga::Vulkan::Lighting::DeferredLighting lighting;
+    std::shared_ptr<Saiga::Vulkan::Lighting::AttenuatedLight> attenuatedTestLight;
 
     CommandPool renderCommandPool;
     vk::RenderPass renderPass;

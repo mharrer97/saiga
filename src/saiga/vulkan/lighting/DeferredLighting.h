@@ -31,6 +31,8 @@ class SAIGA_VULKAN_API DeferredLighting
     VulkanVertexColoredAsset pointLightMesh;
     std::vector<std::shared_ptr<PointLight>> pointLights;
 
+    std::vector<std::shared_ptr<AttenuatedLight>> attenuatedLights;
+
    public:
     int totalLights;
     int visibleLights;
@@ -42,6 +44,11 @@ class SAIGA_VULKAN_API DeferredLighting
     void init();  // give renderpass here?
 
     std::shared_ptr<PointLight> createPointLight();
+
+    // TODO delete
+    std::shared_ptr<AttenuatedLight> createAttenuatedLight();
+    void removeLight(std::shared_ptr<AttenuatedLight> l);
+    AttenuatedLightRenderer attenuatedLightRenderer;
 
     void removeLight(std::shared_ptr<PointLight> l);
 };
