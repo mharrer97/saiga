@@ -126,6 +126,21 @@ void VulkanExample::init(Saiga::Vulkan::VulkanBase& base)
         v.color                  = make_vec4(linearRand(make_vec3(0), make_vec3(1)), 1);
         pointCloud.pointCloud[i] = v;
     }
+
+
+    std::shared_ptr<Saiga::Vulkan::Lighting::PointLight> pointTestLight;
+    int count = 5;
+    for (int i = 0; i < count; ++i)
+    {
+        vec3 pos = vec3(sin((float(i) / float(count)) * 6.28f), 1.f, cos((float(i) / float(count)) * 6.28f));
+        pos *= 15.f;
+
+        // pos                           = vec3(1.f, 0.f, 1.f) * (3 * float(i));
+        pos[1]                   = 5.f;
+        pointTestLight           = renderer.lighting.createPointLight();
+        pointTestLight->position = pos;
+        pointLights.push_back(pointTestLight);
+    }
 }
 
 
@@ -166,6 +181,19 @@ void VulkanExample::update(float dt)
         vec3 pos   = vec3(sin(timingLoop) * 7.5f, 7.5f, cos(timingLoop) * 7.5f);
         renderer.pointLight.setPosition(pos);
         renderer.pointLight.setDirection(-pos);
+
+        int count = pointLights.size();
+        for (int i = 0; i < count; ++i)
+        {
+            vec3 pos = vec3(sin(fmod(((float(i) / float(count)) * 6.28f) - timingLoop, 2.f * 3.1415f)), 1.f,
+                            cos(fmod(((float(i) / float(count)) * 6.28f) - timingLoop, 2.f * 3.1415f)));
+            pos *= 15.f;
+
+            // pos                           = vec3(1.f, 0.f, 1.f) * (3 * float(i));
+            pos[1]                   = 5.f;
+            pointLights[i]->position = pos;
+            pointLights[i]->setRadius(lightRadius);
+        }
     }
 }
 
@@ -246,12 +274,20 @@ void VulkanExample::renderForward(vk::CommandBuffer cmd, Camera* cam)
             assetRenderer.forward.pushModel(cmd, identityMat4());
             // plane.render(cmd);
 
-            assetRenderer.forward.pushModel(
-                cmd, scale(translate(renderer.pointLight.getPosition()), vec3(0.1f, 0.1f, 0.1f)));
-            sphere.render(cmd);
+
 
             assetRenderer.forward.pushModel(cmd, teapotTrans.model * translate(vec3(5.f, 0.f, 5.f)));
             teapot.render(cmd);
+
+
+            assetRenderer.forward.pushModel(
+                cmd, scale(translate(renderer.pointLight.getPosition()), vec3(0.1f, 0.1f, 0.1f)));
+            sphere.render(cmd);
+            for (auto& l : pointLights)
+            {
+                assetRenderer.forward.pushModel(cmd, scale(translate(l->position), vec3(0.1f, 0.1f, 0.1f)));
+                sphere.render(cmd);
+            }
         }
         if (pointCloudRenderer.forward.bind(cmd))
         {
@@ -310,7 +346,7 @@ void VulkanExample::renderGUI()
         renderer.reload();
     }
 
-
+    ImGui::DragFloat("Light Radius", &lightRadius, 0.25f, 0.f, 20.f);
     ImGui::End();
     //    return;
 

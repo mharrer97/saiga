@@ -18,11 +18,59 @@ DeferredLighting::DeferredLighting()
 {
     // TODO create lgith meshes here
 }
-DeferredLighting::~DeferredLighting()
+void DeferredLighting::destroy()
 {
     attenuatedLightRenderer.destroy();
+    pointLightRenderer.destroy();
 }
-void DeferredLighting::init() {}
+
+void DeferredLighting::init(Saiga::Vulkan::VulkanBase& vulkanDevice, VkRenderPass renderPass)
+{
+    attenuatedLightRenderer.init(vulkanDevice, renderPass);
+    pointLightRenderer.init(vulkanDevice, renderPass);
+}
+
+void DeferredLighting::createAndUpdateDescriptorSets(Memory::ImageMemoryLocation* diffuse,
+                                                     Memory::ImageMemoryLocation* specular,
+                                                     Memory::ImageMemoryLocation* normal,
+                                                     Memory::ImageMemoryLocation* additional,
+                                                     Memory::ImageMemoryLocation* depth)
+{
+    attenuatedLightRenderer.createAndUpdateDescriptorSet(diffuse, specular, normal, additional, depth);
+    pointLightRenderer.createAndUpdateDescriptorSet(diffuse, specular, normal, additional, depth);
+}
+void DeferredLighting::updateUniformBuffers(vk::CommandBuffer cmd, mat4 proj, mat4 view)
+{
+    attenuatedLightRenderer.updateUniformBuffers(cmd, proj, view, vec4(-5.f, 5.f, 5.f, 1.f), 10.f, false);
+    pointLightRenderer.updateUniformBuffers(cmd, proj, view, false);
+}
+
+void DeferredLighting::renderLights(vk::CommandBuffer cmd)
+{
+    if (attenuatedLightRenderer.bind(cmd))
+    {
+        for (auto& l : attenuatedLights)
+        {
+            vec4 pos = vec4(l->position[0], l->position[1], l->position[2], 1.f);
+            attenuatedLightRenderer.pushPosition(cmd, pos);
+            attenuatedLightRenderer.render(cmd, l);
+        }
+    }
+
+    if (pointLightRenderer.bind(cmd))
+    {
+        for (auto& l : pointLights)
+        {
+            pointLightRenderer.pushLight(cmd, l);
+            pointLightRenderer.render(cmd, l);
+        }
+    }
+}
+
+void DeferredLighting::reload()
+{
+    attenuatedLightRenderer.reload();
+}
 
 std::shared_ptr<PointLight> DeferredLighting::createPointLight()
 {

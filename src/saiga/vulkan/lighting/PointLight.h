@@ -66,6 +66,59 @@ class SAIGA_VULKAN_API PointLight : public AttenuatedLight
     // void renderImGui();
 };
 
+
+class SAIGA_VULKAN_API PointLightRenderer : public Pipeline
+{
+   public:
+    using VertexType = VertexNC;
+
+    // Change these strings before calling 'init' to use your own shaders
+    std::string vertexShader   = "vulkan/quadRenderer.vert";
+    std::string fragmentShader = "vulkan/lighting/pointLight.frag";
+
+    ~PointLightRenderer() { destroy(); }
+    void destroy();
+
+
+    /**
+     * Render the texture at the given pixel position and size
+     */
+    void render(vk::CommandBuffer cmd, std::shared_ptr<PointLight> light);
+
+
+
+    void init(Saiga::Vulkan::VulkanBase& vulkanDevice, VkRenderPass renderPass);
+
+    void updateUniformBuffers(vk::CommandBuffer, mat4 proj, mat4 view, bool debug);
+
+    void createAndUpdateDescriptorSet(Saiga::Vulkan::Memory::ImageMemoryLocation* diffuse,
+                                      Saiga::Vulkan::Memory::ImageMemoryLocation* specular,
+                                      Saiga::Vulkan::Memory::ImageMemoryLocation* normal,
+                                      Saiga::Vulkan::Memory::ImageMemoryLocation* additional,
+                                      Saiga::Vulkan::Memory::ImageMemoryLocation* depth);
+    void pushLight(vk::CommandBuffer cmd, std::shared_ptr<PointLight> light);
+
+   private:
+    struct UBOVS
+    {
+        mat4 proj;
+        mat4 view;
+        bool debug;
+
+    } uboVS;
+
+    struct PCO
+    {
+        vec4 pos;
+        vec4 attenuation;
+    } pushConstantObject;
+
+    UniformBuffer uniformBufferVS;
+
+
+    Saiga::Vulkan::StaticDescriptorSet descriptorSet;
+    Saiga::Vulkan::VulkanVertexColoredAsset lightMesh;
+};
 }  // namespace Lighting
 }  // namespace Vulkan
 }  // namespace Saiga
@@ -117,4 +170,3 @@ class SAIGA_VULKAN_API OldPointLight
 }  // namespace Lighting
 }  // namespace Vulkan
 }  // namespace Saiga
-

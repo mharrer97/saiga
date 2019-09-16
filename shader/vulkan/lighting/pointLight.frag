@@ -1,15 +1,8 @@
-﻿/**
- * Copyright (c) 2017 Darius Rückert 
- * Licensed under the MIT License.
- * See LICENSE file for more information.
- *
- * created by Mathias Harrer: mathias.mh.harrer@fau.de
- */
- 
- #version 450
+﻿#version 450
 
 #extension GL_GOOGLE_include_directive : require
 
+#include "light_helper.glsl"
 
 
 layout(binding = 11) uniform sampler2D diffuseTexture;
@@ -23,13 +16,14 @@ layout (binding = 16) uniform UBO2
 	mat4 proj;
 	mat4 view;
 	vec4 lightPos;
-	vec4 lightDir;
-	float lightAngle;
-	
 	float intensity;
 	bool debug;
 } ubo;
 
+layout (push_constant) uniform PushConstants {
+	vec4 lightPos;
+	vec4 attenuation;
+} pushConstants;
 
 layout (location = 0) out vec4 outColor;
 
@@ -53,8 +47,8 @@ void main()
 	float depth = texture(depthexture, inData.tc).r;
 	gl_FragDepth = depth;
 
-	vec4 viewLightPos = ubo.view * ubo.lightPos;
-	vec3 viewLightDir = mat3(ubo.view) * (-ubo.lightDir).xyz;
+	vec4 viewLightPos = ubo.view * pushConstants.lightPos;
+	//vec3 viewLightDir = mat3(ubo.view) * (-ubo.lightDir).xyz;
 	//vec4 viewLightPos = ubo.view * vec4(5.f,5.f,5.f,1.f);
 	//vec3 viewLightDir = (ubo.view * vec4(1.f,1.f,1.f,0.f)).xyz;
 	vec4 P = vec4(reconstructPosition(depth, inData.tc), 1.f);
@@ -63,23 +57,24 @@ void main()
 	vec3 R = reflect(normalize(L), N.xyz);
 	vec3 V = normalize(P.xyz);
 	
-	float intensity = ubo.intensity/pow(length(L), 2.f);
+	float intensity = getAttenuation(pushConstants.attenuation, length(L));
 	
-	vec3 diffuse = max(dot(normalize(N.xyz), normalize(L)) * intensity, 0.05f) * diffuseColor;
+	vec3 diffuse = max(dot(normalize(N.xyz), normalize(L)) * intensity, 0.f) * diffuseColor;
 	vec3 specular = pow(max(dot(R,V), 0.f), specularAndRoughness.a * 256.f) * specularAndRoughness.rgb * intensity;
 	outColor = vec4(diffuse + specular, 1.f);
-	if(acos(dot(normalize(L), normalize(viewLightDir))) > ((ubo.lightAngle/4.f)/180.f)*6.26f) outColor = vec4(0.05f * diffuseColor, 1.f);
-	float angle = acos(dot(normalize(L), normalize(viewLightDir)));
-	float alpha = (clamp((angle/6.26) * 180.f, (ubo.lightAngle/2.f) - 2.5f, (ubo.lightAngle/2.f) + 2.5f)- ((ubo.lightAngle/2.f) - 2.5f)) / 5.f;
-	outColor = mix(vec4(0.05f * diffuseColor, 1.f), vec4(diffuse + specular, 1.f) ,1.f- alpha);
+	//if(acos(dot(normalize(L), normalize(viewLightDir))) > ((ubo.lightAngle/4.f)/180.f)*6.26f) outColor = vec4(0.05f * diffuseColor, 1.f);
+	//float angle = acos(dot(normalize(L), normalize(viewLightDir)));
+	//float alpha = (clamp((angle/6.26) * 180.f, (ubo.lightAngle/2.f) - 2.5f, (ubo.lightAngle/2.f) + 2.5f)- ((ubo.lightAngle/2.f) - 2.5f)) / 5.f;
+	//outColor = mix(vec4(0.05f * diffuseColor, 1.f), vec4(diffuse + specular, 1.f) ,1.f- alpha);
 	
 	
 	if(additional.w > 0.99f) {
-		outColor = vec4(diffuseColor, 1.f);
+		outColor = vec4(0.f);
 	}
+//	outColor = vec4();
 		
-		
-	if(ubo.debug) {
+	//outColor = vec4 ( 0.f, 0.f, 0.f, 0.25f);
+	/*if(ubo.debug) {
 		vec2 tc2 = inData.tc * 2.f;
 		if (inData.tc.x < 0.5 && inData.tc.y >= 0.5) //linker unterer bereich der anzeige
 				//outColor = vec4(vec3(depth), 1);
@@ -91,7 +86,7 @@ void main()
 				outColor = vec4(texture(diffuseTexture, tc2).rgb, 1);
 		else //rechter oberer
 				outColor = vec4(texture(normalTexture, tc2 - vec2(1,0)).rgb, 1);
-	}
+	}*/
 	
 	
 	//outColor = vec4(N, 1.f);

@@ -1,4 +1,12 @@
-﻿#version 450
+﻿/**
+ * Copyright (c) 2017 Darius Rückert 
+ * Licensed under the MIT License.
+ * See LICENSE file for more information.
+ *
+ * created by Mathias Harrer: mathias.mh.harrer@fau.de
+ */
+ 
+#version 450
 
 #extension GL_GOOGLE_include_directive : require
 
@@ -15,10 +23,13 @@ layout (binding = 16) uniform UBO2
 	mat4 proj;
 	mat4 view;
 	vec4 lightPos;
-	bool debug;
 	float intensity;
+	bool debug;
 } ubo;
 
+layout (push_constant) uniform PushConstants {
+	vec4 lightPos;
+} pushConstants;
 
 layout (location = 0) out vec4 outColor;
 
@@ -42,7 +53,7 @@ void main()
 	float depth = texture(depthexture, inData.tc).r;
 	gl_FragDepth = depth;
 
-	vec4 viewLightPos = ubo.view * ubo.lightPos;
+	vec4 viewLightPos = ubo.view * pushConstants.lightPos;
 	//vec3 viewLightDir = mat3(ubo.view) * (-ubo.lightDir).xyz;
 	//vec4 viewLightPos = ubo.view * vec4(5.f,5.f,5.f,1.f);
 	//vec3 viewLightDir = (ubo.view * vec4(1.f,1.f,1.f,0.f)).xyz;
@@ -54,7 +65,7 @@ void main()
 	
 	float intensity = ubo.intensity/pow(length(L), 2.f);
 	
-	vec3 diffuse = max(dot(normalize(N.xyz), normalize(L)) * intensity, 0.05f) * diffuseColor;
+	vec3 diffuse = max(dot(normalize(N.xyz), normalize(L)) * intensity, 0.f) * diffuseColor;
 	vec3 specular = pow(max(dot(R,V), 0.f), specularAndRoughness.a * 256.f) * specularAndRoughness.rgb * intensity;
 	outColor = vec4(diffuse + specular, 1.f);
 	//if(acos(dot(normalize(L), normalize(viewLightDir))) > ((ubo.lightAngle/4.f)/180.f)*6.26f) outColor = vec4(0.05f * diffuseColor, 1.f);
@@ -64,9 +75,10 @@ void main()
 	
 	
 	if(additional.w > 0.99f) {
-		outColor = vec4(diffuseColor, 1.f);
+		outColor = vec4(0.f);
 	}
 		
+	//outColor = vec4 ( 0.f, 0.f, 0.f, 0.25f);
 	/*if(ubo.debug) {
 		vec2 tc2 = inData.tc * 2.f;
 		if (inData.tc.x < 0.5 && inData.tc.y >= 0.5) //linker unterer bereich der anzeige

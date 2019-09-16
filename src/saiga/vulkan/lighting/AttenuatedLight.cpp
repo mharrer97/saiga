@@ -110,8 +110,7 @@ void AttenuatedLightRenderer::destroy()
     uniformBufferVS.destroy();
 }
 
-void AttenuatedLightRenderer::render(vk::CommandBuffer cmd, mat4 proj, mat4 view,
-                                     std::shared_ptr<AttenuatedLight> light)
+void AttenuatedLightRenderer::render(vk::CommandBuffer cmd, std::shared_ptr<AttenuatedLight> light)
 {
     // vec4 pos = vec4(light->position[0], light->position[1], light->position[2], 1.f);
     // updateUniformBuffers(cmd, proj, view, pos, 25.f, false);
@@ -133,13 +132,21 @@ void AttenuatedLightRenderer::init(VulkanBase& vulkanDevice, VkRenderPass render
                             {4, {15, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment}},
                             {5, {16, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eFragment}}});
 
-    addPushConstantRange({vk::ShaderStageFlagBits::eVertex, 0, sizeof(mat4)});
+    // addPushConstantRange({vk::ShaderStageFlagBits::eVertex, 0, sizeof(mat4)});
+    addPushConstantRange({vk::ShaderStageFlagBits::eFragment, 0, sizeof(pushConstantObject)});
     shaderPipeline.load(device, {vertexShader, fragmentShader});
     PipelineInfo info;
     info.addVertexInfo<VertexType>();
-    info.rasterizationState.cullMode       = vk::CullModeFlagBits::eNone;
-    info.blendAttachmentState.blendEnable  = VK_TRUE;
-    info.blendAttachmentState.alphaBlendOp = vk::BlendOp::eAdd;
+    info.rasterizationState.cullMode              = vk::CullModeFlagBits::eNone;
+    info.blendAttachmentState.blendEnable         = VK_TRUE;
+    info.blendAttachmentState.alphaBlendOp        = vk::BlendOp::eAdd;
+    info.blendAttachmentState.colorBlendOp        = vk::BlendOp::eAdd;
+    info.blendAttachmentState.dstColorBlendFactor = vk::BlendFactor::eOne;
+    info.blendAttachmentState.srcColorBlendFactor = vk::BlendFactor::eOne;
+    info.blendAttachmentState.dstAlphaBlendFactor = vk::BlendFactor::eOne;
+    info.blendAttachmentState.srcAlphaBlendFactor = vk::BlendFactor::eOne;
+
+    // info.blendAttachmentState.
     // info.depthStencilState.depthWriteEnable = VK_TRUE;
     // info.depthStencilState.depthTestEnable  = VK_FALSE;
 
@@ -215,6 +222,11 @@ void AttenuatedLightRenderer::createAndUpdateDescriptorSet(Saiga::Vulkan::Memory
         nullptr);
 }
 
+void AttenuatedLightRenderer::pushPosition(vk::CommandBuffer cmd, vec4 pos)
+{
+    pushConstant(cmd, vk::ShaderStageFlagBits::eFragment, sizeof(pushConstantObject), data(pos), 0);
+    // pushConstant(cmd, vk::ShaderStageFlagBits::eVertex, sizeof(mat4), data(model));
+}
 }  // namespace Lighting
 }  // namespace Vulkan
 }  // namespace Saiga

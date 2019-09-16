@@ -87,7 +87,7 @@ class SAIGA_VULKAN_API AttenuatedLight : public Light
      * The shadow volumes should be constructed so that they closely contain
      * all points up to the cutoffradius.
      */
-    float cutoffRadius;
+    float cutoffRadius = 10.f;
 
    public:
     AttenuatedLight();
@@ -137,7 +137,7 @@ class SAIGA_VULKAN_API AttenuatedLightRenderer : public Pipeline
     /**
      * Render the texture at the given pixel position and size
      */
-    void render(vk::CommandBuffer cmd, mat4 proj, mat4 view, std::shared_ptr<AttenuatedLight> light);
+    void render(vk::CommandBuffer cmd, std::shared_ptr<AttenuatedLight> light);
 
 
 
@@ -150,6 +150,7 @@ class SAIGA_VULKAN_API AttenuatedLightRenderer : public Pipeline
                                       Saiga::Vulkan::Memory::ImageMemoryLocation* normal,
                                       Saiga::Vulkan::Memory::ImageMemoryLocation* additional,
                                       Saiga::Vulkan::Memory::ImageMemoryLocation* depth);
+    void pushPosition(vk::CommandBuffer cmd, vec4 pos);
 
    private:
     struct UBOVS
@@ -161,6 +162,11 @@ class SAIGA_VULKAN_API AttenuatedLightRenderer : public Pipeline
         bool debug;
 
     } uboVS;
+
+    struct PCO
+    {
+        vec4 pos;
+    } pushConstantObject;
 
     UniformBuffer uniformBufferVS;
 

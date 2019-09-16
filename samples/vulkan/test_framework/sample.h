@@ -47,7 +47,8 @@ class VulkanExample : public Saiga::Updating,
     bool uploadChanges = true;
     Saiga::Object3D teapotTrans;
 
-    float timingLoop = 0.f;  // used for rotating camera and light etc;
+    float timingLoop  = 0.f;  // used for rotating camera and light etc;
+    float lightRadius = 10.f;
 
     std::shared_ptr<Saiga::Vulkan::Texture2D> texture;
 
@@ -66,6 +67,7 @@ class VulkanExample : public Saiga::Updating,
 
     Saiga::Vulkan::VulkanDeferredRenderer& renderer;
 
+    std::vector<std::shared_ptr<Saiga::Vulkan::Lighting::PointLight>> pointLights;
     bool displayModels = true;
 
 

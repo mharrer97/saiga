@@ -28,20 +28,36 @@ struct DeferredLightingShaderNames
 class SAIGA_VULKAN_API DeferredLighting
 {
    private:
-    VulkanVertexColoredAsset pointLightMesh;
+    PointLightRenderer pointLightRenderer;
     std::vector<std::shared_ptr<PointLight>> pointLights;
 
+
     std::vector<std::shared_ptr<AttenuatedLight>> attenuatedLights;
+
 
    public:
     int totalLights;
     int visibleLights;
 
-    DeferredLighting();
-    ~DeferredLighting();
-    DeferredLighting& operator=(DeferredLighting& l) = delete;
+    bool renderPointLights = true;
+    bool renderSpotLights  = true;
 
-    void init();  // give renderpass here?
+
+    DeferredLighting();
+    ~DeferredLighting() { destroy(); }
+    DeferredLighting& operator=(DeferredLighting& l) = delete;
+    void destroy();
+
+    void init(Saiga::Vulkan::VulkanBase& vulkanDevice, VkRenderPass renderPass);
+    void createAndUpdateDescriptorSets(Saiga::Vulkan::Memory::ImageMemoryLocation* diffuse,
+                                       Saiga::Vulkan::Memory::ImageMemoryLocation* specular,
+                                       Saiga::Vulkan::Memory::ImageMemoryLocation* normal,
+                                       Saiga::Vulkan::Memory::ImageMemoryLocation* additional,
+                                       Saiga::Vulkan::Memory::ImageMemoryLocation* depth);
+    void updateUniformBuffers(vk::CommandBuffer cmd, mat4 proj, mat4 view);
+    void renderLights(vk::CommandBuffer cmd);
+
+    void reload();
 
     std::shared_ptr<PointLight> createPointLight();
 

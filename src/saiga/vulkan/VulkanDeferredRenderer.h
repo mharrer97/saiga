@@ -61,7 +61,7 @@ class SAIGA_VULKAN_API VulkanDeferredRenderer : public VulkanRenderer
 
     // TODO change?
     Saiga::Vulkan::Lighting::DeferredLighting lighting;
-    std::shared_ptr<Saiga::Vulkan::Lighting::AttenuatedLight> attenuatedTestLight;
+
 
     CommandPool renderCommandPool;
     vk::RenderPass renderPass;
@@ -104,7 +104,8 @@ class SAIGA_VULKAN_API VulkanDeferredRenderer : public VulkanRenderer
     ColorBuffer diffuseAttachment, specularAttachment, normalAttachment, additionalAttachment;
     DepthBuffer gBufferDepthBuffer;
 
-    bool debug = false;
+    bool debug        = false;
+    bool renderLights = true;
 
     // TODO test
     Saiga::Vulkan::QuadRenderer quadRenderer;
