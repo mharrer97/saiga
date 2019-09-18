@@ -214,6 +214,24 @@ void ObjModelLoader::toTriangleMesh(TriangleMesh<VertexNTD, uint32_t>& mesh)
     }
 }
 
+void ObjModelLoader::toTriangleMesh(TriangleMesh<Vertex, uint32_t>& mesh)
+{
+    mesh.faces.reserve(outTriangles.size());
+    for (ObjTriangle& oj : outTriangles)
+    {
+        mesh.addFace(oj.v);
+    }
+
+    mesh.vertices.reserve(outTriangles.size());
+    for (unsigned int i = 0; i < outVertices.size(); ++i)
+    {
+        auto& ov = outVertices[i];
+        Vertex v;
+        v.position = ov.position;
+        mesh.addVertex(v);
+    }
+}
+
 void ObjModelLoader::createVertexIndexList()
 {
     std::vector<bool> vertices_used(vertices.size(), false);

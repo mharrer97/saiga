@@ -61,6 +61,7 @@ class SAIGA_CORE_API ObjModelLoader
 
     void toTriangleMesh(TriangleMesh<VertexNC, uint32_t>& mesh);
     void toTriangleMesh(TriangleMesh<VertexNTD, uint32_t>& mesh);
+    void toTriangleMesh(TriangleMesh<Vertex, uint32_t>& mesh);
 
    private:
     std::vector<vec3> vertices;

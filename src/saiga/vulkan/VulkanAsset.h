@@ -93,5 +93,16 @@ class SAIGA_VULKAN_API VulkanTexturedAsset : public TexturedModel
     }
 };
 
+class SAIGA_VULKAN_API VulkanVertexAsset : public VertexModel
+{
+   public:
+    VertexBuffer<VertexType> vertexBuffer;
+    IndexBuffer<uint32_t> indexBuffer;
+
+
+    void init(Saiga::Vulkan::VulkanBase& base);
+    void render(vk::CommandBuffer cmd);
+};
+
 }  // namespace Vulkan
 }  // namespace Saiga

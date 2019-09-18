@@ -29,7 +29,7 @@ layout (location = 0) out vec4 outColor;
 
 layout(location=0) in VertexData
 {
-    vec2 tc;
+    vec4 pos;
 } inData;
 
 vec3 reconstructPosition(float d, vec2 tc){
@@ -41,18 +41,18 @@ vec3 reconstructPosition(float d, vec2 tc){
 void main() 
 {
 	
-	vec3 diffuseColor = texture(diffuseTexture, inData.tc).rgb;
-	vec4 specularAndRoughness = texture(specularTexture, inData.tc);
-	vec4 additional = texture(additionalTexture, inData.tc); // <-- currently unused //w contains information if light calculation should be applied: 1 = no lighting
-	float depth = texture(depthexture, inData.tc).r;
+	vec3 diffuseColor = texture(diffuseTexture, inData.pos.xy).rgb;
+	vec4 specularAndRoughness = texture(specularTexture, inData.pos.xy);
+	vec4 additional = texture(additionalTexture, inData.pos.xy); // <-- currently unused //w contains information if light calculation should be applied: 1 = no lighting
+	float depth = texture(depthexture, inData.pos.xy).r;
 	gl_FragDepth = depth;
 
 	vec4 viewLightPos = ubo.view * pushConstants.lightPos;
 	//vec3 viewLightDir = mat3(ubo.view) * (-ubo.lightDir).xyz;
 	//vec4 viewLightPos = ubo.view * vec4(5.f,5.f,5.f,1.f);
 	//vec3 viewLightDir = (ubo.view * vec4(1.f,1.f,1.f,0.f)).xyz;
-	vec4 P = vec4(reconstructPosition(depth, inData.tc), 1.f);
-	vec4 N = vec4(normalize(texture(normalTexture, inData.tc).rgb), 1.f);
+	vec4 P = vec4(reconstructPosition(depth, inData.pos.xy), 1.f);
+	vec4 N = vec4(normalize(texture(normalTexture, inData.pos.xy).rgb), 1.f);
 	vec3 L = viewLightPos.xyz - P.xyz;
 	vec3 R = reflect(normalize(L), N.xyz);
 	vec3 V = normalize(P.xyz);
@@ -71,6 +71,7 @@ void main()
 	if(additional.w > 0.99f) {
 		outColor = vec4(0.f);
 	}
+	outColor = vec4(1);
 //	outColor = vec4();
 		
 	//outColor = vec4 ( 0.f, 0.f, 0.f, 0.25f);

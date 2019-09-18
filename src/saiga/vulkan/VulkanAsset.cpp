@@ -127,6 +127,24 @@ void VulkanTexturedAsset::render(vk::CommandBuffer cmd)
     indexBuffer.draw(cmd);
 }
 
+void VulkanVertexAsset::init(Saiga::Vulkan::VulkanBase& base)
+{
+    auto indices = mesh.getIndexList();
 
+    vertexBuffer.init(base, mesh.vertices.size(), vk::MemoryPropertyFlagBits::eDeviceLocal);
+    indexBuffer.init(base, indices.size(), vk::MemoryPropertyFlagBits::eDeviceLocal);
+
+    vertexBuffer.stagedUpload(base, mesh.vertices.size() * sizeof(VertexType), mesh.vertices.data());
+    indexBuffer.stagedUpload(base, indices.size() * sizeof(uint32_t), indices.data());
+}
+
+
+void VulkanVertexAsset::render(vk::CommandBuffer cmd)
+{
+    //    if(!vertexBuffer.m_memoryLocation.buffer) return;
+    vertexBuffer.bind(cmd);
+    indexBuffer.bind(cmd);
+    indexBuffer.draw(cmd);
+}
 }  // namespace Vulkan
 }  // namespace Saiga

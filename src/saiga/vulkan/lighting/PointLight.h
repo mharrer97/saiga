@@ -73,7 +73,7 @@ class SAIGA_VULKAN_API PointLightRenderer : public Pipeline
     using VertexType = VertexNC;
 
     // Change these strings before calling 'init' to use your own shaders
-    std::string vertexShader   = "vulkan/quadRenderer.vert";
+    std::string vertexShader   = "vulkan/lighting/attenuatedLight.vert";
     std::string fragmentShader = "vulkan/lighting/pointLight.frag";
 
     ~PointLightRenderer() { destroy(); }
@@ -99,12 +99,18 @@ class SAIGA_VULKAN_API PointLightRenderer : public Pipeline
     void pushLight(vk::CommandBuffer cmd, std::shared_ptr<PointLight> light);
 
    private:
-    struct UBOVS
+    struct UBOFS
     {
         mat4 proj;
         mat4 view;
         bool debug;
 
+    } uboFS;
+
+    struct UBOVS
+    {
+        mat4 proj;
+        mat4 view;
     } uboVS;
 
     struct PCO
@@ -114,10 +120,10 @@ class SAIGA_VULKAN_API PointLightRenderer : public Pipeline
     } pushConstantObject;
 
     UniformBuffer uniformBufferVS;
-
+    UniformBuffer uniformBufferFS;
 
     Saiga::Vulkan::StaticDescriptorSet descriptorSet;
-    Saiga::Vulkan::VulkanVertexColoredAsset lightMesh;
+    Saiga::Vulkan::VulkanVertexAsset lightMesh;
 };
 }  // namespace Lighting
 }  // namespace Vulkan

@@ -165,6 +165,7 @@ void PointLightRenderer::destroy()
 {
     Pipeline::destroy();
     uniformBufferVS.destroy();
+    uniformBufferFS.destroy();
 }
 
 void PointLightRenderer::render(vk::CommandBuffer cmd, std::shared_ptr<PointLight> light)
@@ -187,7 +188,8 @@ void PointLightRenderer::init(VulkanBase& vulkanDevice, VkRenderPass renderPass)
                             {2, {13, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment}},
                             {3, {14, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment}},
                             {4, {15, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment}},
-                            {5, {16, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eFragment}}});
+                            {5, {16, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eFragment}},
+                            {6, {7, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex}}});
 
     // addPushConstantRange({vk::ShaderStageFlagBits::eVertex, 0, sizeof(mat4)});
     addPushConstantRange({vk::ShaderStageFlagBits::eFragment, 0, sizeof(pushConstantObject)});
@@ -209,15 +211,19 @@ void PointLightRenderer::init(VulkanBase& vulkanDevice, VkRenderPass renderPass)
 
     create(renderPass, info);
 
-    lightMesh.createFullscreenQuad();
+    lightMesh.loadObj("box.obj");
     lightMesh.init(vulkanDevice);
 }
 
 void PointLightRenderer::updateUniformBuffers(vk::CommandBuffer cmd, mat4 proj, mat4 view, bool debug)
 {
-    uboVS.proj  = proj;
-    uboVS.view  = view;
-    uboVS.debug = debug;
+    uboFS.proj  = proj;
+    uboFS.view  = view;
+    uboFS.debug = debug;
+    uniformBufferFS.update(cmd, sizeof(uboFS), &uboFS);
+
+    uboVS.proj = proj;
+    uboVS.view = view;
     uniformBufferVS.update(cmd, sizeof(uboVS), &uboVS);
 }
 
@@ -256,7 +262,10 @@ void PointLightRenderer::createAndUpdateDescriptorSet(Saiga::Vulkan::Memory::Ima
     depthDescriptorInfo.setSampler(depth->data.sampler);
 
     uniformBufferVS.init(*base, &uboVS, sizeof(uboVS));
-    vk::DescriptorBufferInfo uboDescriptorInfo = uniformBufferVS.getDescriptorInfo();
+    vk::DescriptorBufferInfo uboVSDescriptorInfo = uniformBufferVS.getDescriptorInfo();
+
+    uniformBufferFS.init(*base, &uboFS, sizeof(uboFS));
+    vk::DescriptorBufferInfo uboFSDescriptorInfo = uniformBufferFS.getDescriptorInfo();
 
     device.updateDescriptorSets(
         {
@@ -271,7 +280,9 @@ void PointLightRenderer::createAndUpdateDescriptorSet(Saiga::Vulkan::Memory::Ima
             vk::WriteDescriptorSet(descriptorSet, 15, 0, 1, vk::DescriptorType::eCombinedImageSampler,
                                    &depthDescriptorInfo, nullptr, nullptr),
             vk::WriteDescriptorSet(descriptorSet, 16, 0, 1, vk::DescriptorType::eUniformBuffer, nullptr,
-                                   &uboDescriptorInfo, nullptr),
+                                   &uboFSDescriptorInfo, nullptr),
+            vk::WriteDescriptorSet(descriptorSet, 7, 0, 1, vk::DescriptorType::eUniformBuffer, nullptr,
+                                   &uboVSDescriptorInfo, nullptr),
         },
         nullptr);
 }

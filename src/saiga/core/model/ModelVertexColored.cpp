@@ -85,5 +85,15 @@ void TexturedModel::loadObj(const std::string& file)
     }
 }
 
+void VertexModel::loadObj(const std::string& file)
+{
+    Saiga::ObjModelLoader loader(file);
+    loader.toTriangleMesh(mesh);
+}
 
+/*void VertexModel::loadPly(const std::string& file)
+{
+    Saiga::PLYLoader loader(file);
+    mesh = loader.mesh;
+}*/
 }  // namespace Saiga
