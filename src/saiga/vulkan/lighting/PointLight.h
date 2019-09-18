@@ -70,7 +70,7 @@ class SAIGA_VULKAN_API PointLight : public AttenuatedLight
 class SAIGA_VULKAN_API PointLightRenderer : public Pipeline
 {
    public:
-    using VertexType = VertexNC;
+    using VertexType = Vertex;
 
     // Change these strings before calling 'init' to use your own shaders
     std::string vertexShader   = "vulkan/lighting/attenuatedLight.vert";

@@ -93,6 +93,9 @@ void main()
 				outColor = vec4(texture(normalTexture, tc2 - vec2(1,0)).rgb, 1);
 	}
 	
+	//outColor = vec4(inData.tc, 0, 1);
+	//	outColor = vec4(0);
+
 	
 	//outColor = vec4(N, 1.f);
     //outColor = texture(diffuseTexture,inData.tc) * texture(normalTexture,inData.tc) * max(1.f,texture(specularTexture,inData.tc).r + 0.75f) * texture(additionalTexture,inData.tc);

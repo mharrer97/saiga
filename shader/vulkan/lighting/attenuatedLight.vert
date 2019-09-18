@@ -1,7 +1,8 @@
 #version 450
 
 
-layout(location=0) in vec4 inPosition;
+layout(location=0) in vec3 inPosition;
+
 
 layout (binding = 7) uniform UBO2 
 {
@@ -21,7 +22,9 @@ layout(location=0) out VertexData
 
 void main() 
 {
-    outData.pos = ubo.proj * ubo.view * vec4(inPosition.xyz,1);
+	vec3 pos = inPosition.xyz * 10.f;
+    outData.pos = (ubo.proj * ubo.view * vec4(pos,1));
     //outData.tc.y = 1.0 - outData.tc.y;
-    gl_Position = ubo.proj * ubo.view * vec4(inPosition.xyz,1);
+    gl_Position = ubo.proj * ubo.view * vec4(pos,1);
+    //gl_Position.z = 0.1f;
 }

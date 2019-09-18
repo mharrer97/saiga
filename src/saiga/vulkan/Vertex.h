@@ -59,6 +59,9 @@ SAIGA_VULKAN_API void VKVertexAttribBinder<VertexNTD>::getVKAttribs(
     vk::VertexInputBindingDescription& vi_binding,
     std::vector<vk::VertexInputAttributeDescription>& attributeDescriptors);
 
-
+template <>
+SAIGA_VULKAN_API void VKVertexAttribBinder<Vertex>::getVKAttribs(
+    vk::VertexInputBindingDescription& vi_binding,
+    std::vector<vk::VertexInputAttributeDescription>& attributeDescriptors);
 }  // namespace Vulkan
 }  // namespace Saiga

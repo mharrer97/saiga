@@ -45,7 +45,7 @@ void main()
 	vec4 specularAndRoughness = texture(specularTexture, inData.pos.xy);
 	vec4 additional = texture(additionalTexture, inData.pos.xy); // <-- currently unused //w contains information if light calculation should be applied: 1 = no lighting
 	float depth = texture(depthexture, inData.pos.xy).r;
-	gl_FragDepth = depth;
+	//gl_FragDepth = depth;
 
 	vec4 viewLightPos = ubo.view * pushConstants.lightPos;
 	//vec3 viewLightDir = mat3(ubo.view) * (-ubo.lightDir).xyz;
@@ -71,8 +71,9 @@ void main()
 	if(additional.w > 0.99f) {
 		outColor = vec4(0.f);
 	}
-	outColor = vec4(1);
-//	outColor = vec4();
+	outColor = vec4(inData.pos.xy/inData.pos.a, 0, 1);
+	outColor = vec4(gl_FragCoord);
+//	outColor = vec4(0);
 		
 	//outColor = vec4 ( 0.f, 0.f, 0.f, 0.25f);
 	/*if(ubo.debug) {

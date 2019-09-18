@@ -103,7 +103,21 @@ void VKVertexAttribBinder<VertexNTD>::getVKAttribs(
     attributeDescriptors[3].offset   = 3 * sizeof(vec4);
 }
 
+template <>
+void VKVertexAttribBinder<Vertex>::getVKAttribs(vk::VertexInputBindingDescription& vi_binding,
+                                                std::vector<vk::VertexInputAttributeDescription>& attributeDescriptors)
+{
+    vi_binding.binding   = 0;
+    vi_binding.inputRate = vk::VertexInputRate::eVertex;
+    vi_binding.stride    = sizeof(Vertex);
 
+    attributeDescriptors.resize(1);
+
+    attributeDescriptors[0].binding  = 0;
+    attributeDescriptors[0].location = 0;
+    attributeDescriptors[0].format   = vk::Format::eR32G32B32A32Sfloat;
+    attributeDescriptors[0].offset   = 0;
+}
 
 }  // namespace Vulkan
 }  // namespace Saiga
