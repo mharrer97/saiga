@@ -17,6 +17,7 @@
 #include "saiga/core/util/assert.h"
 //#include "saiga/opengl/error.h"
 //#include "saiga/opengl/rendering/deferredRendering/deferredRendering.h"
+#include "saiga/core/math/all.h"
 #include "saiga/vulkan/lighting/SpotLight.h"
 
 namespace Saiga
@@ -74,7 +75,7 @@ float SpotLight::getOpeningAngle() const
 
 void SpotLight::setOpeningAngle(float value)
 {
-    openingAngle = clamp(value, 0.f, 180.f);
+    openingAngle = clamp(value, 0.f, 360.f);
 }
 
 vec3 SpotLight::getDirection() const
@@ -196,7 +197,14 @@ void SpotLightRenderer::render(vk::CommandBuffer cmd, std::shared_ptr<SpotLight>
     bindDescriptorSet(cmd, descriptorSet);
     // vk::Viewport vp(position[0], position[1], size[0], size[1]);
     // cmd.setViewport(0, vp);
-    lightMesh.render(cmd);
+    if (pushConstantObject.openingAngle < 135.f)  // render pyramid if small angle
+    {
+        lightMesh.render(cmd);
+    }
+    else  // render icosphere if large angle
+    {
+        lightMeshIco.render(cmd);
+    }
 }
 
 
@@ -236,6 +244,9 @@ void SpotLightRenderer::init(VulkanBase& vulkanDevice, VkRenderPass renderPass)
 
     lightMesh.createUniformPyramid();
     lightMesh.init(vulkanDevice);
+
+    lightMeshIco.loadObj("icosphere.obj");
+    lightMeshIco.init(vulkanDevice);
 }
 
 void SpotLightRenderer::updateUniformBuffers(vk::CommandBuffer cmd, mat4 proj, mat4 view, bool debug)
@@ -316,7 +327,20 @@ void SpotLightRenderer::pushLight(vk::CommandBuffer cmd, std::shared_ptr<SpotLig
     pushConstantObject.pos          = make_vec4(light->position, 1.f);
     pushConstantObject.dir          = make_vec4(light->getDirection(), 0.f);
     pushConstantObject.openingAngle = light->getOpeningAngle();
-    pushConstantObject.model        = scale(translate(light->position), make_vec3(light->getRadius()));
+
+    if (light->getOpeningAngle() < 135.f)  // render pyramid if small angle
+    {
+        float rotationAngle = acos(dot(vec3(0.f, -1.f, 0.f), light->getDirection()));
+        vec3 rotationAxis   = cross(vec3(0.f, -1.f, 0.f), light->getDirection());
+        float scaleFactor   = tan(((light->getOpeningAngle() / 2.f) / 180.f) * pi<float>());
+        pushConstantObject.model =
+            scale(scale(rotate(translate(light->position), rotationAngle, rotationAxis), make_vec3(light->getRadius())),
+                  vec3(scaleFactor, 1.f, scaleFactor));
+    }
+    else
+    {  // render icosphere if large angle
+        pushConstantObject.model = scale(translate(light->position), make_vec3(light->getRadius()));
+    }
     // pushConstant(cmd, vk::ShaderStageFlagBits::eVertex, sizeof(mat4), data(translate(light->position)));
     pushConstant(cmd, vk::ShaderStageFlagBits::eAllGraphics, sizeof(pushConstantObject), &pushConstantObject, 0);
 }

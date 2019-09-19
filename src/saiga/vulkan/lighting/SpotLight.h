@@ -134,6 +134,7 @@ class SAIGA_VULKAN_API SpotLightRenderer : public Pipeline
 
     Saiga::Vulkan::StaticDescriptorSet descriptorSet;
     Saiga::Vulkan::VulkanVertexAsset lightMesh;
+    Saiga::Vulkan::VulkanVertexAsset lightMeshIco;
 };
 }  // namespace Lighting
 }  // namespace Vulkan

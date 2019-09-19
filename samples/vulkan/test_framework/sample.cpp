@@ -205,9 +205,10 @@ void VulkanExample::update(float dt)
 
     vec3 pos =
         vec3(sin(fmod(3.1415f - timingLoop, 2.f * 3.1415f)), 1.f, cos(fmod(3.1415f - timingLoop, 2.f * 3.1415f)));
-    pos *= 5.f;
-    pos[1] = 2.5f;
+    pos *= 10.f;
+    spotLight->setDirection(-pos);
     spotLight->setRadius(lightRadius);
+    pos[1]              = 3.5f;
     spotLight->position = pos;
     spotLight->setOpeningAngle(spotLightOpeningAngle);
 }
@@ -364,7 +365,7 @@ void VulkanExample::renderGUI()
     }
 
     ImGui::DragFloat("Light Radius", &lightRadius, 0.25f, 0.f, 20.f);
-    ImGui::DragFloat("Spot Opening Angle", &spotLightOpeningAngle, 0.25f, 0.f, 180.f);
+    ImGui::DragFloat("Spot Opening Angle", &spotLightOpeningAngle, 0.25f, 0.f, 360.f);
     ImGui::End();
     //    return;
 
