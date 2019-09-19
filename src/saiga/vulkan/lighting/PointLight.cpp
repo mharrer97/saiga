@@ -192,7 +192,7 @@ void PointLightRenderer::init(VulkanBase& vulkanDevice, VkRenderPass renderPass)
                             {6, {7, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex}}});
 
     // addPushConstantRange({vk::ShaderStageFlagBits::eVertex, 0, sizeof(mat4)});
-    addPushConstantRange({vk::ShaderStageFlagBits::eFragment, 0, sizeof(pushConstantObject)});
+    addPushConstantRange({vk::ShaderStageFlagBits::eAllGraphics, 0, sizeof(pushConstantObject)});
     shaderPipeline.load(device, {vertexShader, fragmentShader});
     PipelineInfo info;
     info.addVertexInfo<VertexType>();
@@ -204,6 +204,8 @@ void PointLightRenderer::init(VulkanBase& vulkanDevice, VkRenderPass renderPass)
     info.blendAttachmentState.srcColorBlendFactor = vk::BlendFactor::eOne;
     info.blendAttachmentState.dstAlphaBlendFactor = vk::BlendFactor::eOne;
     info.blendAttachmentState.srcAlphaBlendFactor = vk::BlendFactor::eOne;
+    info.rasterizationState.cullMode              = vk::CullModeFlagBits::eBack;
+    info.depthStencilState.depthWriteEnable       = VK_FALSE;
 
     // info.blendAttachmentState.
     // info.depthStencilState.depthWriteEnable = VK_TRUE;
@@ -211,7 +213,7 @@ void PointLightRenderer::init(VulkanBase& vulkanDevice, VkRenderPass renderPass)
 
     create(renderPass, info);
 
-    lightMesh.loadObj("box.obj");
+    lightMesh.loadObj("icosphere.obj");
     lightMesh.init(vulkanDevice);
 }
 
@@ -289,11 +291,12 @@ void PointLightRenderer::createAndUpdateDescriptorSet(Saiga::Vulkan::Memory::Ima
 
 void PointLightRenderer::pushLight(vk::CommandBuffer cmd, std::shared_ptr<PointLight> light)
 {
+    pushConstantObject.model       = scale(translate(light->position), make_vec3(light->getRadius()));
     pushConstantObject.attenuation = make_vec4(light->getAttenuation(), light->getRadius());
     pushConstantObject.pos         = make_vec4(light->position, 1.f);
 
-    pushConstant(cmd, vk::ShaderStageFlagBits::eFragment, sizeof(pushConstantObject), &pushConstantObject, 0);
-    // pushConstant(cmd, vk::ShaderStageFlagBits::eVertex, sizeof(mat4), data(model));
+    // pushConstant(cmd, vk::ShaderStageFlagBits::eVertex, sizeof(mat4), data(translate(light->position)));
+    pushConstant(cmd, vk::ShaderStageFlagBits::eAllGraphics, sizeof(pushConstantObject), &pushConstantObject, 0);
 }
 
 

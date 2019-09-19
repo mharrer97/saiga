@@ -94,7 +94,7 @@ void main()
 	}
 	
 	//outColor = vec4(inData.tc, 0, 1);
-	//	outColor = vec4(0);
+		//outColor = vec4(0);
 
 	
 	//outColor = vec4(N, 1.f);

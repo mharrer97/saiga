@@ -113,8 +113,9 @@ class SAIGA_VULKAN_API PointLightRenderer : public Pipeline
         mat4 view;
     } uboVS;
 
-    struct PCO
+    struct PCO  // TODO evtl use separate pushconstants in each shader stage?
     {
+        mat4 model;
         vec4 pos;
         vec4 attenuation;
     } pushConstantObject;
