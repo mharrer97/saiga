@@ -543,7 +543,7 @@ void VulkanDeferredRenderer::setupDrawCommandBuffer(int currentImage, Camera* ca
     lighting.attenuatedLightRenderer.updateUniformBuffers(drawCmdBuffers[currentImage], cam->proj, cam->view, pos, 25.f,
                                                           true);
 */
-    lighting.updateUniformBuffers(drawCmdBuffers[currentImage], cam->proj, cam->view);
+    lighting.updateUniformBuffers(drawCmdBuffers[currentImage], cam->proj, cam->view, lightDebug);
 
 
     drawCmdBuffers[currentImage].beginRenderPass(&renderPassBeginInfo, vk::SubpassContents::eInline);
@@ -653,6 +653,7 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage, Camera* c
         ImGui::SetNextWindowSize(ImVec2(300, 400));
         ImGui::Begin("Deferred Renderer Settings");
         ImGui::Checkbox("Debug Mode", &debug);
+        ImGui::Checkbox("Debug Lights", &lightDebug);
         ImGui::Checkbox("Render Lights", &renderLights);
         ImGui::DragFloat("Light Angle", &pointLight.angle, 1.f, 0.f, 180.f);
         ImGui::DragFloat("Light Intensity", &lightIntensity, 1.f, 0.f, 100.f);

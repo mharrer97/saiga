@@ -109,7 +109,7 @@ void VulkanExample::init(Saiga::Vulkan::VulkanBase& base)
     plane.createCheckerBoard(ivec2(20, 20), 1.0f, Saiga::Colors::firebrick, Saiga::Colors::gray);
     plane.init(renderer.base());
 
-    sphere.loadObj("box.obj");
+    sphere.loadObj("icosphere.obj");
     sphere.init(renderer.base());
 
     grid.createGrid(10, 10);
@@ -129,7 +129,7 @@ void VulkanExample::init(Saiga::Vulkan::VulkanBase& base)
 
 
     std::shared_ptr<Saiga::Vulkan::Lighting::PointLight> pointTestLight;
-    int count = 5;
+    int count = 0;
     for (int i = 0; i < count; ++i)
     {
         vec3 pos = vec3(sin((float(i) / float(count)) * 6.28f), 1.f, cos((float(i) / float(count)) * 6.28f));
@@ -141,6 +141,8 @@ void VulkanExample::init(Saiga::Vulkan::VulkanBase& base)
         pointTestLight->position = pos;
         pointLights.push_back(pointTestLight);
     }
+
+    spotLight = renderer.lighting.createSpotLight();
 }
 
 
@@ -192,9 +194,22 @@ void VulkanExample::update(float dt)
             // pos                           = vec3(1.f, 0.f, 1.f) * (3 * float(i));
             pos[1]                   = 5.f;
             pointLights[i]->position = pos;
-            pointLights[i]->setRadius(lightRadius);
         }
     }
+
+    int count = pointLights.size();
+    for (int i = 0; i < count; ++i)
+    {
+        pointLights[i]->setRadius(lightRadius);
+    }
+
+    vec3 pos =
+        vec3(sin(fmod(3.1415f - timingLoop, 2.f * 3.1415f)), 1.f, cos(fmod(3.1415f - timingLoop, 2.f * 3.1415f)));
+    pos *= 5.f;
+    pos[1] = 2.5f;
+    spotLight->setRadius(lightRadius);
+    spotLight->position = pos;
+    spotLight->setOpeningAngle(spotLightOpeningAngle);
 }
 
 void VulkanExample::transfer(vk::CommandBuffer cmd, Camera* cam)
@@ -288,6 +303,8 @@ void VulkanExample::renderForward(vk::CommandBuffer cmd, Camera* cam)
                 assetRenderer.forward.pushModel(cmd, scale(translate(l->position), vec3(0.1f, 0.1f, 0.1f)));
                 sphere.render(cmd);
             }
+            assetRenderer.forward.pushModel(cmd, scale(translate(spotLight->position), vec3(0.1f, 0.1f, 0.1f)));
+            sphere.render(cmd);
         }
         if (pointCloudRenderer.forward.bind(cmd))
         {
@@ -347,6 +364,7 @@ void VulkanExample::renderGUI()
     }
 
     ImGui::DragFloat("Light Radius", &lightRadius, 0.25f, 0.f, 20.f);
+    ImGui::DragFloat("Spot Opening Angle", &spotLightOpeningAngle, 0.25f, 0.f, 180.f);
     ImGui::End();
     //    return;
 

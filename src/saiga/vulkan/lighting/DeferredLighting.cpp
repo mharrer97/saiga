@@ -22,12 +22,14 @@ void DeferredLighting::destroy()
 {
     attenuatedLightRenderer.destroy();
     pointLightRenderer.destroy();
+    spotLightRenderer.destroy();
 }
 
 void DeferredLighting::init(Saiga::Vulkan::VulkanBase& vulkanDevice, VkRenderPass renderPass)
 {
     attenuatedLightRenderer.init(vulkanDevice, renderPass);
     pointLightRenderer.init(vulkanDevice, renderPass);
+    spotLightRenderer.init(vulkanDevice, renderPass);
 }
 
 void DeferredLighting::createAndUpdateDescriptorSets(Memory::ImageMemoryLocation* diffuse,
@@ -38,11 +40,13 @@ void DeferredLighting::createAndUpdateDescriptorSets(Memory::ImageMemoryLocation
 {
     attenuatedLightRenderer.createAndUpdateDescriptorSet(diffuse, specular, normal, additional, depth);
     pointLightRenderer.createAndUpdateDescriptorSet(diffuse, specular, normal, additional, depth);
+    spotLightRenderer.createAndUpdateDescriptorSet(diffuse, specular, normal, additional, depth);
 }
-void DeferredLighting::updateUniformBuffers(vk::CommandBuffer cmd, mat4 proj, mat4 view)
+void DeferredLighting::updateUniformBuffers(vk::CommandBuffer cmd, mat4 proj, mat4 view, bool debug)
 {
     attenuatedLightRenderer.updateUniformBuffers(cmd, proj, view, vec4(-5.f, 5.f, 5.f, 1.f), 10.f, false);
-    pointLightRenderer.updateUniformBuffers(cmd, proj, view, false);
+    pointLightRenderer.updateUniformBuffers(cmd, proj, view, debug);
+    spotLightRenderer.updateUniformBuffers(cmd, proj, view, debug);
 }
 
 void DeferredLighting::renderLights(vk::CommandBuffer cmd)
@@ -65,11 +69,22 @@ void DeferredLighting::renderLights(vk::CommandBuffer cmd)
             pointLightRenderer.render(cmd, l);
         }
     }
+
+    if (spotLightRenderer.bind(cmd))
+    {
+        for (auto& l : spotLights)
+        {
+            spotLightRenderer.pushLight(cmd, l);
+            spotLightRenderer.render(cmd, l);
+        }
+    }
 }
 
 void DeferredLighting::reload()
 {
     attenuatedLightRenderer.reload();
+    spotLightRenderer.reload();
+    pointLightRenderer.reload();
 }
 
 std::shared_ptr<PointLight> DeferredLighting::createPointLight()
@@ -79,10 +94,22 @@ std::shared_ptr<PointLight> DeferredLighting::createPointLight()
     return l;
 }
 
+std::shared_ptr<SpotLight> DeferredLighting::createSpotLight()
+{
+    std::shared_ptr<SpotLight> l = std::make_shared<SpotLight>();
+    spotLights.push_back(l);
+    return l;
+}
 void DeferredLighting::removeLight(std::shared_ptr<PointLight> l)
 {
     pointLights.erase(std::find(pointLights.begin(), pointLights.end(), l));
 }
+
+void DeferredLighting::removeLight(std::shared_ptr<SpotLight> l)
+{
+    spotLights.erase(std::find(spotLights.begin(), spotLights.end(), l));
+}
+
 
 
 // TODO delete

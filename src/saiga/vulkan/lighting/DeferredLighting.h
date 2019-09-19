@@ -12,6 +12,7 @@
 #include "saiga/core/camera/camera.h"
 #include "saiga/vulkan/VulkanAsset.h"
 #include "saiga/vulkan/lighting/PointLight.h"
+#include "saiga/vulkan/lighting/SpotLight.h"
 
 
 namespace Saiga
@@ -31,6 +32,8 @@ class SAIGA_VULKAN_API DeferredLighting
     PointLightRenderer pointLightRenderer;
     std::vector<std::shared_ptr<PointLight>> pointLights;
 
+    SpotLightRenderer spotLightRenderer;
+    std::vector<std::shared_ptr<SpotLight>> spotLights;
 
     std::vector<std::shared_ptr<AttenuatedLight>> attenuatedLights;
 
@@ -54,12 +57,13 @@ class SAIGA_VULKAN_API DeferredLighting
                                        Saiga::Vulkan::Memory::ImageMemoryLocation* normal,
                                        Saiga::Vulkan::Memory::ImageMemoryLocation* additional,
                                        Saiga::Vulkan::Memory::ImageMemoryLocation* depth);
-    void updateUniformBuffers(vk::CommandBuffer cmd, mat4 proj, mat4 view);
+    void updateUniformBuffers(vk::CommandBuffer cmd, mat4 proj, mat4 view, bool debug);
     void renderLights(vk::CommandBuffer cmd);
 
     void reload();
 
     std::shared_ptr<PointLight> createPointLight();
+    std::shared_ptr<SpotLight> createSpotLight();
 
     // TODO delete
     std::shared_ptr<AttenuatedLight> createAttenuatedLight();
@@ -67,6 +71,7 @@ class SAIGA_VULKAN_API DeferredLighting
     AttenuatedLightRenderer attenuatedLightRenderer;
 
     void removeLight(std::shared_ptr<PointLight> l);
+    void removeLight(std::shared_ptr<SpotLight> l);
 };
 }  // namespace Lighting
 }  // namespace Vulkan

@@ -105,6 +105,7 @@ class SAIGA_VULKAN_API VulkanDeferredRenderer : public VulkanRenderer
     DepthBuffer gBufferDepthBuffer;
 
     bool debug        = false;
+    bool lightDebug   = false;
     bool renderLights = true;
 
     // TODO test

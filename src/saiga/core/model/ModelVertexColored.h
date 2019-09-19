@@ -46,6 +46,9 @@ class SAIGA_CORE_API TexturedModel : public TriangleModel<VertexNTD, uint32_t>
 class SAIGA_CORE_API VertexModel : public TriangleModel<Vertex, uint32_t>
 {
    public:
+    void createUniformPyramid();
+
+
     void loadObj(const std::string& file);
     // void loadPly(const std::string& file);
 };

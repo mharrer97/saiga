@@ -78,6 +78,7 @@ void main()
 		outColor = vec4(diffuseColor, 1.f);
 	}
 		
+	outColor = vec4(0.05f * diffuseColor, 1.f);
 		
 	if(ubo.debug) {
 		vec2 tc2 = inData.tc * 2.f;

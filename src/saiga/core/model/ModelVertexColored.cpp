@@ -85,6 +85,21 @@ void TexturedModel::loadObj(const std::string& file)
     }
 }
 
+void VertexModel::createUniformPyramid()
+{
+    mesh.vertices.push_back(Vertex(vec3(0, 0, 0)));
+    mesh.vertices.push_back(Vertex(vec3(1, -1, 1)));
+    mesh.vertices.push_back(Vertex(vec3(1, -1, -1)));
+    mesh.vertices.push_back(Vertex(vec3(-1, -1, -1)));
+    mesh.vertices.push_back(Vertex(vec3(-1, -1, 1)));
+    mesh.addFace(0, 1, 2);
+    mesh.addFace(0, 2, 3);
+    mesh.addFace(0, 3, 4);
+    mesh.addFace(0, 4, 1);
+    mesh.addFace(1, 3, 2);
+    mesh.addFace(1, 4, 3);
+}
+
 void VertexModel::loadObj(const std::string& file)
 {
     Saiga::ObjModelLoader loader(file);

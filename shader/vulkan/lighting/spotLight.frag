@@ -22,6 +22,8 @@ layout (push_constant) uniform PushConstants {
 	mat4 model;
 	vec4 lightPos;
 	vec4 attenuation;
+	vec4 lightDir;
+	float openingAngle;
 } pushConstants;
 
 layout (location = 0) out vec4 outColor;
@@ -47,7 +49,7 @@ void main()
 	//gl_FragDepth = depth;
 
 	vec4 viewLightPos = ubo.view * pushConstants.lightPos;
-	//vec3 viewLightDir = mat3(ubo.view) * (-ubo.lightDir).xyz;
+	vec3 viewLightDir = mat3(ubo.view) * (-pushConstants.lightDir).xyz;
 	//vec4 viewLightPos = ubo.view * vec4(5.f,5.f,5.f,1.f);
 	//vec3 viewLightDir = (ubo.view * vec4(1.f,1.f,1.f,0.f)).xyz;
 	vec4 P = vec4(reconstructPosition(depth, tc), 1.f);
@@ -61,10 +63,10 @@ void main()
 	vec3 diffuse = max(dot(normalize(N.xyz), normalize(L)) * intensity, 0.f) * diffuseColor;
 	vec3 specular = pow(max(dot(R,V), 0.f), specularAndRoughness.a * 256.f) * specularAndRoughness.rgb * intensity;
 	outColor = vec4(diffuse + specular, 1.f);
-	//if(acos(dot(normalize(L), normalize(viewLightDir))) > ((ubo.lightAngle/4.f)/180.f)*6.26f) outColor = vec4(0.05f * diffuseColor, 1.f);
-	//float angle = acos(dot(normalize(L), normalize(viewLightDir)));
-	//float alpha = (clamp((angle/6.26) * 180.f, (ubo.lightAngle/2.f) - 2.5f, (ubo.lightAngle/2.f) + 2.5f)- ((ubo.lightAngle/2.f) - 2.5f)) / 5.f;
-	//outColor = mix(vec4(0.05f * diffuseColor, 1.f), vec4(diffuse + specular, 1.f) ,1.f- alpha);
+	if(acos(dot(normalize(L), normalize(viewLightDir))) > ((pushConstants.openingAngle/4.f)/180.f)*6.26f) outColor = vec4(0.f);
+	float angle = acos(dot(normalize(L), normalize(viewLightDir)));
+	float alpha = (clamp((angle/6.26) * 180.f, (pushConstants.openingAngle/4.f) - 2.5f, (pushConstants.openingAngle/4.f) + 2.5f)- ((pushConstants.openingAngle/4.f) - 2.5f)) / 5.f;
+	outColor = mix(vec4(vec3(0.f), 1.f), vec4(diffuse + specular, 1.f) ,1.f- alpha);
 	
 	
 	if(additional.w > 0.99f) {
@@ -72,7 +74,7 @@ void main()
 	}
 
 	
-	if(ubo.debug) outColor = vec4(0.5);
+	if(ubo.debug) outColor = vec4(pushConstants.openingAngle/180.f);
 	//outColor = vec4(diffuseColor, 1);
 		
 	//outColor = vec4 ( 0.f, 0.f, 0.f, 0.25f);
