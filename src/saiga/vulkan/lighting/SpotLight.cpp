@@ -197,7 +197,7 @@ void SpotLightRenderer::render(vk::CommandBuffer cmd, std::shared_ptr<SpotLight>
     bindDescriptorSet(cmd, descriptorSet);
     // vk::Viewport vp(position[0], position[1], size[0], size[1]);
     // cmd.setViewport(0, vp);
-    if (pushConstantObject.openingAngle < 135.f)  // render pyramid if small angle
+    if (pushConstantObject.openingAngle < 90.f)  // render pyramid if small angle
     {
         lightMesh.render(cmd);
     }
@@ -328,7 +328,7 @@ void SpotLightRenderer::pushLight(vk::CommandBuffer cmd, std::shared_ptr<SpotLig
     pushConstantObject.dir          = make_vec4(light->getDirection(), 0.f);
     pushConstantObject.openingAngle = light->getOpeningAngle();
 
-    if (light->getOpeningAngle() < 135.f)  // render pyramid if small angle
+    if (light->getOpeningAngle() < 90.f)  // render pyramid if small angle
     {
         float rotationAngle = acos(dot(vec3(0.f, -1.f, 0.f), light->getDirection()));
         vec3 rotationAxis   = cross(vec3(0.f, -1.f, 0.f), light->getDirection());

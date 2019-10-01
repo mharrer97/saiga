@@ -208,9 +208,10 @@ void VulkanExample::update(float dt)
     pos *= 10.f;
     spotLight->setDirection(-pos);
     spotLight->setRadius(lightRadius);
-    pos[1]              = 3.5f;
+    // pos[1]              = 3.5f;
     spotLight->position = pos;
     spotLight->setOpeningAngle(spotLightOpeningAngle);
+    // spotLight->setDirection(vec3(0.f, -1.f, 0.f));
 }
 
 void VulkanExample::transfer(vk::CommandBuffer cmd, Camera* cam)

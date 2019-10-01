@@ -65,8 +65,9 @@ void main()
 	outColor = vec4(diffuse + specular, 1.f);
 	if(acos(dot(normalize(L), normalize(viewLightDir))) > ((pushConstants.openingAngle/4.f)/180.f)*6.26f) outColor = vec4(0.f);
 	float angle = acos(dot(normalize(L), normalize(viewLightDir)));
-	float alpha = (clamp((angle/6.26) * 180.f, (pushConstants.openingAngle/4.f) - 2.5f, (pushConstants.openingAngle/4.f) + 2.5f)- ((pushConstants.openingAngle/4.f) - 2.5f)) / 5.f;
-	outColor = mix(vec4(vec3(0.f), 1.f), vec4(diffuse + specular, 1.f) ,1.f- alpha);
+	float alpha = (clamp((angle/6.26) * 180.f, (pushConstants.openingAngle/4.f) - 5.f, (pushConstants.openingAngle/4.f))- ((pushConstants.openingAngle/4.f) - 5.f)) / 5.f;
+	//outColor = mix(vec4(vec3(0.f), 1.f), vec4(diffuse + specular, 1.f) ,1.f- alpha);
+	
 	
 	
 	if(additional.w > 0.99f) {
@@ -74,7 +75,18 @@ void main()
 	}
 
 	
-	if(ubo.debug) outColor = vec4(pushConstants.openingAngle/180.f);
+	if(ubo.debug) {
+		float angleDegree = (angle/6.26f) * 360.f;
+		outColor = vec4(pushConstants.openingAngle/360.f);
+		float diff = abs((pushConstants.openingAngle/2.f) - angleDegree);
+		 if(angleDegree < (pushConstants.openingAngle/2.f)-20.f)outColor = vec4(vec3(angleDegree),1.f);
+		 else if(angleDegree < (pushConstants.openingAngle/2.f)-10.f) outColor = vec4(1.f,0.f,0.f,1.f);
+		 else if(angleDegree < (pushConstants.openingAngle/2.f)) outColor = vec4(0.f,1.f,0.f,1.f);
+		 else if(angleDegree < (pushConstants.openingAngle/2.f)+10.f) outColor = vec4(0.f,0.f,1.f,1.f);
+		 else if(angleDegree < (pushConstants.openingAngle/2.f)+20.f) outColor = vec4(1.f,0.f,1.f,1.f);
+		 if(diff < 0.5f)outColor = vec4(1.f,1.f,0.f,1.f);
+		 if(intensity < 0.001f) outColor = vec4(0.f,1.f,1.f,1.f);
+	}
 	//outColor = vec4(diffuseColor, 1);
 		
 	//outColor = vec4 ( 0.f, 0.f, 0.f, 0.25f);
