@@ -136,9 +136,9 @@ void VulkanExample::init(Saiga::Vulkan::VulkanBase& base)
         pos *= 15.f;
 
         // pos                           = vec3(1.f, 0.f, 1.f) * (3 * float(i));
-        pos[1]                   = 5.f;
-        pointTestLight           = renderer.lighting.createPointLight();
-        pointTestLight->position = pos;
+        pos[1]         = 5.f;
+        pointTestLight = renderer.lighting.createPointLight();
+        pointTestLight->setPosition(pos);
         pointLights.push_back(pointTestLight);
     }
 
@@ -192,8 +192,8 @@ void VulkanExample::update(float dt)
             pos *= 15.f;
 
             // pos                           = vec3(1.f, 0.f, 1.f) * (3 * float(i));
-            pos[1]                   = 5.f;
-            pointLights[i]->position = pos;
+            pos[1] = 5.f;
+            pointLights[i]->setPosition(pos);
         }
     }
 
@@ -209,8 +209,9 @@ void VulkanExample::update(float dt)
     spotLight->setDirection(-pos);
     spotLight->setRadius(lightRadius);
     // pos[1]              = 3.5f;
-    spotLight->position = pos;
-    spotLight->setOpeningAngle(spotLightOpeningAngle);
+    spotLight->setPosition(pos);
+    spotLight->setAngle(spotLightOpeningAngle);
+    spotLight->calculateModel();
     // spotLight->setDirection(vec3(0.f, -1.f, 0.f));
 }
 
@@ -302,10 +303,10 @@ void VulkanExample::renderForward(vk::CommandBuffer cmd, Camera* cam)
             sphere.render(cmd);
             for (auto& l : pointLights)
             {
-                assetRenderer.forward.pushModel(cmd, scale(translate(l->position), vec3(0.1f, 0.1f, 0.1f)));
+                assetRenderer.forward.pushModel(cmd, scale(translate(l->getPosition()), vec3(0.1f, 0.1f, 0.1f)));
                 sphere.render(cmd);
             }
-            assetRenderer.forward.pushModel(cmd, scale(translate(spotLight->position), vec3(0.1f, 0.1f, 0.1f)));
+            assetRenderer.forward.pushModel(cmd, scale(translate(spotLight->getPosition()), vec3(0.1f, 0.1f, 0.1f)));
             sphere.render(cmd);
         }
         if (pointCloudRenderer.forward.bind(cmd))

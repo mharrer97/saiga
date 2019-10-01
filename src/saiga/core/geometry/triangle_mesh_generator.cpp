@@ -235,8 +235,8 @@ std::shared_ptr<default_mesh_t> TriangleMeshGenerator::createMesh(const Plane& p
     return std::shared_ptr<default_mesh_t>(mesh);
 }
 
-std::shared_ptr<TriangleMesh<VertexNT, uint32_t> > TriangleMeshGenerator::createTesselatedPlane(int verticesX,
-                                                                                                int verticesY)
+std::shared_ptr<TriangleMesh<VertexNT, uint32_t>> TriangleMeshGenerator::createTesselatedPlane(int verticesX,
+                                                                                               int verticesY)
 {
     default_mesh_t* mesh = new default_mesh_t();
 
@@ -302,6 +302,39 @@ std::shared_ptr<default_mesh_t> TriangleMeshGenerator::createMesh(const Cone& co
     }
 
     return std::shared_ptr<default_mesh_t>(mesh);
+}
+
+std::shared_ptr<TriangleMesh<Vertex, uint32_t>> TriangleMeshGenerator::createConeMesh(const Cone& cone, int sectors)
+{
+    TriangleMesh<Vertex, uint32_t>* mesh = new TriangleMesh<Vertex, uint32_t>();
+    mesh->vertices.push_back(Vertex(vec3(0, 0, 0)));             // top
+    mesh->vertices.push_back(Vertex(vec3(0, -cone.height, 0)));  // bottom
+
+    float const R = 1. / (float)(sectors);
+    float const r = cone.radius;  // radius
+
+    for (int s = 0; s < sectors; s++)
+    {
+        float x = r * sin((float)s * R * M_PI * 2.0f);
+        float y = r * cos((float)s * R * M_PI * 2.0f);
+        mesh->vertices.push_back(Vertex(vec3(x, -cone.height, y)));
+    }
+
+    for (int s = 0; s < sectors; s++)
+    {
+        TriangleMesh<Vertex, uint32_t>::Face face;
+        face.v1 = s + 2;
+        face.v2 = ((s + 1) % sectors) + 2;
+        face.v3 = 0;
+        mesh->faces.push_back(face);
+
+        face.v1 = 1;
+        face.v2 = ((s + 1) % sectors) + 2;
+        face.v3 = s + 2;
+        mesh->faces.push_back(face);
+    }
+
+    return std::shared_ptr<TriangleMesh<Vertex, uint32_t>>(mesh);
 }
 
 

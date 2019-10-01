@@ -51,13 +51,14 @@ class SAIGA_VULKAN_API SpotLight : public AttenuatedLight
 
 
     // void bindUniforms(std::shared_ptr<PointLightShader> shader, Camera* shadowCamera);
+    void recalculateScale();
 
 
     float getRadius() const;
     virtual void setRadius(float value);
 
-    float getOpeningAngle() const;
-    virtual void setOpeningAngle(float value);
+    float getAngle() const { return openingAngle; }
+    virtual void setAngle(float value);
 
     vec3 getDirection() const;
     virtual void setDirection(vec3 value);

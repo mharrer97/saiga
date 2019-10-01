@@ -17,8 +17,11 @@
 #include "saiga/core/util/assert.h"
 //#include "saiga/opengl/error.h"
 //#include "saiga/opengl/rendering/deferredRendering/deferredRendering.h"
+#include "saiga/core/geometry/cone.h"
+#include "saiga/core/geometry/triangle_mesh_generator.h"
 #include "saiga/core/math/all.h"
 #include "saiga/vulkan/lighting/SpotLight.h"
+
 
 namespace Saiga
 {
@@ -55,6 +58,12 @@ SpotLight& SpotLight::operator=(const SpotLight& light)
     return *this;
 }
 
+void SpotLight::recalculateScale()
+{
+    float l = tan(radians(openingAngle / 2.f)) * cutoffRadius;
+    vec3 scale(l, cutoffRadius, l);
+    this->setScale(scale);  // make_vec3(cutoffRadius));
+}
 
 float SpotLight::getRadius() const
 {
@@ -65,17 +74,13 @@ float SpotLight::getRadius() const
 void SpotLight::setRadius(float value)
 {
     cutoffRadius = value;
-    this->setScale(make_vec3(cutoffRadius));
+    recalculateScale();
 }
 
-float SpotLight::getOpeningAngle() const
-{
-    return openingAngle;
-}
-
-void SpotLight::setOpeningAngle(float value)
+void SpotLight::setAngle(float value)
 {
     openingAngle = clamp(value, 0.f, 360.f);
+    recalculateScale();
 }
 
 vec3 SpotLight::getDirection() const
@@ -86,6 +91,7 @@ vec3 SpotLight::getDirection() const
 void SpotLight::setDirection(vec3 value)
 {
     direction = normalize(value);
+    rot       = rotation(vec3(0, -1, 0), normalize(direction));
 }
 /*void PointLight::bindUniforms(std::shared_ptr<PointLightShader> shader, Camera* cam)
 {
@@ -197,7 +203,7 @@ void SpotLightRenderer::render(vk::CommandBuffer cmd, std::shared_ptr<SpotLight>
     bindDescriptorSet(cmd, descriptorSet);
     // vk::Viewport vp(position[0], position[1], size[0], size[1]);
     // cmd.setViewport(0, vp);
-    if (pushConstantObject.openingAngle < 90.f)  // render pyramid if small angle
+    if (pushConstantObject.openingAngle < 135.f)  // render pyramid if small angle
     {
         lightMesh.render(cmd);
     }
@@ -242,8 +248,12 @@ void SpotLightRenderer::init(VulkanBase& vulkanDevice, VkRenderPass renderPass)
 
     create(renderPass, info);
 
-    lightMesh.createUniformPyramid();
-    lightMesh.init(vulkanDevice);
+
+    Cone c(make_vec3(0), vec3(0, 1, 0), 1.0f, 1.0f);
+    lightMesh.mesh = *TriangleMeshGenerator::createConeMesh(c, 10);
+    //    cb->createBuffers(spotLightMesh);
+    // lightMesh.createUniformPyramid();
+    // lightMesh.init(vulkanDevice);
 
     lightMeshIco.loadObj("icosphere.obj");
     lightMeshIco.init(vulkanDevice);
@@ -324,23 +334,11 @@ void SpotLightRenderer::createAndUpdateDescriptorSet(Saiga::Vulkan::Memory::Imag
 void SpotLightRenderer::pushLight(vk::CommandBuffer cmd, std::shared_ptr<SpotLight> light)
 {
     pushConstantObject.attenuation  = make_vec4(light->getAttenuation(), light->getRadius());
-    pushConstantObject.pos          = make_vec4(light->position, 1.f);
+    pushConstantObject.pos          = make_vec4(light->getPosition(), 1.f);
     pushConstantObject.dir          = make_vec4(light->getDirection(), 0.f);
-    pushConstantObject.openingAngle = light->getOpeningAngle();
+    pushConstantObject.openingAngle = light->getAngle();
+    pushConstantObject.model        = light->model;
 
-    if (light->getOpeningAngle() < 90.f)  // render pyramid if small angle
-    {
-        float rotationAngle = acos(dot(vec3(0.f, -1.f, 0.f), light->getDirection()));
-        vec3 rotationAxis   = cross(vec3(0.f, -1.f, 0.f), light->getDirection());
-        float scaleFactor   = tan(((light->getOpeningAngle() / 2.f) / 180.f) * pi<float>());
-        pushConstantObject.model =
-            scale(scale(rotate(translate(light->position), rotationAngle, rotationAxis), make_vec3(light->getRadius())),
-                  vec3(scaleFactor, 1.f, scaleFactor));
-    }
-    else
-    {  // render icosphere if large angle
-        pushConstantObject.model = scale(translate(light->position), make_vec3(light->getRadius()));
-    }
     // pushConstant(cmd, vk::ShaderStageFlagBits::eVertex, sizeof(mat4), data(translate(light->position)));
     pushConstant(cmd, vk::ShaderStageFlagBits::eAllGraphics, sizeof(pushConstantObject), &pushConstantObject, 0);
 }

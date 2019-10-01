@@ -115,9 +115,6 @@ class SAIGA_VULKAN_API AttenuatedLight : public Light
 
     bool cullLight(Camera* cam);
     // void renderImGui();
-
-    // TODO here?
-    vec3 position = vec3(-5.f, 5.f, 5.f);
 };
 
 

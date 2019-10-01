@@ -291,9 +291,9 @@ void PointLightRenderer::createAndUpdateDescriptorSet(Saiga::Vulkan::Memory::Ima
 
 void PointLightRenderer::pushLight(vk::CommandBuffer cmd, std::shared_ptr<PointLight> light)
 {
-    pushConstantObject.model       = scale(translate(light->position), make_vec3(light->getRadius()));
+    pushConstantObject.model       = scale(translate(light->getPosition()), make_vec3(light->getRadius()));
     pushConstantObject.attenuation = make_vec4(light->getAttenuation(), light->getRadius());
-    pushConstantObject.pos         = make_vec4(light->position, 1.f);
+    pushConstantObject.pos         = make_vec4(light->getPosition(), 1.f);
 
     // pushConstant(cmd, vk::ShaderStageFlagBits::eVertex, sizeof(mat4), data(translate(light->position)));
     pushConstant(cmd, vk::ShaderStageFlagBits::eAllGraphics, sizeof(pushConstantObject), &pushConstantObject, 0);

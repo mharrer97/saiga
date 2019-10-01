@@ -55,8 +55,8 @@ void DeferredLighting::renderLights(vk::CommandBuffer cmd)
     {
         for (auto& l : attenuatedLights)
         {
-            vec4 pos = vec4(l->position[0], l->position[1], l->position[2], 1.f);
-            attenuatedLightRenderer.pushPosition(cmd, pos);
+            // vec4 pos = vec4(l->position[0], l->position[1], l->position[2], 1.f);
+            attenuatedLightRenderer.pushPosition(cmd, vec4(0.f, 1.f, 0.f, 1.f));
             attenuatedLightRenderer.render(cmd, l);
         }
     }
@@ -76,6 +76,7 @@ void DeferredLighting::renderLights(vk::CommandBuffer cmd)
         {
             spotLightRenderer.pushLight(cmd, l);
             spotLightRenderer.render(cmd, l);
+            std::cout << l->model << std::endl;
         }
     }
 }
