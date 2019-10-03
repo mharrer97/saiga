@@ -73,8 +73,7 @@ class SAIGA_VULKAN_API PointLightRenderer : public Pipeline
     using VertexType = Vertex;
 
     // Change these strings before calling 'init' to use your own shaders
-    std::string vertexShader   = "vulkan/lighting/attenuatedLight.vert";
-    std::string fragmentShader = "vulkan/lighting/pointLight.frag";
+    std::string vertexShader = "vulkan/lighting/attenuatedLight.vert";
 
     ~PointLightRenderer() { destroy(); }
     void destroy();
@@ -87,7 +86,7 @@ class SAIGA_VULKAN_API PointLightRenderer : public Pipeline
 
 
 
-    void init(Saiga::Vulkan::VulkanBase& vulkanDevice, VkRenderPass renderPass);
+    void init(Saiga::Vulkan::VulkanBase& vulkanDevice, VkRenderPass renderPass, std::string fragmentShader);
 
     void updateUniformBuffers(vk::CommandBuffer, mat4 proj, mat4 view, bool debug);
 
@@ -118,6 +117,8 @@ class SAIGA_VULKAN_API PointLightRenderer : public Pipeline
         mat4 model;
         vec4 pos;
         vec4 attenuation;
+        vec4 specularCol;
+        vec4 diffuseCol;
     } pushConstantObject;
 
     UniformBuffer uniformBufferVS;

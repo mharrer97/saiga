@@ -60,9 +60,16 @@ SpotLight& SpotLight::operator=(const SpotLight& light)
 
 void SpotLight::recalculateScale()
 {
-    float l = tan(radians(openingAngle / 2.f)) * cutoffRadius;
-    vec3 scale(l, cutoffRadius, l);
-    this->setScale(scale);  // make_vec3(cutoffRadius));
+    if (openingAngle < 135.f)
+    {
+        float l = tan(radians(openingAngle / 2.f)) * cutoffRadius;
+        vec3 scale(l, cutoffRadius, l);
+        this->setScale(scale);  // make_vec3(cutoffRadius));
+    }
+    else
+    {
+        this->setScale(make_vec3(cutoffRadius));
+    }
 }
 
 float SpotLight::getRadius() const
@@ -215,7 +222,7 @@ void SpotLightRenderer::render(vk::CommandBuffer cmd, std::shared_ptr<SpotLight>
 
 
 
-void SpotLightRenderer::init(VulkanBase& vulkanDevice, VkRenderPass renderPass)
+void SpotLightRenderer::init(VulkanBase& vulkanDevice, VkRenderPass renderPass, std::string fragmentShader)
 {
     PipelineBase::init(vulkanDevice, 1);
     addDescriptorSetLayout({{0, {11, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment}},
@@ -231,7 +238,6 @@ void SpotLightRenderer::init(VulkanBase& vulkanDevice, VkRenderPass renderPass)
     shaderPipeline.load(device, {vertexShader, fragmentShader});
     PipelineInfo info;
     info.addVertexInfo<VertexType>();
-    info.rasterizationState.cullMode              = vk::CullModeFlagBits::eNone;
     info.blendAttachmentState.blendEnable         = VK_TRUE;
     info.blendAttachmentState.alphaBlendOp        = vk::BlendOp::eAdd;
     info.blendAttachmentState.colorBlendOp        = vk::BlendOp::eAdd;
@@ -239,7 +245,7 @@ void SpotLightRenderer::init(VulkanBase& vulkanDevice, VkRenderPass renderPass)
     info.blendAttachmentState.srcColorBlendFactor = vk::BlendFactor::eOne;
     info.blendAttachmentState.dstAlphaBlendFactor = vk::BlendFactor::eOne;
     info.blendAttachmentState.srcAlphaBlendFactor = vk::BlendFactor::eOne;
-    info.rasterizationState.cullMode              = vk::CullModeFlagBits::eBack;
+    info.rasterizationState.cullMode              = vk::CullModeFlagBits::eFront;
     info.depthStencilState.depthWriteEnable       = VK_FALSE;
 
     // info.blendAttachmentState.
@@ -253,7 +259,7 @@ void SpotLightRenderer::init(VulkanBase& vulkanDevice, VkRenderPass renderPass)
     lightMesh.mesh = *TriangleMeshGenerator::createConeMesh(c, 10);
     //    cb->createBuffers(spotLightMesh);
     // lightMesh.createUniformPyramid();
-    // lightMesh.init(vulkanDevice);
+    lightMesh.init(vulkanDevice);
 
     lightMeshIco.loadObj("icosphere.obj");
     lightMeshIco.init(vulkanDevice);
@@ -338,6 +344,8 @@ void SpotLightRenderer::pushLight(vk::CommandBuffer cmd, std::shared_ptr<SpotLig
     pushConstantObject.dir          = make_vec4(light->getDirection(), 0.f);
     pushConstantObject.openingAngle = light->getAngle();
     pushConstantObject.model        = light->model;
+    pushConstantObject.specularCol  = make_vec4(light->getColorSpecular(), 1.f);
+    pushConstantObject.diffuseCol   = make_vec4(light->getColorDiffuse(), light->getIntensity());
 
     // pushConstant(cmd, vk::ShaderStageFlagBits::eVertex, sizeof(mat4), data(translate(light->position)));
     pushConstant(cmd, vk::ShaderStageFlagBits::eAllGraphics, sizeof(pushConstantObject), &pushConstantObject, 0);

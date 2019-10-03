@@ -8,9 +8,9 @@
 
 
 #pragma once
-
 #include "saiga/core/camera/camera.h"
 #include "saiga/vulkan/VulkanAsset.h"
+#include "saiga/vulkan/lighting/DebugLight.h"
 #include "saiga/vulkan/lighting/PointLight.h"
 #include "saiga/vulkan/lighting/SpotLight.h"
 
@@ -23,12 +23,18 @@ namespace Lighting
 {
 struct DeferredLightingShaderNames
 {
-    std::string pointLightShader = "vulkan/lighting/lightPoint.glsl";
+    std::string attenuatedLightShader = "vulkan/lighting/attenuatedLight.frag";
+    std::string pointLightShader      = "vulkan/lighting/pointLight.frag";
+    std::string spotLightShader       = "vulkan/lighting/spotLight.frag";
+
+    std::string debugLightShader = "vulkan/lighting/debugLight.frag";
 };
 
 class SAIGA_VULKAN_API DeferredLighting
 {
    private:
+    DebugLightRenderer debugLightRenderer;
+
     PointLightRenderer pointLightRenderer;
     std::vector<std::shared_ptr<PointLight>> pointLights;
 
@@ -42,6 +48,7 @@ class SAIGA_VULKAN_API DeferredLighting
     int totalLights;
     int visibleLights;
 
+    bool debug             = false;
     bool renderPointLights = true;
     bool renderSpotLights  = true;
 
@@ -58,17 +65,16 @@ class SAIGA_VULKAN_API DeferredLighting
                                        Saiga::Vulkan::Memory::ImageMemoryLocation* additional,
                                        Saiga::Vulkan::Memory::ImageMemoryLocation* depth);
     void updateUniformBuffers(vk::CommandBuffer cmd, mat4 proj, mat4 view, bool debug);
-    void renderLights(vk::CommandBuffer cmd);
+
+    void cullLights(Camera* cam);
+    void renderLights(vk::CommandBuffer cmd, Camera* cam);
 
     void reload();
 
     std::shared_ptr<PointLight> createPointLight();
     std::shared_ptr<SpotLight> createSpotLight();
 
-    // TODO delete
-    std::shared_ptr<AttenuatedLight> createAttenuatedLight();
-    void removeLight(std::shared_ptr<AttenuatedLight> l);
-    AttenuatedLightRenderer attenuatedLightRenderer;
+
 
     void removeLight(std::shared_ptr<PointLight> l);
     void removeLight(std::shared_ptr<SpotLight> l);

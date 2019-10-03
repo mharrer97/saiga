@@ -22,9 +22,8 @@ layout (binding = 16) uniform UBO2
 {
 	mat4 proj;
 	mat4 view;
-	vec4 lightPos;
 	vec4 lightDir;
-	float lightAngle;
+	vec4 lightCol;
 	
 	float intensity;
 	bool debug;
@@ -53,27 +52,21 @@ void main()
 	float depth = texture(depthexture, inData.tc).r;
 	gl_FragDepth = depth;
 
-	vec4 viewLightPos = ubo.view * ubo.lightPos;
-	vec3 viewLightDir = mat3(ubo.view) * (-ubo.lightDir).xyz;
 	//vec4 viewLightPos = ubo.view * vec4(5.f,5.f,5.f,1.f);
 	//vec3 viewLightDir = (ubo.view * vec4(1.f,1.f,1.f,0.f)).xyz;
 	vec4 P = vec4(reconstructPosition(depth, inData.tc), 1.f);
 	vec4 N = vec4(normalize(texture(normalTexture, inData.tc).rgb), 1.f);
-	vec3 L = viewLightPos.xyz - P.xyz;
+	vec3 L = normalize(mat3(ubo.view) * (-ubo.lightDir).xyz);
 	vec3 R = reflect(normalize(L), N.xyz);
 	vec3 V = normalize(P.xyz);
 	
-	float intensity = ubo.intensity/pow(length(L), 2.f);
+	float intensity = ubo.intensity;//ubo.intensity/pow(length(L), 2.f);
 	
-	vec3 diffuse = max(dot(normalize(N.xyz), normalize(L)) * intensity, 0.05f) * diffuseColor;
-	vec3 specular = pow(max(dot(R,V), 0.f), specularAndRoughness.a * 256.f) * specularAndRoughness.rgb * intensity;
-	outColor = vec4(diffuse + specular, 1.f);
-	if(acos(dot(normalize(L), normalize(viewLightDir))) > ((ubo.lightAngle/4.f)/180.f)*6.26f) outColor = vec4(0.05f * diffuseColor, 1.f);
-	float angle = acos(dot(normalize(L), normalize(viewLightDir)));
-	float alpha = (clamp((angle/6.26) * 180.f, (ubo.lightAngle/2.f) - 2.5f, (ubo.lightAngle/2.f) + 2.5f)- ((ubo.lightAngle/2.f) - 2.5f)) / 5.f;
-	outColor = mix(vec4(0.05f * diffuseColor, 1.f), vec4(diffuse + specular, 1.f) ,1.f- alpha);
+	vec3 diffuse = max(dot(normalize(N.xyz), normalize(L)) * intensity, 0.05f) * diffuseColor * ubo.lightCol.xyz;
+	vec3 specular = pow(max(dot(R,V), 0.f), specularAndRoughness.a * 256.f) * specularAndRoughness.rgb * intensity  * ubo.lightCol.xyz;
+	outColor = vec4(diffuse + specular, 1.f);	
 	
-	
+	//check if lightcomputation should be done. if not: use diffusecolor
 	if(additional.w > 0.99f) {
 		outColor = vec4(diffuseColor, 1.f);
 	}

@@ -124,8 +124,7 @@ class SAIGA_VULKAN_API AttenuatedLightRenderer : public Pipeline
     using VertexType = VertexNC;
 
     // Change these strings before calling 'init' to use your own shaders
-    std::string vertexShader   = "vulkan/quadRenderer.vert";              //"vulkan/coloredAsset.vert";
-    std::string fragmentShader = "vulkan/lighting/attenuatedLight.frag";  //"vulkan/coloredAssetDeferred.frag";
+    std::string vertexShader = "vulkan/quadRenderer.vert";  //"vulkan/coloredAsset.vert";
 
     ~AttenuatedLightRenderer() { destroy(); }
     void destroy();
@@ -138,7 +137,7 @@ class SAIGA_VULKAN_API AttenuatedLightRenderer : public Pipeline
 
 
 
-    void init(Saiga::Vulkan::VulkanBase& vulkanDevice, VkRenderPass renderPass);
+    void init(Saiga::Vulkan::VulkanBase& vulkanDevice, VkRenderPass renderPass, std::string fragmentShader);
 
     void updateUniformBuffers(vk::CommandBuffer, mat4 proj, mat4 view, vec4 lightPosition, float intensity, bool debug);
 

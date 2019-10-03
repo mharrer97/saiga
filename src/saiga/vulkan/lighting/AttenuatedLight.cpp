@@ -122,7 +122,7 @@ void AttenuatedLightRenderer::render(vk::CommandBuffer cmd, std::shared_ptr<Atte
 
 
 
-void AttenuatedLightRenderer::init(VulkanBase& vulkanDevice, VkRenderPass renderPass)
+void AttenuatedLightRenderer::init(VulkanBase& vulkanDevice, VkRenderPass renderPass, std::string fragmentShader)
 {
     PipelineBase::init(vulkanDevice, 1);
     addDescriptorSetLayout({{0, {11, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment}},

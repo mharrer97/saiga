@@ -17,8 +17,7 @@ out gl_PerVertex
 
 layout (push_constant) uniform PushConstants {
 	mat4 model;
-	vec4 lightPos;
-	vec4 attenuation;
+
 } pushConstants;
 
 layout(location=0) out VertexData

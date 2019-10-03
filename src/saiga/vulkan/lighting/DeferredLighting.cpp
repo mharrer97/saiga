@@ -20,16 +20,18 @@ DeferredLighting::DeferredLighting()
 }
 void DeferredLighting::destroy()
 {
-    attenuatedLightRenderer.destroy();
+    debugLightRenderer.destroy();
     pointLightRenderer.destroy();
     spotLightRenderer.destroy();
 }
 
 void DeferredLighting::init(Saiga::Vulkan::VulkanBase& vulkanDevice, VkRenderPass renderPass)
 {
-    attenuatedLightRenderer.init(vulkanDevice, renderPass);
-    pointLightRenderer.init(vulkanDevice, renderPass);
-    spotLightRenderer.init(vulkanDevice, renderPass);
+    const DeferredLightingShaderNames& names = DeferredLightingShaderNames();
+    debugLightRenderer.init(vulkanDevice, renderPass, names.debugLightShader, 2);
+
+    pointLightRenderer.init(vulkanDevice, renderPass, names.pointLightShader);
+    spotLightRenderer.init(vulkanDevice, renderPass, names.spotLightShader);
 }
 
 void DeferredLighting::createAndUpdateDescriptorSets(Memory::ImageMemoryLocation* diffuse,
@@ -38,52 +40,89 @@ void DeferredLighting::createAndUpdateDescriptorSets(Memory::ImageMemoryLocation
                                                      Memory::ImageMemoryLocation* additional,
                                                      Memory::ImageMemoryLocation* depth)
 {
-    attenuatedLightRenderer.createAndUpdateDescriptorSet(diffuse, specular, normal, additional, depth);
+    debugLightRenderer.createAndUpdateDescriptorSet(diffuse, specular, normal, additional, depth);
     pointLightRenderer.createAndUpdateDescriptorSet(diffuse, specular, normal, additional, depth);
     spotLightRenderer.createAndUpdateDescriptorSet(diffuse, specular, normal, additional, depth);
 }
-void DeferredLighting::updateUniformBuffers(vk::CommandBuffer cmd, mat4 proj, mat4 view, bool debug)
+void DeferredLighting::updateUniformBuffers(vk::CommandBuffer cmd, mat4 proj, mat4 view, bool debugIn)
 {
-    attenuatedLightRenderer.updateUniformBuffers(cmd, proj, view, vec4(-5.f, 5.f, 5.f, 1.f), 10.f, false);
-    pointLightRenderer.updateUniformBuffers(cmd, proj, view, debug);
-    spotLightRenderer.updateUniformBuffers(cmd, proj, view, debug);
+    this->debug = debugIn;
+    debugLightRenderer.updateUniformBuffers(cmd, proj, view);
+
+    pointLightRenderer.updateUniformBuffers(cmd, proj, view, debugIn);
+    spotLightRenderer.updateUniformBuffers(cmd, proj, view, debugIn);
 }
 
-void DeferredLighting::renderLights(vk::CommandBuffer cmd)
+void DeferredLighting::cullLights(Camera* cam)  // TODO broken???
 {
-    if (attenuatedLightRenderer.bind(cmd))
+    for (auto& l : pointLights)
     {
-        for (auto& l : attenuatedLights)
+        l->cullLight(cam);
+    }
+    for (auto& l : spotLights)
+    {
+        l->cullLight(cam);
+    }
+}
+
+void DeferredLighting::renderLights(vk::CommandBuffer cmd, Camera* cam)
+{
+    cullLights(cam);
+
+
+
+    if (debug)
+    {
+        if (debugLightRenderer.bind(cmd))
         {
-            // vec4 pos = vec4(l->position[0], l->position[1], l->position[2], 1.f);
-            attenuatedLightRenderer.pushPosition(cmd, vec4(0.f, 1.f, 0.f, 1.f));
-            attenuatedLightRenderer.render(cmd, l);
+            for (std::shared_ptr<PointLight>& l : pointLights)
+            {
+                if (!l->culled)
+                {
+                    debugLightRenderer.pushLight(cmd, l);
+                    debugLightRenderer.render(cmd, l);
+                }
+            }
+            for (std::shared_ptr<SpotLight>& l : spotLights)
+            {
+                if (!l->culled)
+                {
+                    debugLightRenderer.pushLight(cmd, l);
+                    debugLightRenderer.render(cmd, l);
+                }
+            }
         }
     }
-
-    if (pointLightRenderer.bind(cmd))
+    else
     {
-        for (auto& l : pointLights)
+        if (pointLightRenderer.bind(cmd))
         {
-            pointLightRenderer.pushLight(cmd, l);
-            pointLightRenderer.render(cmd, l);
+            for (std::shared_ptr<PointLight>& l : pointLights)
+            {
+                if (!l->culled)
+                {
+                    pointLightRenderer.pushLight(cmd, l);
+                    pointLightRenderer.render(cmd, l);
+                }
+            }
         }
-    }
-
-    if (spotLightRenderer.bind(cmd))
-    {
-        for (auto& l : spotLights)
+        if (spotLightRenderer.bind(cmd))
         {
-            spotLightRenderer.pushLight(cmd, l);
-            spotLightRenderer.render(cmd, l);
-            std::cout << l->model << std::endl;
+            for (std::shared_ptr<SpotLight>& l : spotLights)
+            {
+                if (!l->culled)
+                {
+                    spotLightRenderer.pushLight(cmd, l);
+                    spotLightRenderer.render(cmd, l);
+                }
+            }
         }
     }
 }
 
 void DeferredLighting::reload()
 {
-    attenuatedLightRenderer.reload();
+    debugLightRenderer.reload();
     spotLightRenderer.reload();
     pointLightRenderer.reload();
 }
@@ -111,20 +150,6 @@ void DeferredLighting::removeLight(std::shared_ptr<SpotLight> l)
     spotLights.erase(std::find(spotLights.begin(), spotLights.end(), l));
 }
 
-
-
-// TODO delete
-std::shared_ptr<AttenuatedLight> DeferredLighting::createAttenuatedLight()
-{
-    std::shared_ptr<AttenuatedLight> l = std::make_shared<AttenuatedLight>();
-    attenuatedLights.push_back(l);
-    return l;
-}
-
-void DeferredLighting::removeLight(std::shared_ptr<AttenuatedLight> l)
-{
-    attenuatedLights.erase(std::find(attenuatedLights.begin(), attenuatedLights.end(), l));
-}
 }  // namespace Lighting
 
 }  // namespace Vulkan

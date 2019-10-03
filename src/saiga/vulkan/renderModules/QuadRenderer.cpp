@@ -61,14 +61,13 @@ void QuadRenderer::init(VulkanBase& vulkanDevice, VkRenderPass renderPass)
     blitMesh.init(vulkanDevice);
 }
 
-void QuadRenderer::updateUniformBuffers(vk::CommandBuffer cmd, mat4 proj, mat4 view, vec4 lightPosition,
-                                        vec4 lightDirection, float lightAngle, bool debug, float intensity)
+void QuadRenderer::updateUniformBuffers(vk::CommandBuffer cmd, mat4 proj, mat4 view, vec4 lightColor,
+                                        vec4 lightDirection, bool debug, float intensity)
 {
     uboVS.proj       = proj;
     uboVS.view       = view;
-    uboVS.lightPos   = lightPosition;
     uboVS.lightDir   = lightDirection;
-    uboVS.lightAngle = lightAngle;
+    uboVS.lightColor = lightColor;
     uboVS.debug      = debug;
     uboVS.intensity  = intensity;
     uniformBufferVS.update(cmd, sizeof(uboVS), &uboVS);

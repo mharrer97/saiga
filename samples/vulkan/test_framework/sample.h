@@ -47,14 +47,16 @@ class VulkanExample : public Saiga::Updating,
     bool uploadChanges = true;
     Saiga::Object3D teapotTrans;
 
-    float timingLoop            = 0.f;  // used for rotating camera and light etc;
+    float timingLoop  = 0.f;  // used for rotating camera and light etc;
+    float timingLoop2 = 0.f;  // used for animating candle etc;
+
     float lightRadius           = 10.f;
     float spotLightOpeningAngle = 90.f;
 
     std::shared_ptr<Saiga::Vulkan::Texture2D> texture;
 
     Saiga::Vulkan::VulkanTexturedAsset box;
-    Saiga::Vulkan::VulkanVertexColoredAsset teapot, plane, sphere;
+    Saiga::Vulkan::VulkanVertexColoredAsset teapot, plane, sphere, candle;
     Saiga::Vulkan::VulkanLineVertexColoredAsset grid, frustum;
     Saiga::Vulkan::VulkanPointCloudAsset pointCloud;
     Saiga::Vulkan::UniversalAssetRenderer assetRenderer;
@@ -69,7 +71,9 @@ class VulkanExample : public Saiga::Updating,
     Saiga::Vulkan::VulkanDeferredRenderer& renderer;
 
     std::vector<std::shared_ptr<Saiga::Vulkan::Lighting::PointLight>> pointLights;
-    std::shared_ptr<Saiga::Vulkan::Lighting::SpotLight> spotLight;
+    std::shared_ptr<Saiga::Vulkan::Lighting::SpotLight> spotLight, candleLight;
+
+
     bool displayModels = true;
 
 

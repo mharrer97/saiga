@@ -56,9 +56,9 @@ class SAIGA_VULKAN_API VulkanDeferredRenderer : public VulkanRenderer
 {
    public:
     bool lightRotate     = true;
-    float lightIntensity = 25.f;
-    Saiga::Vulkan::Lighting::OldPointLight pointLight;
-
+    float lightIntensity = 0.75f;
+    vec3 lightDirection  = make_vec3(-1.f);
+    vec3 lightColor      = Saiga::Vulkan::Lighting::LightColorPresets::MoonlightBlue;
     // TODO change?
     Saiga::Vulkan::Lighting::DeferredLighting lighting;
 

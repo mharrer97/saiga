@@ -74,6 +74,9 @@ static const vec3 HighNoonSun    = Color::srgb2linearrgb(Color(255, 255, 251));
 static const vec3 DirectSunlight = Color::srgb2linearrgb(Color(255, 255, 255));
 static const vec3 OvercastSky    = Color::srgb2linearrgb(Color(201, 226, 255));
 static const vec3 ClearBlueSky   = Color::srgb2linearrgb(Color(64, 156, 255));
+
+// === Moon Light ===
+static const vec3 MoonlightBlue = Color::srgb2linearrgb(Color(79, 105, 136));
 }  // namespace LightColorPresets
 
 

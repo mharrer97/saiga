@@ -14,6 +14,7 @@
 
 #include <eigen3/Eigen/Core>
 #include <saiga/core/imgui/imgui.h>
+
 #if defined(SAIGA_OPENGL_INCLUDED)
 #    error OpenGL was included somewhere.
 #endif
@@ -22,7 +23,7 @@ VulkanExample::VulkanExample(Saiga::Vulkan::VulkanWindow& window, Saiga::Vulkan:
     : Updating(window), Saiga::Vulkan::VulkanDeferredRenderingInterface(renderer), renderer(renderer)
 {
     float aspect = window.getAspectRatio();
-    camera.setProj(60.0f, aspect, 0.1f, 50.0f, true);
+    camera.setProj(60.0f, aspect, 0.1f, 100.0f, true);
     camera.setView(vec3(0, 5, 10), vec3(0, 0, 0), vec3(0, 1, 0));
     camera.rotationPoint = make_vec3(0);
 
@@ -112,6 +113,10 @@ void VulkanExample::init(Saiga::Vulkan::VulkanBase& base)
     sphere.loadObj("icosphere.obj");
     sphere.init(renderer.base());
 
+    candle.loadObj("box.obj");
+    candle.mesh.computePerVertexNormal();
+    candle.init(renderer.base());
+
     grid.createGrid(10, 10);
     grid.init(renderer.base());
 
@@ -129,7 +134,7 @@ void VulkanExample::init(Saiga::Vulkan::VulkanBase& base)
 
 
     std::shared_ptr<Saiga::Vulkan::Lighting::PointLight> pointTestLight;
-    int count = 0;
+    int count = 3;
     for (int i = 0; i < count; ++i)
     {
         vec3 pos = vec3(sin((float(i) / float(count)) * 6.28f), 1.f, cos((float(i) / float(count)) * 6.28f));
@@ -139,10 +144,21 @@ void VulkanExample::init(Saiga::Vulkan::VulkanBase& base)
         pos[1]         = 5.f;
         pointTestLight = renderer.lighting.createPointLight();
         pointTestLight->setPosition(pos);
+
+        float ratio     = float(i) / float(count);
+        vec3 lightColor = vec3(ratio, fmod(ratio + (1.f / 3.f), 1.f), fmod(ratio + (2.f / 3.f), 1.f));
+        pointTestLight->setColorDiffuse(lightColor);
+        pointTestLight->setColorSpecular(lightColor);
         pointLights.push_back(pointTestLight);
     }
 
     spotLight = renderer.lighting.createSpotLight();
+    spotLight->setColorDiffuse(Saiga::Vulkan::Lighting::LightColorPresets::Candle);
+    spotLight->setColorSpecular(Saiga::Vulkan::Lighting::LightColorPresets::Candle);
+
+    candleLight = renderer.lighting.createSpotLight();
+    candleLight->setColorDiffuse(Saiga::Vulkan::Lighting::LightColorPresets::Candle);
+    candleLight->setColorSpecular(Saiga::Vulkan::Lighting::LightColorPresets::Candle);
 }
 
 
@@ -176,13 +192,12 @@ void VulkanExample::update(float dt)
 
     // camera.setInput(!ImGui::GetIO().WantCaptureKeyboard && !ImGui::GetIO().WantCaptureMouse);
 
+    timingLoop2 = fmod(timingLoop2 + dt, 2.f * 3.1415f);
 
     if (renderer.lightRotate)
     {
         timingLoop = fmod(timingLoop + dt, 2.f * 3.1415f);
-        vec3 pos   = vec3(sin(timingLoop) * 7.5f, 7.5f, cos(timingLoop) * 7.5f);
-        renderer.pointLight.setPosition(pos);
-        renderer.pointLight.setDirection(-pos);
+
 
         int count = pointLights.size();
         for (int i = 0; i < count; ++i)
@@ -194,7 +209,11 @@ void VulkanExample::update(float dt)
             // pos                           = vec3(1.f, 0.f, 1.f) * (3 * float(i));
             pos[1] = 5.f;
             pointLights[i]->setPosition(pos);
+            pointLights[i]->calculateModel();
         }
+
+        //        vec3 dir = vec3(0.01f * sin(fmod(timingLoop, 2.f * 3.1415f)), 1.f,
+        //                        cos(fmod((0.1f * 6.28f) - timingLoop, 2.f * 3.1415f)));
     }
 
     int count = pointLights.size();
@@ -206,13 +225,26 @@ void VulkanExample::update(float dt)
     vec3 pos =
         vec3(sin(fmod(3.1415f - timingLoop, 2.f * 3.1415f)), 1.f, cos(fmod(3.1415f - timingLoop, 2.f * 3.1415f)));
     pos *= 10.f;
-    spotLight->setDirection(-pos);
     spotLight->setRadius(lightRadius);
-    // pos[1]              = 3.5f;
+    spotLight->setDirection(-pos);
+
+    pos[1] = 3.5f;
     spotLight->setPosition(pos);
     spotLight->setAngle(spotLightOpeningAngle);
+
     spotLight->calculateModel();
+
     // spotLight->setDirection(vec3(0.f, -1.f, 0.f));
+    vec3 dir = vec3(0.03f * cos(fmod((0.8f * 6.28f) - timingLoop2, 2.f * 3.1415f)), 1.f,
+                    0.03f * sin(fmod((1.5f * 6.28f) - timingLoop2, 2.f * 3.1415f)));
+    candleLight->setDirection(dir);
+    vec3 posc = vec3(-5.f, 1.12f + 0.01f * cos(fmod((0.3f * 6.28f) - timingLoop2, 2.f * 3.1415f)), -5.f);
+    candleLight->setPosition(posc);
+    float radius = 5.f + 0.1f * sin(fmod(timingLoop2 * 3.f, 2.f * 3.1415f));
+    candleLight->setRadius(radius);
+    float angle = 270.f + 3.f * cos(fmod(timingLoop2, 2.f * 3.1415f));
+    candleLight->setAngle(angle);
+    candleLight->calculateModel();
 }
 
 void VulkanExample::transfer(vk::CommandBuffer cmd, Camera* cam)
@@ -250,6 +282,9 @@ void VulkanExample::render(vk::CommandBuffer cmd, Camera* cam)
 
             assetRenderer.deferred.pushModel(cmd, teapotTrans.model);
             teapot.render(cmd);
+
+            assetRenderer.deferred.pushModel(cmd, scale(translate(vec3(-5.f, 0.5f, -5.f)), vec3(0.2f, 0.5f, 0.2f)));
+            candle.render(cmd);
         }
 
         if (pointCloudRenderer.deferred.bind(cmd))
@@ -271,7 +306,7 @@ void VulkanExample::render(vk::CommandBuffer cmd, Camera* cam)
 
         if (texturedAssetRenderer.deferred.bind(cmd))
         {
-            texturedAssetRenderer.deferred.pushModel(cmd, translate(vec3(-10.f, 1, -5.f)));
+            texturedAssetRenderer.deferred.pushModel(cmd, translate(vec3(-7.5f, 1, -5.f)));
             texturedAssetRenderer.deferred.bindTexture(cmd, box.descriptor);
             box.render(cmd);
         }
@@ -294,19 +329,18 @@ void VulkanExample::renderForward(vk::CommandBuffer cmd, Camera* cam)
 
 
 
-            assetRenderer.forward.pushModel(cmd, teapotTrans.model * translate(vec3(5.f, 0.f, 5.f)));
-            teapot.render(cmd);
+            // assetRenderer.forward.pushModel(cmd, teapotTrans.model * translate(vec3(5.f, 0.f, 5.f)));
+            // teapot.render(cmd);
 
-
-            assetRenderer.forward.pushModel(
-                cmd, scale(translate(renderer.pointLight.getPosition()), vec3(0.1f, 0.1f, 0.1f)));
-            sphere.render(cmd);
             for (auto& l : pointLights)
             {
                 assetRenderer.forward.pushModel(cmd, scale(translate(l->getPosition()), vec3(0.1f, 0.1f, 0.1f)));
                 sphere.render(cmd);
             }
             assetRenderer.forward.pushModel(cmd, scale(translate(spotLight->getPosition()), vec3(0.1f, 0.1f, 0.1f)));
+            sphere.render(cmd);
+
+            assetRenderer.forward.pushModel(cmd, scale(translate(candleLight->getPosition()), vec3(0.1f, 0.1f, 0.1f)));
             sphere.render(cmd);
         }
         if (pointCloudRenderer.forward.bind(cmd))
@@ -329,7 +363,7 @@ void VulkanExample::renderForward(vk::CommandBuffer cmd, Camera* cam)
 
         if (texturedAssetRenderer.forward.bind(cmd))
         {
-            texturedAssetRenderer.forward.pushModel(cmd, translate(vec3(-7.5f, 1, -5.f)));
+            texturedAssetRenderer.forward.pushModel(cmd, translate(vec3(-10.f, 1, -5.f)));
             texturedAssetRenderer.forward.bindTexture(cmd, box.descriptor);
             box.render(cmd);
         }

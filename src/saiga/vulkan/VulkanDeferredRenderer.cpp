@@ -22,9 +22,7 @@ namespace Saiga
 namespace Vulkan
 {
 VulkanDeferredRenderer::VulkanDeferredRenderer(VulkanWindow& window, VulkanParameters vulkanParameters)
-    : VulkanRenderer(window, vulkanParameters),
-      pointLight(vec3(5.f, 5.f, 5.f), vec3(-1.f, -1.f, -1.f), 45.f),
-      lighting()
+    : VulkanRenderer(window, vulkanParameters), lighting()
 {
     std::cout << "VulkanDeferredRenderer Creation -- START" << std::endl;
 
@@ -43,9 +41,6 @@ VulkanDeferredRenderer::VulkanDeferredRenderer(VulkanWindow& window, VulkanParam
     // TODO change
     lighting.init(base(), lightingPass);
 
-
-
-    // pointLight(vec3(5.f, 5.f, 5.f), vec3(-1.f, -1.f, -1.f), 45.f);
 
     // create semaphore for synchronization (offscreen rendering nad gbuffer usage)
     vk::SemaphoreCreateInfo semCreateInfo = vks::initializers::semaphoreCreateInfo();
@@ -531,11 +526,9 @@ void VulkanDeferredRenderer::setupDrawCommandBuffer(int currentImage, Camera* ca
     // begin recording cmdBuffer
     drawCmdBuffers[currentImage].begin(cmdBufBeginInfo);
 
-    vec3 lightpos = pointLight.getPosition();
-    vec3 lightdir = pointLight.getDirection();
-    quadRenderer.updateUniformBuffers(
-        drawCmdBuffers[currentImage], cam->proj, cam->view, vec4(lightpos[0], lightpos[1], lightpos[2], 1.f),
-        vec4(lightdir[0], lightdir[1], lightdir[2], 0.f), pointLight.getAngle(), debug, lightIntensity);
+
+    quadRenderer.updateUniformBuffers(drawCmdBuffers[currentImage], cam->proj, cam->view, make_vec4(lightColor, 1.f),
+                                      make_vec4(lightDirection, 0.f), debug, lightIntensity);
 
     // TODO change!!!!!!!!!!!!!!!!!!!!!!!
     /*vec4 pos =
@@ -561,7 +554,7 @@ void VulkanDeferredRenderer::setupDrawCommandBuffer(int currentImage, Camera* ca
         quadRenderer.render(drawCmdBuffers[currentImage], vec2(0, 0), vec2(surfaceWidth, SurfaceHeight));
     }
 
-    if (renderLights) lighting.renderLights(drawCmdBuffers[currentImage]);
+    if (renderLights) lighting.renderLights(drawCmdBuffers[currentImage], cam);
 
     drawCmdBuffers[currentImage].endRenderPass();
 
@@ -655,10 +648,9 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage, Camera* c
         ImGui::Checkbox("Debug Mode", &debug);
         ImGui::Checkbox("Debug Lights", &lightDebug);
         ImGui::Checkbox("Render Lights", &renderLights);
-        ImGui::DragFloat("Light Angle", &pointLight.angle, 1.f, 0.f, 180.f);
-        ImGui::DragFloat("Light Intensity", &lightIntensity, 1.f, 0.f, 100.f);
+        ImGui::DragFloat("Light Intensity", &lightIntensity, 0.00125, 0.f, 2.5f);
 
-        ImGui::Direction("Light Dir", pointLight.light_dir);
+        ImGui::Direction("Light Dir", lightDirection);
         ImGui::Checkbox("Rotate Light", &lightRotate);
 
         ImGui::End();

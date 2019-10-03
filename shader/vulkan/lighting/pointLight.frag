@@ -22,6 +22,8 @@ layout (push_constant) uniform PushConstants {
 	mat4 model;
 	vec4 lightPos;
 	vec4 attenuation;
+	vec4 lightSpecularCol;
+	vec4 lightDiffuseCol;
 } pushConstants;
 
 layout (location = 0) out vec4 outColor;
@@ -56,10 +58,10 @@ void main()
 	vec3 R = reflect(normalize(L), N.xyz);
 	vec3 V = normalize(P.xyz);
 	
-	float intensity = getAttenuation(pushConstants.attenuation, length(L));
+	float intensity = getAttenuation(pushConstants.attenuation, length(L)) * pushConstants.lightDiffuseCol.w;
 	
-	vec3 diffuse = max(dot(normalize(N.xyz), normalize(L)) * intensity, 0.f) * diffuseColor;
-	vec3 specular = pow(max(dot(R,V), 0.f), specularAndRoughness.a * 256.f) * specularAndRoughness.rgb * intensity;
+	vec3 diffuse = max(dot(normalize(N.xyz), normalize(L)) * intensity, 0.f) * diffuseColor * pushConstants.lightDiffuseCol.xyz;
+	vec3 specular = pow(max(dot(R,V), 0.f), specularAndRoughness.a * 256.f) * specularAndRoughness.rgb * intensity * pushConstants.lightSpecularCol.xyz;
 	outColor = vec4(diffuse + specular, 1.f);
 	//if(acos(dot(normalize(L), normalize(viewLightDir))) > ((ubo.lightAngle/4.f)/180.f)*6.26f) outColor = vec4(0.05f * diffuseColor, 1.f);
 	//float angle = acos(dot(normalize(L), normalize(viewLightDir)));

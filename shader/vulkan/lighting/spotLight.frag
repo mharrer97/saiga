@@ -23,6 +23,8 @@ layout (push_constant) uniform PushConstants {
 	vec4 lightPos;
 	vec4 attenuation;
 	vec4 lightDir;
+	vec4 lightSpecularCol;
+	vec4 lightDiffuseCol;
 	float openingAngle;
 } pushConstants;
 
@@ -58,10 +60,10 @@ void main()
 	vec3 R = reflect(normalize(L), N.xyz);
 	vec3 V = normalize(P.xyz);
 	
-	float intensity = getAttenuation(pushConstants.attenuation, length(L));
+	float intensity = getAttenuation(pushConstants.attenuation, length(L)) * pushConstants.lightDiffuseCol.w;
 	
-	vec3 diffuse = max(dot(normalize(N.xyz), normalize(L)) * intensity, 0.f) * diffuseColor;
-	vec3 specular = pow(max(dot(R,V), 0.f), specularAndRoughness.a * 256.f) * specularAndRoughness.rgb * intensity;
+	vec3 diffuse = max(dot(normalize(N.xyz), normalize(L)) * intensity, 0.f) * diffuseColor * pushConstants.lightDiffuseCol.xyz;
+	vec3 specular = pow(max(dot(R,V), 0.f), specularAndRoughness.a * 256.f) * specularAndRoughness.rgb * intensity * pushConstants.lightSpecularCol.xyz;
 	outColor = vec4(diffuse + specular, 1.f);
 	if(acos(dot(normalize(L), normalize(viewLightDir))) > ((pushConstants.openingAngle/4.f)/180.f)*6.26f) outColor = vec4(0.f);
 	float angle = acos(dot(normalize(L), normalize(viewLightDir)));
@@ -103,8 +105,6 @@ void main()
 		else //rechter oberer
 				outColor = vec4(texture(normalTexture, tc2 - vec2(1,0)).rgb, 1);
 	}*/
-	
-	
 	//outColor = vec4(N, 1.f);
     //outColor = texture(diffuseTexture,inData.tc) * texture(normalTexture,inData.tc) * max(1.f,texture(specularTexture,inData.tc).r + 0.75f) * texture(additionalTexture,inData.tc);
 	//outColor = ubo.lightPos;
