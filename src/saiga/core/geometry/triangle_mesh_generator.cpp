@@ -407,6 +407,73 @@ std::shared_ptr<default_mesh_t> TriangleMeshGenerator::createMesh(const AABB& bo
     return std::shared_ptr<default_mesh_t>(mesh);
 }
 
+std::shared_ptr<TriangleMesh<Vertex, uint32_t>> TriangleMeshGenerator::createAABBMesh(const AABB& box)
+{
+    TriangleMesh<Vertex, uint32_t>* mesh = new TriangleMesh<Vertex, uint32_t>();
+
+    unsigned int indices[]{
+        0, 1, 2, 3,  // left
+        7, 6, 5, 4,  // right
+        1, 0, 4, 5,  // bottom
+        3, 2, 6, 7,  // top
+        0, 3, 7, 4,  // back
+        2, 1, 5, 6   // front
+    };
+
+
+    // default
+    //    vec2 texCoords[]{
+    //        {0,0},{0,1},{1,1},{1,0},
+    //        {0,0},{0,1},{1,1},{1,0},
+    //        {0,0},{0,1},{1,1},{1,0},
+    //        {0,0},{0,1},{1,1},{1,0},
+    //        {0,0},{0,1},{1,1},{1,0},
+    //        {0,0},{0,1},{1,1},{1,0}
+    //    };
+
+    // cube strip
+    //#define CUBE_EPSILON 0.0001f
+    /*    vec2 texCoords[]{{1.0f / 6.0f, 0.0f},
+                         {0.0f / 6.0f, 0.0f},
+                         {0.0f / 6.0f, 1.0f},
+                         {1.0f / 6.0f, 1.0f},
+                         {2.0f / 6.0f, 1.0f},
+                         {3.0f / 6.0f, 1.0f},
+                         {3.0f / 6.0f, 0.0f},
+                         {2.0f / 6.0f, 0.0f},
+                         {5.0f / 6.0f + CUBE_EPSILON, 0.0f},
+                         {5.0f / 6.0f + CUBE_EPSILON, 1.0f},
+                         {6.0f / 6.0f, 1.0f},
+                         {6.0f / 6.0f, 0.0f},  // bottom
+                         {5.0f / 6.0f - CUBE_EPSILON, 0.0f},
+                         {4.0f / 6.0f + CUBE_EPSILON, 0.0f},
+                         {4.0f / 6.0f + CUBE_EPSILON, 1.0f},
+                         {5.0f / 6.0f - CUBE_EPSILON, 1.0f},  // top
+                         {1.0f / 6.0f, 0.0f},
+                         {1.0f / 6.0f, 1.0f},
+                         {2.0f / 6.0f, 1.0f},
+                         {2.0f / 6.0f, 0.0f},
+                         {4.0f / 6.0f - CUBE_EPSILON, 1.0f},
+                         {4.0f / 6.0f - CUBE_EPSILON, 0.0f},
+                         {3.0f / 6.0f, 0.0f},
+                         {3.0f / 6.0f, 1.0f}
+
+        };
+
+        vec3 normals[]{{-1, 0, 0}, {1, 0, 0}, {0, -1, 0}, {0, 1, 0}, {0, 0, -1}, {0, 0, 1}};
+
+    */
+    for (int i = 0; i < 6; i++)
+    {
+        Vertex verts[] = {Vertex(box.cornerPoint(indices[i * 4 + 0])), Vertex(box.cornerPoint(indices[i * 4 + 1])),
+                          Vertex(box.cornerPoint(indices[i * 4 + 2])), Vertex(box.cornerPoint(indices[i * 4 + 3]))};
+
+        mesh->addQuad(verts);
+    }
+
+    return std::shared_ptr<TriangleMesh<Vertex, uint32_t>>(mesh);
+}
+
 std::shared_ptr<default_mesh_t> TriangleMeshGenerator::createSkyboxMesh(const AABB& box)
 {
     std::shared_ptr<default_mesh_t> mesh = createMesh(box);

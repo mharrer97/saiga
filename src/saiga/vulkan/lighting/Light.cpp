@@ -9,7 +9,6 @@
 
 #include "saiga/vulkan/lighting/Light.h"
 
-#include "saiga/core/camera/camera.h"
 #include "saiga/core/imgui/imgui.h"
 #include "saiga/core/util/tostring.h"
 
@@ -101,7 +100,7 @@ void LightShader::uploadShadowMapSize(ivec2 s)
 {
     shader.uploadModel(model);
 }
-
+*/
 mat4 Light::viewToLightTransform(const Camera& camera, const Camera& shadowCamera)
 {
     // glm like glsl is column major!
@@ -110,6 +109,7 @@ mat4 Light::viewToLightTransform(const Camera& camera, const Camera& shadowCamer
     return biasMatrix * shadowCamera.proj * shadowCamera.view * camera.model;
 }
 
+/*
 void Light::renderImGui()
 {
     ImGui::Checkbox("active", &active);

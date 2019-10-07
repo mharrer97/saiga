@@ -11,6 +11,7 @@
 
 #include "saiga/core/camera/camera.h"
 #include "saiga/vulkan/lighting/AttenuatedLight.h"
+#include "saiga/vulkan/lighting/BoxLight.h"
 #include "saiga/vulkan/lighting/PointLight.h"
 #include "saiga/vulkan/lighting/SpotLight.h"
 
@@ -37,6 +38,7 @@ class SAIGA_VULKAN_API DebugLightRenderer : public Pipeline
      */
     void render(vk::CommandBuffer cmd, std::shared_ptr<SpotLight> light);
     void render(vk::CommandBuffer cmd, std::shared_ptr<PointLight> light);
+    void render(vk::CommandBuffer cmd, std::shared_ptr<BoxLight> light);
 
 
 
@@ -51,7 +53,7 @@ class SAIGA_VULKAN_API DebugLightRenderer : public Pipeline
                                       Saiga::Vulkan::Memory::ImageMemoryLocation* additional,
                                       Saiga::Vulkan::Memory::ImageMemoryLocation* depth);
 
-    void pushLight(vk::CommandBuffer cmd, std::shared_ptr<AttenuatedLight> light);
+    void pushLight(vk::CommandBuffer cmd, std::shared_ptr<Light> light);
 
 
    private:
@@ -79,6 +81,7 @@ class SAIGA_VULKAN_API DebugLightRenderer : public Pipeline
     Saiga::Vulkan::StaticDescriptorSet descriptorSet;
     Saiga::Vulkan::VulkanVertexAsset lightMeshSpot;
     Saiga::Vulkan::VulkanVertexAsset lightMeshPoint;
+    Saiga::Vulkan::VulkanVertexAsset lightMeshBox;
 };
 }  // namespace Lighting
 }  // namespace Vulkan

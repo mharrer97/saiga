@@ -10,10 +10,10 @@
 #pragma once
 #include "saiga/core/camera/camera.h"
 #include "saiga/vulkan/VulkanAsset.h"
+#include "saiga/vulkan/lighting/BoxLight.h"
 #include "saiga/vulkan/lighting/DebugLight.h"
 #include "saiga/vulkan/lighting/PointLight.h"
 #include "saiga/vulkan/lighting/SpotLight.h"
-
 
 namespace Saiga
 {
@@ -26,8 +26,8 @@ struct DeferredLightingShaderNames
     std::string attenuatedLightShader = "vulkan/lighting/attenuatedLight.frag";
     std::string pointLightShader      = "vulkan/lighting/pointLight.frag";
     std::string spotLightShader       = "vulkan/lighting/spotLight.frag";
-
-    std::string debugLightShader = "vulkan/lighting/debugLight.frag";
+    std::string boxLightShader        = "vulkan/lighting/boxLight.frag";
+    std::string debugLightShader      = "vulkan/lighting/debugLight.frag";
 };
 
 class SAIGA_VULKAN_API DeferredLighting
@@ -41,7 +41,8 @@ class SAIGA_VULKAN_API DeferredLighting
     SpotLightRenderer spotLightRenderer;
     std::vector<std::shared_ptr<SpotLight>> spotLights;
 
-    std::vector<std::shared_ptr<AttenuatedLight>> attenuatedLights;
+    BoxLightRenderer boxLightRenderer;
+    std::vector<std::shared_ptr<BoxLight>> boxLights;
 
 
    public:
@@ -51,6 +52,7 @@ class SAIGA_VULKAN_API DeferredLighting
     bool debug             = false;
     bool renderPointLights = true;
     bool renderSpotLights  = true;
+    bool renderBoxLights   = true;
 
 
     DeferredLighting();
@@ -73,11 +75,13 @@ class SAIGA_VULKAN_API DeferredLighting
 
     std::shared_ptr<PointLight> createPointLight();
     std::shared_ptr<SpotLight> createSpotLight();
+    std::shared_ptr<BoxLight> createBoxLight();
 
 
 
     void removeLight(std::shared_ptr<PointLight> l);
     void removeLight(std::shared_ptr<SpotLight> l);
+    void removeLight(std::shared_ptr<BoxLight> l);
 };
 }  // namespace Lighting
 }  // namespace Vulkan

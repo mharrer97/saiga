@@ -41,6 +41,7 @@ class SAIGA_CORE_API TriangleMeshGenerator
 
     static std::shared_ptr<TriangleMesh<VertexNT, uint32_t>> createGridMesh(unsigned int w, unsigned int h);
 
+    static std::shared_ptr<TriangleMesh<Vertex, uint32_t>> createAABBMesh(const AABB& box);
     static std::shared_ptr<TriangleMesh<Vertex, uint32_t>> createConeMesh(const Cone& cone, int sectors);
 
     template <typename vertex_t, typename index_t>

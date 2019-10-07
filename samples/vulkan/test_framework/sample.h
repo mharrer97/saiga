@@ -72,6 +72,7 @@ class VulkanExample : public Saiga::Updating,
 
     std::vector<std::shared_ptr<Saiga::Vulkan::Lighting::PointLight>> pointLights;
     std::shared_ptr<Saiga::Vulkan::Lighting::SpotLight> spotLight, candleLight;
+    std::shared_ptr<Saiga::Vulkan::Lighting::BoxLight> boxLight;
 
 
     bool displayModels = true;

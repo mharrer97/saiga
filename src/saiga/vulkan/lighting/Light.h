@@ -8,8 +8,10 @@
 
 #pragma once
 
+#include "saiga/core/camera/camera.h"
 #include "saiga/core/geometry/object3d.h"
 #include "saiga/core/util/color.h"
+
 //#include "saiga/opengl/rendering/deferredRendering/lighting/shadowmap.h"
 //#include "saiga/opengl/shader/basic_shaders.h"
 //#include "saiga/opengl/uniformBuffer.h"
@@ -137,7 +139,7 @@ class SAIGA_VULKAN_API Light : public Object3D
      * fragment space of "shadowCamera" .
      * This is used in shadow mapping for all light types.
      */
-    // static mat4 viewToLightTransform(const Camera& camera, const Camera& shadowCamera);
+    static mat4 viewToLightTransform(const Camera& camera, const Camera& shadowCamera);
 
     // void renderImGui();
 

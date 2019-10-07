@@ -60,6 +60,11 @@ void DebugLightRenderer::render(vk::CommandBuffer cmd, std::shared_ptr<PointLigh
     lightMeshPoint.render(cmd);
 }
 
+void DebugLightRenderer::render(vk::CommandBuffer cmd, std::shared_ptr<BoxLight> light)
+{
+    bindDescriptorSet(cmd, descriptorSet);
+    lightMeshBox.render(cmd);
+}
 
 
 void DebugLightRenderer::init(VulkanBase& vulkanDevice, VkRenderPass renderPass, std::string fragmentShader,
@@ -120,6 +125,9 @@ void DebugLightRenderer::init(VulkanBase& vulkanDevice, VkRenderPass renderPass,
 
     lightMeshPoint.loadObj("icosphere.obj");
     lightMeshPoint.init(vulkanDevice);
+
+    lightMeshBox.loadObj("box.obj");
+    lightMeshBox.init(vulkanDevice);
 }
 
 void DebugLightRenderer::updateUniformBuffers(vk::CommandBuffer cmd, mat4 proj, mat4 view)
@@ -193,7 +201,7 @@ void DebugLightRenderer::createAndUpdateDescriptorSet(Saiga::Vulkan::Memory::Ima
         nullptr);
 }
 
-void DebugLightRenderer::pushLight(vk::CommandBuffer cmd, std::shared_ptr<AttenuatedLight> light)
+void DebugLightRenderer::pushLight(vk::CommandBuffer cmd, std::shared_ptr<Light> light)
 {
     pushConstantObject.model = light->model;
 

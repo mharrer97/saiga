@@ -23,6 +23,7 @@ void DeferredLighting::destroy()
     debugLightRenderer.destroy();
     pointLightRenderer.destroy();
     spotLightRenderer.destroy();
+    boxLightRenderer.destroy();
 }
 
 void DeferredLighting::init(Saiga::Vulkan::VulkanBase& vulkanDevice, VkRenderPass renderPass)
@@ -32,6 +33,7 @@ void DeferredLighting::init(Saiga::Vulkan::VulkanBase& vulkanDevice, VkRenderPas
 
     pointLightRenderer.init(vulkanDevice, renderPass, names.pointLightShader);
     spotLightRenderer.init(vulkanDevice, renderPass, names.spotLightShader);
+    boxLightRenderer.init(vulkanDevice, renderPass, names.boxLightShader);
 }
 
 void DeferredLighting::createAndUpdateDescriptorSets(Memory::ImageMemoryLocation* diffuse,
@@ -43,6 +45,7 @@ void DeferredLighting::createAndUpdateDescriptorSets(Memory::ImageMemoryLocation
     debugLightRenderer.createAndUpdateDescriptorSet(diffuse, specular, normal, additional, depth);
     pointLightRenderer.createAndUpdateDescriptorSet(diffuse, specular, normal, additional, depth);
     spotLightRenderer.createAndUpdateDescriptorSet(diffuse, specular, normal, additional, depth);
+    boxLightRenderer.createAndUpdateDescriptorSet(diffuse, specular, normal, additional, depth);
 }
 void DeferredLighting::updateUniformBuffers(vk::CommandBuffer cmd, mat4 proj, mat4 view, bool debugIn)
 {
@@ -51,6 +54,7 @@ void DeferredLighting::updateUniformBuffers(vk::CommandBuffer cmd, mat4 proj, ma
 
     pointLightRenderer.updateUniformBuffers(cmd, proj, view, debugIn);
     spotLightRenderer.updateUniformBuffers(cmd, proj, view, debugIn);
+    boxLightRenderer.updateUniformBuffers(cmd, proj, view, debugIn);
 }
 
 void DeferredLighting::cullLights(Camera* cam)  // TODO broken???
@@ -61,6 +65,12 @@ void DeferredLighting::cullLights(Camera* cam)  // TODO broken???
     }
     for (auto& l : spotLights)
     {
+        l->cullLight(cam);
+    }
+    for (auto& l : boxLights)
+    {
+        l->calculateCamera();
+        l->shadowCamera.recalculatePlanes();
         l->cullLight(cam);
     }
 }
@@ -84,6 +94,14 @@ void DeferredLighting::renderLights(vk::CommandBuffer cmd, Camera* cam)
                 }
             }
             for (std::shared_ptr<SpotLight>& l : spotLights)
+            {
+                if (!l->culled)
+                {
+                    debugLightRenderer.pushLight(cmd, l);
+                    debugLightRenderer.render(cmd, l);
+                }
+            }
+            for (std::shared_ptr<BoxLight>& l : boxLights)
             {
                 if (!l->culled)
                 {
@@ -117,6 +135,17 @@ void DeferredLighting::renderLights(vk::CommandBuffer cmd, Camera* cam)
                 }
             }
         }
+        if (boxLightRenderer.bind(cmd))
+        {
+            for (std::shared_ptr<BoxLight>& l : boxLights)
+            {
+                if (!l->culled)
+                {
+                    boxLightRenderer.pushLight(cmd, l, cam);
+                    boxLightRenderer.render(cmd, l);
+                }
+            }
+        }
     }
 }
 
@@ -125,6 +154,7 @@ void DeferredLighting::reload()
     debugLightRenderer.reload();
     spotLightRenderer.reload();
     pointLightRenderer.reload();
+    boxLightRenderer.reload();
 }
 
 std::shared_ptr<PointLight> DeferredLighting::createPointLight()
@@ -140,6 +170,14 @@ std::shared_ptr<SpotLight> DeferredLighting::createSpotLight()
     spotLights.push_back(l);
     return l;
 }
+
+std::shared_ptr<BoxLight> DeferredLighting::createBoxLight()
+{
+    std::shared_ptr<BoxLight> l = std::make_shared<BoxLight>();
+    boxLights.push_back(l);
+    return l;
+}
+
 void DeferredLighting::removeLight(std::shared_ptr<PointLight> l)
 {
     pointLights.erase(std::find(pointLights.begin(), pointLights.end(), l));
@@ -150,6 +188,10 @@ void DeferredLighting::removeLight(std::shared_ptr<SpotLight> l)
     spotLights.erase(std::find(spotLights.begin(), spotLights.end(), l));
 }
 
+void DeferredLighting::removeLight(std::shared_ptr<BoxLight> l)
+{
+    boxLights.erase(std::find(boxLights.begin(), boxLights.end(), l));
+}
 }  // namespace Lighting
 
 }  // namespace Vulkan

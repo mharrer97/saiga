@@ -156,6 +156,10 @@ void VulkanExample::init(Saiga::Vulkan::VulkanBase& base)
     spotLight->setColorDiffuse(Saiga::Vulkan::Lighting::LightColorPresets::Candle);
     spotLight->setColorSpecular(Saiga::Vulkan::Lighting::LightColorPresets::Candle);
 
+    boxLight = renderer.lighting.createBoxLight();
+    boxLight->setColorDiffuse(Saiga::Vulkan::Lighting::LightColorPresets::MuzzleFlash);
+    boxLight->setColorSpecular(Saiga::Vulkan::Lighting::LightColorPresets::MuzzleFlash);
+
     candleLight = renderer.lighting.createSpotLight();
     candleLight->setColorDiffuse(Saiga::Vulkan::Lighting::LightColorPresets::Candle);
     candleLight->setColorSpecular(Saiga::Vulkan::Lighting::LightColorPresets::Candle);
@@ -209,7 +213,6 @@ void VulkanExample::update(float dt)
             // pos                           = vec3(1.f, 0.f, 1.f) * (3 * float(i));
             pos[1] = 5.f;
             pointLights[i]->setPosition(pos);
-            pointLights[i]->calculateModel();
         }
 
         //        vec3 dir = vec3(0.01f * sin(fmod(timingLoop, 2.f * 3.1415f)), 1.f,
@@ -220,6 +223,7 @@ void VulkanExample::update(float dt)
     for (int i = 0; i < count; ++i)
     {
         pointLights[i]->setRadius(lightRadius);
+        pointLights[i]->calculateModel();
     }
 
     vec3 pos =
@@ -233,6 +237,14 @@ void VulkanExample::update(float dt)
     spotLight->setAngle(spotLightOpeningAngle);
 
     spotLight->calculateModel();
+
+    pos    = -pos * 0.5f;
+    pos[1] = 3.f;
+
+    boxLight->setView(pos, make_vec3(0.f), vec3(0.f, 1.f, 0.f));
+    boxLight->setScale(vec3(2.5f, 2.5f, 4.f));
+    boxLight->setIntensity(0.5f);
+    boxLight->calculateModel();
 
     // spotLight->setDirection(vec3(0.f, -1.f, 0.f));
     vec3 dir = vec3(0.03f * cos(fmod((0.8f * 6.28f) - timingLoop2, 2.f * 3.1415f)), 1.f,

@@ -17,7 +17,10 @@
 #include "saiga/core/util/assert.h"
 //#include "saiga/opengl/error.h"
 //#include "saiga/opengl/rendering/deferredRendering/deferredRendering.h"
-#include "saiga/vulkan/lighting/PointLight.h"
+#include "saiga/core/geometry/aabb.h"
+#include "saiga/core/geometry/triangle_mesh_generator.h"
+#include "saiga/vulkan/lighting/BoxLight.h"
+
 
 namespace Saiga
 {
@@ -39,21 +42,10 @@ void PointLightShader::uploadShadowPlanes(float f, float n)
 }*/
 
 
-PointLight::PointLight() {}
+BoxLight::BoxLight() {}
 
 
-PointLight& PointLight::operator=(const PointLight& light)
-{
-    model         = light.model;
-    colorDiffuse  = light.colorDiffuse;
-    colorSpecular = light.colorSpecular;
-    attenuation   = light.attenuation;
-    cutoffRadius  = light.cutoffRadius;
-    return *this;
-}
-
-
-float PointLight::getRadius() const
+/*float PointLight::getRadius() const
 {
     return cutoffRadius;
 }
@@ -64,7 +56,7 @@ void PointLight::setRadius(float value)
     cutoffRadius = value;
     this->setScale(make_vec3(cutoffRadius));
 }
-
+*/
 /*void PointLight::bindUniforms(std::shared_ptr<PointLightShader> shader, Camera* cam)
 {
     AttenuatedLight::bindUniforms(shader, cam);
@@ -120,10 +112,32 @@ void PointLight::bindFace(int face)
     shadowCamera.setProj(90.0f, 1, shadowNearPlane, cutoffRadius);
 }*/
 
-bool PointLight::cullLight(Camera* cam)
+void BoxLight::setView(vec3 pos, vec3 target, vec3 up)
 {
-    Sphere s(getPosition(), cutoffRadius);
-    this->culled = cam->sphereInFrustum(s) == Camera::OUTSIDE;
+    //    this->setViewMatrix(lookAt(pos,pos + (pos-target),up));
+    this->setViewMatrix(lookAt(pos, target, up));
+}
+
+void BoxLight::calculateCamera()
+{
+    // the camera is centred at the centre of the shadow volume.
+    // we define the box only by the sides of the orthographic projection
+    calculateModel();
+    // trs matrix without scale
+    //(scale is applied through projection matrix
+    mat4 T = translate(identityMat4(), make_vec3(position));
+    mat4 R = make_mat4(rot);
+    mat4 m = T * R;
+    shadowCamera.setView(inverse(m));
+    //    shadowCamera.setProj(-scale[0], scale[0], -scale[1], scale[1], -scale[2], scale[2]);
+    shadowCamera.setProj(-scale[0], scale[0], -scale[1], scale[1], -scale[2], scale[2]);
+}
+
+bool BoxLight::cullLight(Camera* cam)
+{
+    /*Sphere s(getPosition(), cutoffRadius);
+    this->culled = cam->sphereInFrustum(s) == Camera::OUTSIDE;*/
+    this->culled = false;
     //    this->culled = false;
     //    std::cout<<culled<<endl;
     return culled;
@@ -161,14 +175,14 @@ void PointLight::renderImGui()
 
 
 // Renderer
-void PointLightRenderer::destroy()
+void BoxLightRenderer::destroy()
 {
     Pipeline::destroy();
     uniformBufferVS.destroy();
     uniformBufferFS.destroy();
 }
 
-void PointLightRenderer::render(vk::CommandBuffer cmd, std::shared_ptr<PointLight> light)
+void BoxLightRenderer::render(vk::CommandBuffer cmd, std::shared_ptr<BoxLight> light)
 {
     // vec4 pos = vec4(light->position[0], light->position[1], light->position[2], 1.f);
     // updateUniformBuffers(cmd, proj, view, pos, 25.f, false);
@@ -180,7 +194,7 @@ void PointLightRenderer::render(vk::CommandBuffer cmd, std::shared_ptr<PointLigh
 
 
 
-void PointLightRenderer::init(VulkanBase& vulkanDevice, VkRenderPass renderPass, std::string fragmentShader)
+void BoxLightRenderer::init(VulkanBase& vulkanDevice, VkRenderPass renderPass, std::string fragmentShader)
 {
     PipelineBase::init(vulkanDevice, 1);
     addDescriptorSetLayout({{0, {11, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment}},
@@ -212,11 +226,12 @@ void PointLightRenderer::init(VulkanBase& vulkanDevice, VkRenderPass renderPass,
 
     create(renderPass, info);
 
-    lightMesh.loadObj("icosphere.obj");
+    AABB box(make_vec3(-1), make_vec3(1));
+    lightMesh.mesh = *TriangleMeshGenerator::createAABBMesh(box);
     lightMesh.init(vulkanDevice);
 }
 
-void PointLightRenderer::updateUniformBuffers(vk::CommandBuffer cmd, mat4 proj, mat4 view, bool debug)
+void BoxLightRenderer::updateUniformBuffers(vk::CommandBuffer cmd, mat4 proj, mat4 view, bool debug)
 {
     uboFS.proj  = proj;
     uboFS.view  = view;
@@ -228,11 +243,11 @@ void PointLightRenderer::updateUniformBuffers(vk::CommandBuffer cmd, mat4 proj, 
     uniformBufferVS.update(cmd, sizeof(uboVS), &uboVS);
 }
 
-void PointLightRenderer::createAndUpdateDescriptorSet(Saiga::Vulkan::Memory::ImageMemoryLocation* diffuse,
-                                                      Saiga::Vulkan::Memory::ImageMemoryLocation* specular,
-                                                      Saiga::Vulkan::Memory::ImageMemoryLocation* normal,
-                                                      Saiga::Vulkan::Memory::ImageMemoryLocation* additional,
-                                                      Saiga::Vulkan::Memory::ImageMemoryLocation* depth)
+void BoxLightRenderer::createAndUpdateDescriptorSet(Saiga::Vulkan::Memory::ImageMemoryLocation* diffuse,
+                                                    Saiga::Vulkan::Memory::ImageMemoryLocation* specular,
+                                                    Saiga::Vulkan::Memory::ImageMemoryLocation* normal,
+                                                    Saiga::Vulkan::Memory::ImageMemoryLocation* additional,
+                                                    Saiga::Vulkan::Memory::ImageMemoryLocation* depth)
 {
     descriptorSet = createDescriptorSet();
 
@@ -288,11 +303,11 @@ void PointLightRenderer::createAndUpdateDescriptorSet(Saiga::Vulkan::Memory::Ima
         nullptr);
 }
 
-void PointLightRenderer::pushLight(vk::CommandBuffer cmd, std::shared_ptr<PointLight> light)
+void BoxLightRenderer::pushLight(vk::CommandBuffer cmd, std::shared_ptr<BoxLight> light, Camera* cam)
 {
     pushConstantObject.model       = light->model;
-    pushConstantObject.attenuation = make_vec4(light->getAttenuation(), light->getRadius());
-    pushConstantObject.pos         = make_vec4(light->getPosition(), 1.f);
+    pushConstantObject.depthBiasMV = light->viewToLightTransform(*cam, light->shadowCamera);
+    // pushConstantObject.pos         = make_vec4(light->getPosition(), 1.f);
     pushConstantObject.specularCol = make_vec4(light->getColorSpecular(), 1.f);
     pushConstantObject.diffuseCol  = make_vec4(light->getColorDiffuse(), light->getIntensity());
     // pushConstant(cmd, vk::ShaderStageFlagBits::eVertex, sizeof(mat4), data(translate(light->position)));
