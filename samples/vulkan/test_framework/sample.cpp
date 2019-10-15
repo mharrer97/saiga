@@ -160,6 +160,13 @@ void VulkanExample::init(Saiga::Vulkan::VulkanBase& base)
     boxLight->setColorDiffuse(Saiga::Vulkan::Lighting::LightColorPresets::MuzzleFlash);
     boxLight->setColorSpecular(Saiga::Vulkan::Lighting::LightColorPresets::MuzzleFlash);
 
+    directionalLight = renderer.lighting.createDirectionalLight();
+    directionalLight->setColorDiffuse(Saiga::Vulkan::Lighting::LightColorPresets::MoonlightBlue);
+    directionalLight->setColorSpecular(Saiga::Vulkan::Lighting::LightColorPresets::MoonlightBlue);
+    // directionalLight->setView(vec3(1.f, 1.f, 1.f), vec3(0.f, 0.f, 0.f), vec3(0.f, 1.f, 0.f));
+    directionalLight->setDirection(vec3(-1.f, -1.f, -1.f));
+    directionalLight->calculateModel();
+
     candleLight = renderer.lighting.createSpotLight();
     candleLight->setColorDiffuse(Saiga::Vulkan::Lighting::LightColorPresets::Candle);
     candleLight->setColorSpecular(Saiga::Vulkan::Lighting::LightColorPresets::Candle);
@@ -198,7 +205,7 @@ void VulkanExample::update(float dt)
 
     timingLoop2 = fmod(timingLoop2 + dt, 2.f * 3.1415f);
 
-    if (renderer.lightRotate)
+    if (lightRotate)
     {
         timingLoop = fmod(timingLoop + dt, 2.f * 3.1415f);
 
@@ -256,7 +263,11 @@ void VulkanExample::update(float dt)
     candleLight->setRadius(radius);
     float angle = 270.f + 3.f * cos(fmod(timingLoop2, 2.f * 3.1415f));
     candleLight->setAngle(angle);
+
+    candleLight->setIntensity(1.f + 0.03f * cos(fmod(((0.9f * 6.28f) - timingLoop2) * 20.f, 2.f * 3.1415f)));
     candleLight->calculateModel();
+
+    directionalLight->setIntensity(dirLightIntensity);
 }
 
 void VulkanExample::transfer(vk::CommandBuffer cmd, Camera* cam)
@@ -389,7 +400,7 @@ void VulkanExample::renderForward(vk::CommandBuffer cmd, Camera* cam)
 
 void VulkanExample::renderGUI()
 {
-    ImGui::SetNextWindowSize(ImVec2(200, 200));
+    ImGui::SetNextWindowSize(ImVec2(400, 250));
     ImGui::Begin("Example settings");
     ImGui::Checkbox("Render models", &displayModels);
 
@@ -412,8 +423,11 @@ void VulkanExample::renderGUI()
         renderer.reload();
     }
 
+    ImGui::Checkbox("Rotate Lights", &lightRotate);
     ImGui::DragFloat("Light Radius", &lightRadius, 0.25f, 0.f, 20.f);
     ImGui::DragFloat("Spot Opening Angle", &spotLightOpeningAngle, 0.25f, 0.f, 360.f);
+    ImGui::DragFloat("Directional Light Intensity", &dirLightIntensity, 0.0125f, 0.f, 5.f);
+
     ImGui::End();
     //    return;
 

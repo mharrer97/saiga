@@ -22,12 +22,14 @@ layout (binding = 16) uniform UBO2
 {
 	mat4 proj;
 	mat4 view;
-	vec4 lightDir;
-	vec4 lightCol;
-	
-	float intensity;
 	bool debug;
 } ubo;
+
+layout (push_constant) uniform PushConstants {
+	mat4 model;
+	vec4 lightSpecularCol;
+	vec4 lightDiffuseCol;
+} pushConstants;
 
 
 layout (location = 0) out vec4 outColor;
@@ -46,33 +48,34 @@ vec3 reconstructPosition(float d, vec2 tc){
 void main() 
 {
 	
-	vec3 diffuseColor = texture(diffuseTexture, inData.tc).rgb;
-	vec4 specularAndRoughness = texture(specularTexture, inData.tc);
-	vec4 additional = texture(additionalTexture, inData.tc); // <-- currently unused //w contains information if light calculation should be applied: 1 = no lighting
-	float depth = texture(depthTexture, inData.tc).r;
+	vec2 tc = inData.tc;
+	vec3 diffuseColor = texture(diffuseTexture, tc).rgb;
+	vec4 specularAndRoughness = texture(specularTexture, tc);
+	vec4 additional = texture(additionalTexture, tc); // <-- currently unused //w contains information if light calculation should be applied: 1 = no lighting
+	float depth = texture(depthTexture, tc).r;
 	gl_FragDepth = depth;
 
-	//vec4 viewLightPos = ubo.view * vec4(5.f,5.f,5.f,1.f);
-	//vec3 viewLightDir = (ubo.view * vec4(1.f,1.f,1.f,0.f)).xyz;
-	vec4 P = vec4(reconstructPosition(depth, inData.tc), 1.f);
-	vec4 N = vec4(normalize(texture(normalTexture, inData.tc).rgb), 1.f);
-	vec3 L = normalize(mat3(ubo.view) * (-ubo.lightDir).xyz);
+	vec4 P = vec4(reconstructPosition(depth, tc), 1.f);
+	vec4 N = vec4(normalize(texture(normalTexture, tc).rgb), 1.f);
+	vec3 L = normalize(mat3(ubo.view) * normalize(vec3(pushConstants.model[2])));//viewLightPos.xyz - P.xyz;
 	vec3 R = reflect(normalize(L), N.xyz);
 	vec3 V = normalize(P.xyz);
 	
-	float intensity = ubo.intensity;//ubo.intensity/pow(length(L), 2.f);
 	
-	vec3 diffuse = max(dot(normalize(N.xyz), normalize(L)) * intensity, 0.05f) * diffuseColor * ubo.lightCol.xyz;
-	vec3 specular = pow(max(dot(R,V), 0.f), specularAndRoughness.a * 256.f) * specularAndRoughness.rgb * intensity  * ubo.lightCol.xyz;
-	outColor = vec4(diffuse + specular, 1.f);	
 	
-	//check if lightcomputation should be done. if not: use diffusecolor
+
+	float intensity = pushConstants.lightDiffuseCol.w; //  getAttenuation(pushConstants.attenuation, length(L)) * 
+	
+	vec3 diffuse = max(dot(normalize(N.xyz), normalize(L)) * intensity, 0.f) * diffuseColor * pushConstants.lightDiffuseCol.xyz;
+	vec3 specular = pow(max(dot(R,V), 0.f), specularAndRoughness.a * 256.f) * specularAndRoughness.rgb * intensity * pushConstants.lightSpecularCol.xyz;
+	outColor = vec4(diffuse + specular, 1.f);
+
+	
 	if(additional.w > 0.99f) {
 		outColor = vec4(diffuseColor, 1.f);
 	}
-		
-	//outColor = vec4(0.05f * diffuseColor, 1.f);
-		
+
+			
 	if(ubo.debug) {
 		vec2 tc2 = inData.tc * 2.f;
 		if (inData.tc.x < 0.5 && inData.tc.y >= 0.5){ //linker unterer bereich der anzeige

@@ -30,15 +30,8 @@ VulkanDeferredRenderer::VulkanDeferredRenderer(VulkanWindow& window, VulkanParam
     // setupColorAttachmentSampler();
     std::cout << "RenderPass Creation -- FINISHED" << std::endl;
 
-    // init renderer fpr rendering of fullscreen quad
+    // init deferred lighting
 
-    //    quadRenderer.init(base(), lightingPass);
-
-
-
-    quadRenderer.init(base(), lightingPass);
-
-    // TODO change
     lighting.init(base(), lightingPass);
 
 
@@ -60,10 +53,7 @@ VulkanDeferredRenderer::~VulkanDeferredRenderer()
 
     base().device.destroySemaphore(geometrySemaphore);
     base().device.destroySemaphore(deferredSemaphore);
-    // TODO change?
     lighting.destroy();
-    //    quadRenderer.destroy();
-    quadRenderer.destroy();
     base().device.destroyRenderPass(renderPass);
     base().device.destroyRenderPass(lightingPass);
     base().device.destroyRenderPass(forwardPass);
@@ -138,9 +128,6 @@ void VulkanDeferredRenderer::createBuffers(int numImages, int w, int h)
 
     std::cout << "QuadRenderer DescriptorSet Update/Creation -- CALL" << std::endl;
 
-    quadRenderer.createAndUpdateDescriptorSet(diffuseAttachment.location, specularAttachment.location,
-                                              normalAttachment.location, additionalAttachment.location,
-                                              gBufferDepthBuffer.location);
     lighting.createAndUpdateDescriptorSets(diffuseAttachment.location, specularAttachment.location,
                                            normalAttachment.location, additionalAttachment.location,
                                            gBufferDepthBuffer.location);
@@ -151,7 +138,6 @@ void VulkanDeferredRenderer::createBuffers(int numImages, int w, int h)
 
 void VulkanDeferredRenderer::reload()
 {
-    quadRenderer.reload();
     lighting.reload();
 }
 
@@ -498,11 +484,9 @@ void VulkanDeferredRenderer::setupDrawCommandBuffer(int currentImage, Camera* ca
 {
     vk::CommandBufferBeginInfo cmdBufBeginInfo = vks::initializers::commandBufferBeginInfo();
 
-    // clear values for each attachment
-    // This is blender's default viewport background color :)
-    vec4 clearColor = vec4(57, 57, 57, 255) / 255.0f;
     vk::ClearValue clearValues[2];
-    clearValues[0].color.setFloat32({clearColor[0], clearColor[1], clearColor[2], clearColor[3]});
+
+    clearValues[0].color.setFloat32({0.f, 0.f, 0.f, 1.f});
     clearValues[1].depthStencil.setDepth(1.0f);
     clearValues[1].depthStencil.setStencil(0);
 
@@ -526,16 +510,6 @@ void VulkanDeferredRenderer::setupDrawCommandBuffer(int currentImage, Camera* ca
     // begin recording cmdBuffer
     drawCmdBuffers[currentImage].begin(cmdBufBeginInfo);
 
-
-    quadRenderer.updateUniformBuffers(drawCmdBuffers[currentImage], cam->proj, cam->view, make_vec4(lightColor, 1.f),
-                                      make_vec4(lightDirection, 0.f), debug, lightIntensity);
-
-    // TODO change!!!!!!!!!!!!!!!!!!!!!!!
-    /*vec4 pos =
-        vec4(attenuatedTestLight->position[0], attenuatedTestLight->position[1], attenuatedTestLight->position[2], 1.f);
-    lighting.attenuatedLightRenderer.updateUniformBuffers(drawCmdBuffers[currentImage], cam->proj, cam->view, pos, 25.f,
-                                                          true);
-*/
     lighting.updateUniformBuffers(drawCmdBuffers[currentImage], cam->proj, cam->view, lightDebug);
 
 
@@ -547,12 +521,6 @@ void VulkanDeferredRenderer::setupDrawCommandBuffer(int currentImage, Camera* ca
 
     vk::Rect2D scissor = vks::initializers::rect2D(surfaceWidth, SurfaceHeight, 0, 0);
     drawCmdBuffers[currentImage].setScissor(0, 1, &scissor);
-
-
-    if (quadRenderer.bind(drawCmdBuffers[currentImage]))
-    {
-        quadRenderer.render(drawCmdBuffers[currentImage], vec2(0, 0), vec2(surfaceWidth, SurfaceHeight));
-    }
 
     if (renderLights) lighting.renderLights(drawCmdBuffers[currentImage], cam);
 
@@ -648,11 +616,6 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage, Camera* c
         ImGui::Checkbox("Debug Mode", &debug);
         ImGui::Checkbox("Debug Lights", &lightDebug);
         ImGui::Checkbox("Render Lights", &renderLights);
-        ImGui::DragFloat("Light Intensity", &lightIntensity, 0.00125, 0.f, 2.5f);
-
-        ImGui::Direction("Light Dir", lightDirection);
-        ImGui::Checkbox("Rotate Light", &lightRotate);
-
         ImGui::End();
 
 

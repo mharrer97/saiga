@@ -32,11 +32,6 @@ layout(location=0) in VertexData
     vec3 pos;
 } inData;
 
-vec3 reconstructPosition(float d, vec2 tc){
-    vec4 p = vec4(tc.xy * 2.0f - 1.0f,d,1);
-    p = inverse(ubo.proj) * p; //TODO outsource inverse to cpu?
-    return p.xyz/p.w;
-}
 
 void main() 
 {
@@ -51,7 +46,7 @@ void main()
 	//vec3 viewLightDir = mat3(ubo.view) * (-ubo.lightDir).xyz;
 	//vec4 viewLightPos = ubo.view * vec4(5.f,5.f,5.f,1.f);
 	//vec3 viewLightDir = (ubo.view * vec4(1.f,1.f,1.f,0.f)).xyz;
-	vec4 P = vec4(reconstructPosition(depth, tc), 1.f);
+	vec4 P = vec4(reconstructPosition(depth, tc, ubo.proj), 1.f);
 	vec4 N = vec4(normalize(texture(normalTexture, tc).rgb), 1.f);
 	vec3 L = normalize(mat3(ubo.view) * normalize(vec3(pushConstants.model[2])));//viewLightPos.xyz - P.xyz;
 	vec3 R = reflect(normalize(L), N.xyz);

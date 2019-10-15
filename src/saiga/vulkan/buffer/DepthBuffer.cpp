@@ -49,6 +49,7 @@ void DepthBuffer::init(VulkanBase& base, int width, int height, bool sampleFromD
             std::cout << "VK_FORMAT_D16_UNORM Unsupported.\n";
             exit(-1);
         }
+
         image_info.imageType             = vk::ImageType::e2D;
         image_info.format                = format;
         image_info.extent.width          = width;
@@ -88,7 +89,7 @@ void DepthBuffer::init(VulkanBase& base, int width, int height, bool sampleFromD
             image_info.usage = vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled;
 
             vk::SamplerCreateInfo samplerCreateInfo = {};
-            samplerCreateInfo.magFilter             = vk::Filter::eLinear;
+            samplerCreateInfo.magFilter             = vk::Filter::eNearest;
             samplerCreateInfo.minFilter             = vk::Filter::eLinear;
             samplerCreateInfo.mipmapMode            = vk::SamplerMipmapMode::eLinear;
             samplerCreateInfo.addressModeU          = vk::SamplerAddressMode::eRepeat;

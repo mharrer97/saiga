@@ -21,6 +21,7 @@ DeferredLighting::DeferredLighting()
 void DeferredLighting::destroy()
 {
     debugLightRenderer.destroy();
+    directionalLightRenderer.destroy();
     pointLightRenderer.destroy();
     spotLightRenderer.destroy();
     boxLightRenderer.destroy();
@@ -31,6 +32,7 @@ void DeferredLighting::init(Saiga::Vulkan::VulkanBase& vulkanDevice, VkRenderPas
     const DeferredLightingShaderNames& names = DeferredLightingShaderNames();
     debugLightRenderer.init(vulkanDevice, renderPass, names.debugLightShader, 2);
 
+    directionalLightRenderer.init(vulkanDevice, renderPass, names.directionalLightShader);
     pointLightRenderer.init(vulkanDevice, renderPass, names.pointLightShader);
     spotLightRenderer.init(vulkanDevice, renderPass, names.spotLightShader);
     boxLightRenderer.init(vulkanDevice, renderPass, names.boxLightShader);
@@ -43,6 +45,7 @@ void DeferredLighting::createAndUpdateDescriptorSets(Memory::ImageMemoryLocation
                                                      Memory::ImageMemoryLocation* depth)
 {
     debugLightRenderer.createAndUpdateDescriptorSet(diffuse, specular, normal, additional, depth);
+    directionalLightRenderer.createAndUpdateDescriptorSet(diffuse, specular, normal, additional, depth);
     pointLightRenderer.createAndUpdateDescriptorSet(diffuse, specular, normal, additional, depth);
     spotLightRenderer.createAndUpdateDescriptorSet(diffuse, specular, normal, additional, depth);
     boxLightRenderer.createAndUpdateDescriptorSet(diffuse, specular, normal, additional, depth);
@@ -52,6 +55,7 @@ void DeferredLighting::updateUniformBuffers(vk::CommandBuffer cmd, mat4 proj, ma
     this->debug = debugIn;
     debugLightRenderer.updateUniformBuffers(cmd, proj, view);
 
+    directionalLightRenderer.updateUniformBuffers(cmd, proj, view, debugIn);
     pointLightRenderer.updateUniformBuffers(cmd, proj, view, debugIn);
     spotLightRenderer.updateUniformBuffers(cmd, proj, view, debugIn);
     boxLightRenderer.updateUniformBuffers(cmd, proj, view, debugIn);
@@ -147,14 +151,30 @@ void DeferredLighting::renderLights(vk::CommandBuffer cmd, Camera* cam)
             }
         }
     }
+    if (directionalLightRenderer.bind(cmd))
+    {
+        for (std::shared_ptr<DirectionalLight>& l : directionalLights)
+        {
+            directionalLightRenderer.pushLight(cmd, l);
+            directionalLightRenderer.render(cmd, l);
+        }
+    }
 }
 
 void DeferredLighting::reload()
 {
     debugLightRenderer.reload();
+    directionalLightRenderer.reload();
     spotLightRenderer.reload();
     pointLightRenderer.reload();
     boxLightRenderer.reload();
+}
+
+std::shared_ptr<DirectionalLight> DeferredLighting::createDirectionalLight()
+{
+    std::shared_ptr<DirectionalLight> l = std::make_shared<DirectionalLight>();
+    directionalLights.push_back(l);
+    return l;
 }
 
 std::shared_ptr<PointLight> DeferredLighting::createPointLight()
@@ -178,6 +198,10 @@ std::shared_ptr<BoxLight> DeferredLighting::createBoxLight()
     return l;
 }
 
+void DeferredLighting::removeLight(std::shared_ptr<DirectionalLight> l)
+{
+    directionalLights.erase(std::find(directionalLights.begin(), directionalLights.end(), l));
+}
 void DeferredLighting::removeLight(std::shared_ptr<PointLight> l)
 {
     pointLights.erase(std::find(pointLights.begin(), pointLights.end(), l));

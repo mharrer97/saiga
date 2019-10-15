@@ -133,7 +133,8 @@ void AttenuatedLightRenderer::init(VulkanBase& vulkanDevice, VkRenderPass render
                             {5, {16, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eFragment}}});
 
     // addPushConstantRange({vk::ShaderStageFlagBits::eVertex, 0, sizeof(mat4)});
-    addPushConstantRange({vk::ShaderStageFlagBits::eFragment, 0, sizeof(pushConstantObject)});
+    addPushConstantRange(
+        {vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, 0, sizeof(pushConstantObject)});
     shaderPipeline.load(device, {vertexShader, fragmentShader});
     PipelineInfo info;
     info.addVertexInfo<VertexType>();
@@ -224,7 +225,8 @@ void AttenuatedLightRenderer::createAndUpdateDescriptorSet(Saiga::Vulkan::Memory
 
 void AttenuatedLightRenderer::pushPosition(vk::CommandBuffer cmd, vec4 pos)
 {
-    pushConstant(cmd, vk::ShaderStageFlagBits::eFragment, sizeof(pushConstantObject), data(pos), 0);
+    pushConstant(cmd, vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, sizeof(pushConstantObject),
+                 data(pos), 0);
     // pushConstant(cmd, vk::ShaderStageFlagBits::eVertex, sizeof(mat4), data(model));
 }
 }  // namespace Lighting

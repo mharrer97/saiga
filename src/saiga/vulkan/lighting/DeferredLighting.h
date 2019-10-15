@@ -12,8 +12,10 @@
 #include "saiga/vulkan/VulkanAsset.h"
 #include "saiga/vulkan/lighting/BoxLight.h"
 #include "saiga/vulkan/lighting/DebugLight.h"
+#include "saiga/vulkan/lighting/DirectionalLight.h"
 #include "saiga/vulkan/lighting/PointLight.h"
 #include "saiga/vulkan/lighting/SpotLight.h"
+
 
 namespace Saiga
 {
@@ -23,17 +25,21 @@ namespace Lighting
 {
 struct DeferredLightingShaderNames
 {
-    std::string attenuatedLightShader = "vulkan/lighting/attenuatedLight.frag";
-    std::string pointLightShader      = "vulkan/lighting/pointLight.frag";
-    std::string spotLightShader       = "vulkan/lighting/spotLight.frag";
-    std::string boxLightShader        = "vulkan/lighting/boxLight.frag";
-    std::string debugLightShader      = "vulkan/lighting/debugLight.frag";
+    std::string attenuatedLightShader  = "vulkan/lighting/attenuatedLight.frag";
+    std::string pointLightShader       = "vulkan/lighting/pointLight.frag";
+    std::string spotLightShader        = "vulkan/lighting/spotLight.frag";
+    std::string boxLightShader         = "vulkan/lighting/boxLight.frag";
+    std::string directionalLightShader = "vulkan/lighting/directionalLight.frag";
+    std::string debugLightShader       = "vulkan/lighting/debugLight.frag";
 };
 
 class SAIGA_VULKAN_API DeferredLighting
 {
    private:
     DebugLightRenderer debugLightRenderer;
+
+    DirectionalLightRenderer directionalLightRenderer;
+    std::vector<std::shared_ptr<DirectionalLight>> directionalLights;
 
     PointLightRenderer pointLightRenderer;
     std::vector<std::shared_ptr<PointLight>> pointLights;
@@ -49,10 +55,11 @@ class SAIGA_VULKAN_API DeferredLighting
     int totalLights;
     int visibleLights;
 
-    bool debug             = false;
-    bool renderPointLights = true;
-    bool renderSpotLights  = true;
-    bool renderBoxLights   = true;
+    bool debug                   = false;
+    bool renderPointLights       = true;
+    bool renderSpotLights        = true;
+    bool renderBoxLights         = true;
+    bool renderDirectionalLights = true;
 
 
     DeferredLighting();
@@ -73,12 +80,13 @@ class SAIGA_VULKAN_API DeferredLighting
 
     void reload();
 
+    std::shared_ptr<DirectionalLight> createDirectionalLight();
     std::shared_ptr<PointLight> createPointLight();
     std::shared_ptr<SpotLight> createSpotLight();
     std::shared_ptr<BoxLight> createBoxLight();
 
 
-
+    void removeLight(std::shared_ptr<DirectionalLight> l);
     void removeLight(std::shared_ptr<PointLight> l);
     void removeLight(std::shared_ptr<SpotLight> l);
     void removeLight(std::shared_ptr<BoxLight> l);

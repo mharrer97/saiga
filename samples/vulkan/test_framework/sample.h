@@ -52,6 +52,8 @@ class VulkanExample : public Saiga::Updating,
 
     float lightRadius           = 10.f;
     float spotLightOpeningAngle = 90.f;
+    bool lightRotate            = true;
+    float dirLightIntensity     = 1.f;
 
     std::shared_ptr<Saiga::Vulkan::Texture2D> texture;
 
@@ -73,6 +75,7 @@ class VulkanExample : public Saiga::Updating,
     std::vector<std::shared_ptr<Saiga::Vulkan::Lighting::PointLight>> pointLights;
     std::shared_ptr<Saiga::Vulkan::Lighting::SpotLight> spotLight, candleLight;
     std::shared_ptr<Saiga::Vulkan::Lighting::BoxLight> boxLight;
+    std::shared_ptr<Saiga::Vulkan::Lighting::DirectionalLight> directionalLight;
 
 
     bool displayModels = true;

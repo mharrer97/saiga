@@ -35,11 +35,7 @@ layout(location=0) in VertexData
     vec3 pos;
 } inData;
 
-vec3 reconstructPosition(float d, vec2 tc){
-    vec4 p = vec4(tc.xy * 2.0f - 1.0f,d,1);
-    p = inverse(ubo.proj) * p; //TODO outsource inverse to cpu?
-    return p.xyz/p.w;
-}
+
 
 void main() 
 {
@@ -54,7 +50,7 @@ void main()
 	vec3 viewLightDir = mat3(ubo.view) * (-pushConstants.lightDir).xyz;
 	//vec4 viewLightPos = ubo.view * vec4(5.f,5.f,5.f,1.f);
 	//vec3 viewLightDir = (ubo.view * vec4(1.f,1.f,1.f,0.f)).xyz;
-	vec4 P = vec4(reconstructPosition(depth, tc), 1.f);
+	vec4 P = vec4(reconstructPosition(depth, tc, ubo.proj), 1.f);
 	vec4 N = vec4(normalize(texture(normalTexture, tc).rgb), 1.f);
 	vec3 L = viewLightPos.xyz - P.xyz;
 	vec3 R = reflect(normalize(L), N.xyz);
@@ -65,6 +61,7 @@ void main()
 	vec3 diffuse = max(dot(normalize(N.xyz), normalize(L)) * intensity, 0.f) * diffuseColor * pushConstants.lightDiffuseCol.xyz;
 	vec3 specular = pow(max(dot(R,V), 0.f), specularAndRoughness.a * 256.f) * specularAndRoughness.rgb * intensity * pushConstants.lightSpecularCol.xyz;
 	outColor = vec4(diffuse + specular, 1.f);
+	
 	if(acos(dot(normalize(L), normalize(viewLightDir))) > ((pushConstants.openingAngle/4.f)/180.f)*6.26f) outColor = vec4(0.f);
 	float angle = acos(dot(normalize(L), normalize(viewLightDir)));
 	float alpha = (clamp((angle/6.26) * 180.f, (pushConstants.openingAngle/4.f) - 5.f, (pushConstants.openingAngle/4.f))- ((pushConstants.openingAngle/4.f) - 5.f)) / 5.f;

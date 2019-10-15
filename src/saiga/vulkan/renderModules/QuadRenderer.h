@@ -6,6 +6,7 @@
  * Created by Mathias Harrer: mathias.mh.harrer@fau.de
  */
 
+// TODO: delete whole file. deprecated
 
 #pragma once
 

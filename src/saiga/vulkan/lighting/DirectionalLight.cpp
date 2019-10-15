@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Copyright (c) 2017 Darius Rückert
  * Licensed under the MIT License.
  * See LICENSE file for more information.
@@ -6,69 +6,76 @@
  * Created by Mathias Harrer: mathias.mh.harrer@fau.de
  */
 
+#include "saiga/vulkan/lighting/DirectionalLight.h"
 
-/**
- * Copyright (c) 2017 Darius Rückert
- * Licensed under the MIT License.
- * See LICENSE file for more information.
- */
-
+/*#include "saiga/core/geometry/aabb.h"
+#include "saiga/core/geometry/triangle_mesh_generator.h"
 #include "saiga/core/imgui/imgui.h"
 #include "saiga/core/util/assert.h"
-//#include "saiga/opengl/error.h"
-//#include "saiga/opengl/rendering/deferredRendering/deferredRendering.h"
-#include "saiga/core/geometry/cone.h"
-#include "saiga/core/geometry/triangle_mesh_generator.h"
-#include "saiga/core/math/all.h"
-#include "saiga/vulkan/lighting/DebugLight.h"
-
-
+#include "saiga/vulkan/Vertex.h"
+*/
 namespace Saiga
 {
 namespace Vulkan
 {
 namespace Lighting
 {
-// Renderer
-void DebugLightRenderer::destroy()
+// light
+DirectionalLight::DirectionalLight() {}
+
+void DirectionalLight::setView(vec3 pos, vec3 target, vec3 up)
+{
+    //    this->setViewMatrix(lookAt(pos,pos + (pos-target),up));
+    this->setViewMatrix(lookAt(pos, target, up));
+}
+
+void DirectionalLight::setDirection(vec3 dir)
+{
+    this->setView(-dir, make_vec3(0.f), vec3(0.f, 1.f, 0.f));
+}
+
+void DirectionalLight::calculateCamera()
+{
+    // the camera is centred at the centre of the shadow volume.
+    // we define the box only by the sides of the orthographic projection
+    calculateModel();
+    // trs matrix without scale
+    //(scale is applied through projection matrix
+    mat4 T = translate(identityMat4(), make_vec3(position));
+    mat4 R = make_mat4(rot);
+    mat4 m = T * R;
+    shadowCamera.setView(inverse(m));
+    //    shadowCamera.setProj(-scale[0], scale[0], -scale[1], scale[1], -scale[2], scale[2]);
+    shadowCamera.setProj(-scale[0], scale[0], -scale[1], scale[1], -scale[2], scale[2]);
+}
+
+bool DirectionalLight::cullLight(Camera* cam)
+{
+    /*Sphere s(getPosition(), cutoffRadius);
+    this->culled = cam->sphereInFrustum(s) == Camera::OUTSIDE;*/
+    this->culled = false;
+    //    this->culled = false;
+    //    std::cout<<culled<<endl;
+    return culled;
+}
+
+
+// renderer
+void DirectionalLightRenderer::destroy()
 {
     Pipeline::destroy();
-    uniformBufferVS.destroy();
     uniformBufferFS.destroy();
 }
 
-void DebugLightRenderer::render(vk::CommandBuffer cmd, std::shared_ptr<SpotLight> light)
+void DirectionalLightRenderer::render(vk::CommandBuffer cmd, std::shared_ptr<DirectionalLight> light)
 {
-    // vec4 pos = vec4(light->position[0], light->position[1], light->position[2], 1.f);
-    // updateUniformBuffers(cmd, proj, view, pos, 25.f, false);
     bindDescriptorSet(cmd, descriptorSet);
     // vk::Viewport vp(position[0], position[1], size[0], size[1]);
     // cmd.setViewport(0, vp);
-    if (light->getAngle() < 135.f)  // render pyramid if small angle
-    {
-        lightMeshSpot.render(cmd);
-    }
-    else  // render icosphere if large angle
-    {
-        lightMeshPoint.render(cmd);
-    }
+    blitMesh.render(cmd);
 }
 
-void DebugLightRenderer::render(vk::CommandBuffer cmd, std::shared_ptr<PointLight> light)
-{
-    bindDescriptorSet(cmd, descriptorSet);
-    lightMeshPoint.render(cmd);
-}
-
-void DebugLightRenderer::render(vk::CommandBuffer cmd, std::shared_ptr<BoxLight> light)
-{
-    bindDescriptorSet(cmd, descriptorSet);
-    lightMeshBox.render(cmd);
-}
-
-
-void DebugLightRenderer::init(VulkanBase& vulkanDevice, VkRenderPass renderPass, std::string fragmentShader,
-                              float lineWidth)
+void DirectionalLightRenderer::init(VulkanBase& vulkanDevice, VkRenderPass renderPass, std::string fragmentShader)
 {
     PipelineBase::init(vulkanDevice, 1);
     addDescriptorSetLayout({{0, {11, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment}},
@@ -76,77 +83,41 @@ void DebugLightRenderer::init(VulkanBase& vulkanDevice, VkRenderPass renderPass,
                             {2, {13, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment}},
                             {3, {14, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment}},
                             {4, {15, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment}},
-                            {5, {16, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eFragment}},
-                            {6, {7, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex}}});
+                            {5, {16, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eFragment}}});
 
-    // addPushConstantRange({vk::ShaderStageFlagBits::eVertex, 0, sizeof(mat4)});
     addPushConstantRange(
         {vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, 0, sizeof(pushConstantObject)});
-    shaderPipeline.load(device, {vertexShader, "vulkan/lighting/debugLight.frag"});
+    shaderPipeline.load(device, {vertexShader, fragmentShader});
     PipelineInfo info;
     info.addVertexInfo<VertexType>();
-
-
-    info.inputAssemblyState.topology = vk::PrimitiveTopology::eLineList;
-    if (base->enabledFeatures.wideLines)
-    {
-        info.rasterizationState.lineWidth = lineWidth;
-    }
-    else
-    {
-        if (lineWidth != 1.0f)
-        {
-            LOG(WARNING) << "Line width " << lineWidth << " requested, wide lines is not enabled or supported";
-        }
-    }
-
-    /*info.blendAttachmentState.blendEnable         = VK_TRUE;
+    info.blendAttachmentState.blendEnable         = VK_TRUE;
     info.blendAttachmentState.alphaBlendOp        = vk::BlendOp::eAdd;
     info.blendAttachmentState.colorBlendOp        = vk::BlendOp::eAdd;
     info.blendAttachmentState.dstColorBlendFactor = vk::BlendFactor::eOne;
     info.blendAttachmentState.srcColorBlendFactor = vk::BlendFactor::eOne;
     info.blendAttachmentState.dstAlphaBlendFactor = vk::BlendFactor::eOne;
     info.blendAttachmentState.srcAlphaBlendFactor = vk::BlendFactor::eOne;
-*/
-    info.rasterizationState.cullMode        = vk::CullModeFlagBits::eNone;
-    info.depthStencilState.depthWriteEnable = VK_FALSE;
+    info.rasterizationState.cullMode              = vk::CullModeFlagBits::eNone;
 
-    // info.blendAttachmentState.
-    // info.depthStencilState.depthWriteEnable = VK_TRUE;
-    // info.depthStencilState.depthTestEnable  = VK_FALSE;
 
     create(renderPass, info);
 
-
-    Cone c(make_vec3(0), vec3(0, 1, 0), 1.0f, 1.0f);
-    lightMeshSpot.mesh = *TriangleMeshGenerator::createConeMesh(c, 10);
-    //    cb->createBuffers(spotLightMesh);
-    // lightMesh.createUniformPyramid();
-    lightMeshSpot.init(vulkanDevice);
-
-    lightMeshPoint.loadObj("icosphere.obj");
-    lightMeshPoint.init(vulkanDevice);
-
-    lightMeshBox.loadObj("box.obj");
-    lightMeshBox.init(vulkanDevice);
+    blitMesh.createFullscreenQuad();
+    blitMesh.init(vulkanDevice);
 }
 
-void DebugLightRenderer::updateUniformBuffers(vk::CommandBuffer cmd, mat4 proj, mat4 view)
+void DirectionalLightRenderer::updateUniformBuffers(vk::CommandBuffer cmd, mat4 proj, mat4 view, bool debug)
 {
-    uboFS.proj = proj;
-    uboFS.view = view;
+    uboFS.proj  = proj;
+    uboFS.view  = view;
+    uboFS.debug = debug;
     uniformBufferFS.update(cmd, sizeof(uboFS), &uboFS);
-
-    uboVS.proj = proj;
-    uboVS.view = view;
-    uniformBufferVS.update(cmd, sizeof(uboVS), &uboVS);
 }
-
-void DebugLightRenderer::createAndUpdateDescriptorSet(Saiga::Vulkan::Memory::ImageMemoryLocation* diffuse,
-                                                      Saiga::Vulkan::Memory::ImageMemoryLocation* specular,
-                                                      Saiga::Vulkan::Memory::ImageMemoryLocation* normal,
-                                                      Saiga::Vulkan::Memory::ImageMemoryLocation* additional,
-                                                      Saiga::Vulkan::Memory::ImageMemoryLocation* depth)
+void DirectionalLightRenderer::createAndUpdateDescriptorSet(Saiga::Vulkan::Memory::ImageMemoryLocation* diffuse,
+                                                            Saiga::Vulkan::Memory::ImageMemoryLocation* specular,
+                                                            Saiga::Vulkan::Memory::ImageMemoryLocation* normal,
+                                                            Saiga::Vulkan::Memory::ImageMemoryLocation* additional,
+                                                            Saiga::Vulkan::Memory::ImageMemoryLocation* depth)
 {
     descriptorSet = createDescriptorSet();
 
@@ -176,8 +147,6 @@ void DebugLightRenderer::createAndUpdateDescriptorSet(Saiga::Vulkan::Memory::Ima
     depthDescriptorInfo.setImageView(depth->data.view);
     depthDescriptorInfo.setSampler(depth->data.sampler);
 
-    uniformBufferVS.init(*base, &uboVS, sizeof(uboVS));
-    vk::DescriptorBufferInfo uboVSDescriptorInfo = uniformBufferVS.getDescriptorInfo();
 
     uniformBufferFS.init(*base, &uboFS, sizeof(uboFS));
     vk::DescriptorBufferInfo uboFSDescriptorInfo = uniformBufferFS.getDescriptorInfo();
@@ -196,24 +165,21 @@ void DebugLightRenderer::createAndUpdateDescriptorSet(Saiga::Vulkan::Memory::Ima
                                    &depthDescriptorInfo, nullptr, nullptr),
             vk::WriteDescriptorSet(descriptorSet, 16, 0, 1, vk::DescriptorType::eUniformBuffer, nullptr,
                                    &uboFSDescriptorInfo, nullptr),
-            vk::WriteDescriptorSet(descriptorSet, 7, 0, 1, vk::DescriptorType::eUniformBuffer, nullptr,
-                                   &uboVSDescriptorInfo, nullptr),
+
         },
         nullptr);
 }
-
-void DebugLightRenderer::pushLight(vk::CommandBuffer cmd, std::shared_ptr<Light> light)
+void DirectionalLightRenderer::pushLight(vk::CommandBuffer cmd, std::shared_ptr<DirectionalLight> light)
 {
-    pushConstantObject.model = light->model;
-
-
+    pushConstantObject.model       = light->model;
+    pushConstantObject.specularCol = make_vec4(light->getColorSpecular(), 1.f);
+    pushConstantObject.diffuseCol  = make_vec4(light->getColorDiffuse(), light->getIntensity());
     // pushConstant(cmd, vk::ShaderStageFlagBits::eVertex, sizeof(mat4), data(translate(light->position)));
     pushConstant(cmd, vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, sizeof(pushConstantObject),
                  &pushConstantObject, 0);
 }
 
-
-
 }  // namespace Lighting
+
 }  // namespace Vulkan
 }  // namespace Saiga

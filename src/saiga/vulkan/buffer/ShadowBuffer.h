@@ -15,19 +15,16 @@ namespace Saiga
 {
 namespace Vulkan
 {
-class SAIGA_VULKAN_API DepthBuffer
+class SAIGA_VULKAN_API ShadowBuffer
 {
    public:
-    // DepthBuffer(vk::Format format = vk::Format::eD16Unorm) : format(format) {}
-
-    DepthBuffer(vk::Format format = vk::Format::eD32Sfloat) : format(format) {}
-
-    ~DepthBuffer() { destroy(); }
+    ShadowBuffer(vk::Format format = vk::Format::eD16Unorm) : format(format) {}
+    ~ShadowBuffer() { destroy(); }
 
     // depth image
     vk::Format format;
 
-    void init(Saiga::Vulkan::VulkanBase& base, int width, int height, bool sampleFromDepthBuffer = false);
+    void init(Saiga::Vulkan::VulkanBase& base, int width, int height);
     void destroy();
 
     Memory::ImageMemoryLocation* location = nullptr;

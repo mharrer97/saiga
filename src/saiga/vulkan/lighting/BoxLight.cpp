@@ -206,7 +206,8 @@ void BoxLightRenderer::init(VulkanBase& vulkanDevice, VkRenderPass renderPass, s
                             {6, {7, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex}}});
 
     // addPushConstantRange({vk::ShaderStageFlagBits::eVertex, 0, sizeof(mat4)});
-    addPushConstantRange({vk::ShaderStageFlagBits::eAllGraphics, 0, sizeof(pushConstantObject)});
+    addPushConstantRange(
+        {vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, 0, sizeof(pushConstantObject)});
     shaderPipeline.load(device, {vertexShader, fragmentShader});
     PipelineInfo info;
     info.addVertexInfo<VertexType>();
@@ -311,7 +312,8 @@ void BoxLightRenderer::pushLight(vk::CommandBuffer cmd, std::shared_ptr<BoxLight
     pushConstantObject.specularCol = make_vec4(light->getColorSpecular(), 1.f);
     pushConstantObject.diffuseCol  = make_vec4(light->getColorDiffuse(), light->getIntensity());
     // pushConstant(cmd, vk::ShaderStageFlagBits::eVertex, sizeof(mat4), data(translate(light->position)));
-    pushConstant(cmd, vk::ShaderStageFlagBits::eAllGraphics, sizeof(pushConstantObject), &pushConstantObject, 0);
+    pushConstant(cmd, vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, sizeof(pushConstantObject),
+                 &pushConstantObject, 0);
 }
 
 

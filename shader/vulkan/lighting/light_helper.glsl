@@ -18,3 +18,10 @@ float getAttenuation(vec4 attenuation, float distance){
                     attenuation.y * x +
                     attenuation.z * x * x);
 }
+
+vec3 reconstructPosition(float d, vec2 tc, mat4 proj){
+	float z = d * 2.0 - 1.0;
+    vec4 p = vec4(tc.xy * 2.0f - 1.0f,d,1);
+    p = inverse(proj) * p; //TODO outsource inverse to cpu?
+    return p.xyz/p.w;
+}
