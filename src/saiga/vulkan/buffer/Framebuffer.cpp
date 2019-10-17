@@ -85,8 +85,34 @@ void Framebuffer::create(int width, int height, vk::RenderPass renderPass, vk::D
     VK_CHECK_RESULT(vkCreateFramebuffer(device, &frameBufferCreateInfo, nullptr, &framebuffer));
 }
 
-void Framebuffer::createGBuffer(int width, int height, vk::ImageView diffuse, vk::ImageView specular, vk::ImageView normal,
-                   vk::ImageView additional, vk::ImageView depthStencil, vk::RenderPass renderPass, vk::Device device){
+void Framebuffer::createDepth(int width, int height, vk::ImageView depth, vk::RenderPass renderPass, vk::Device device)
+{
+    this->device = device;
+    VkImageView attachments[1];
+
+    // Depth/Stencil attachment is the same for all frame buffers
+    //    attachments[1] = depthStencil.view;
+    attachments[0] = depth;
+
+
+    VkFramebufferCreateInfo frameBufferCreateInfo = {};
+    frameBufferCreateInfo.sType                   = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+    frameBufferCreateInfo.pNext                   = NULL;
+    frameBufferCreateInfo.renderPass              = renderPass;
+    frameBufferCreateInfo.attachmentCount         = 1;
+    frameBufferCreateInfo.pAttachments            = attachments;
+    frameBufferCreateInfo.width                   = width;
+    frameBufferCreateInfo.height                  = height;
+    frameBufferCreateInfo.layers                  = 1;
+
+
+    VK_CHECK_RESULT(vkCreateFramebuffer(device, &frameBufferCreateInfo, nullptr, &framebuffer));
+}
+
+void Framebuffer::createGBuffer(int width, int height, vk::ImageView diffuse, vk::ImageView specular,
+                                vk::ImageView normal, vk::ImageView additional, vk::ImageView depthStencil,
+                                vk::RenderPass renderPass, vk::Device device)
+{
     this->device = device;
     VkImageView attachments[5];
 

@@ -14,10 +14,74 @@ namespace Vulkan
 {
 namespace Lighting
 {
+void DeferredLighting::setupShadowPass()
+{
+    // create shadow Pass
+
+    vk::AttachmentDescription attachment;
+    // Depth attachment
+    attachment.format         = shadowMapFormat;
+    attachment.samples        = vk::SampleCountFlagBits::e1;
+    attachment.loadOp         = vk::AttachmentLoadOp::eClear;
+    attachment.storeOp        = vk::AttachmentStoreOp::eStore;
+    attachment.stencilLoadOp  = vk::AttachmentLoadOp::eClear;
+    attachment.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
+    attachment.initialLayout  = vk::ImageLayout::eUndefined;
+    attachment.finalLayout    = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+
+    vk::AttachmentReference depthReference = {};
+    depthReference.attachment              = 0;
+    depthReference.layout                  = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+
+    vk::SubpassDescription subpassDescription = {};
+    subpassDescription.pipelineBindPoint      = vk::PipelineBindPoint::eGraphics;
+    subpassDescription.colorAttachmentCount   = 0;
+    // subpassDescription.pColorAttachments       = VK_ATTACHMENT_UNUSED;
+    subpassDescription.pDepthStencilAttachment = &depthReference;
+    subpassDescription.inputAttachmentCount    = 0;
+    subpassDescription.pInputAttachments       = nullptr;
+    subpassDescription.preserveAttachmentCount = 0;
+    subpassDescription.pPreserveAttachments    = nullptr;
+    subpassDescription.pResolveAttachments     = nullptr;
+
+    // Subpass dependencies for layout transitions
+    std::array<vk::SubpassDependency, 2> dependencies;
+
+    dependencies[0].srcSubpass    = VK_SUBPASS_EXTERNAL;
+    dependencies[0].dstSubpass    = 0;
+    dependencies[0].srcStageMask  = vk::PipelineStageFlagBits::eBottomOfPipe;
+    dependencies[0].dstStageMask  = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+    dependencies[0].srcAccessMask = vk::AccessFlagBits::eMemoryRead;
+    dependencies[0].dstAccessMask =
+        vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite;
+    dependencies[0].dependencyFlags = vk::DependencyFlagBits::eByRegion;
+
+    dependencies[1].srcSubpass   = 0;
+    dependencies[1].dstSubpass   = VK_SUBPASS_EXTERNAL;
+    dependencies[1].srcStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+    dependencies[1].dstStageMask = vk::PipelineStageFlagBits::eBottomOfPipe;
+    dependencies[1].srcAccessMask =
+        vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite;
+    dependencies[1].dstAccessMask   = vk::AccessFlagBits::eMemoryRead;
+    dependencies[1].dependencyFlags = vk::DependencyFlagBits::eByRegion;
+
+    vk::RenderPassCreateInfo renderPassInfo = {};
+    renderPassInfo.attachmentCount          = 1;  // static_cast<uint32_t>(attachments.size());
+    renderPassInfo.pAttachments             = &attachment;
+    renderPassInfo.subpassCount             = 1;
+    renderPassInfo.pSubpasses               = &subpassDescription;
+    renderPassInfo.dependencyCount          = static_cast<uint32_t>(dependencies.size());
+    renderPassInfo.pDependencies            = dependencies.data();
+
+    base->device.createRenderPass(&renderPassInfo, nullptr, &shadowPass);
+    SAIGA_ASSERT(shadowPass);
+}
+
 DeferredLighting::DeferredLighting()
 {
     // TODO create lgith meshes here
 }
+
 void DeferredLighting::destroy()
 {
     debugLightRenderer.destroy();
@@ -25,10 +89,15 @@ void DeferredLighting::destroy()
     pointLightRenderer.destroy();
     spotLightRenderer.destroy();
     boxLightRenderer.destroy();
+    base->device.destroyRenderPass(shadowPass);
 }
 
-void DeferredLighting::init(Saiga::Vulkan::VulkanBase& vulkanDevice, VkRenderPass renderPass)
+void DeferredLighting::init(Saiga::Vulkan::VulkanBase& vulkanDevice, vk::RenderPass renderPass)
 {
+    this->base = &vulkanDevice;
+
+    setupShadowPass();
+
     const DeferredLightingShaderNames& names = DeferredLightingShaderNames();
     debugLightRenderer.init(vulkanDevice, renderPass, names.debugLightShader, 2);
 
@@ -156,11 +225,17 @@ void DeferredLighting::renderLights(vk::CommandBuffer cmd, Camera* cam)
         for (std::shared_ptr<DirectionalLight>& l : directionalLights)
         {
             directionalLightRenderer.pushLight(cmd, l);
-            directionalLightRenderer.render(cmd, l);
+            directionalLightRenderer.render(cmd);
         }
     }
 }
 
+
+void DeferredLighting::renderDepthMaps(VulkanDeferredRenderingInterface* renderer)
+{
+    // render to depthmaps of all needed lights that have shadows. use renderdepth of renderer to get access to the
+    // sample
+}
 void DeferredLighting::reload()
 {
     debugLightRenderer.reload();
@@ -196,6 +271,16 @@ std::shared_ptr<BoxLight> DeferredLighting::createBoxLight()
     std::shared_ptr<BoxLight> l = std::make_shared<BoxLight>();
     boxLights.push_back(l);
     return l;
+}
+
+void DeferredLighting::enableShadowMapping(std::shared_ptr<DirectionalLight> l)
+{
+    // TODO shadowmap creation here?
+    if (!l->hasShadows())
+    {
+        l->createShadowMap(*base, 100, 100, shadowPass);
+        l->enableShadows();
+    }
 }
 
 void DeferredLighting::removeLight(std::shared_ptr<DirectionalLight> l)

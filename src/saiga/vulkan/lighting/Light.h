@@ -124,12 +124,12 @@ class SAIGA_VULKAN_API Light : public Object3D
     // bool isVolumetric() const { return volumetric; }
 
 
-    // bool hasShadows() const { return castShadows; }
-    // void enableShadows() { castShadows = true; }
-    // void disableShadows() { castShadows = false; }
-    // void setCastShadows(bool s) { castShadows = s; }
+    bool hasShadows() const { return castShadows; }
+    void enableShadows() { castShadows = true; }
+    void disableShadows() { castShadows = false; }
+    void setCastShadows(bool s) { castShadows = s; }
 
-    // bool shouldCalculateShadowMap() { return castShadows && active && !culled; }
+    bool shouldCalculateShadowMap() { return castShadows && active && !culled; }
     bool shouldRender() { return active && !culled; }
 
     // void bindUniformsStencil(MVPShader& shader);
@@ -146,7 +146,7 @@ class SAIGA_VULKAN_API Light : public Object3D
    protected:
     bool visible = true, active = true, selected = false, culled = false;
     // shadow map
-    // bool castShadows = false;
+    bool castShadows = false;
     // bool volumetric  = false;
 };
 

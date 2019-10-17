@@ -11,6 +11,7 @@
 
 #include "saiga/core/camera/camera.h"
 #include "saiga/vulkan/lighting/AttenuatedLight.h"
+#include "saiga/vulkan/lighting/Shadowmap.h"
 
 namespace Saiga
 {
@@ -23,13 +24,13 @@ class SAIGA_VULKAN_API DirectionalLight : public Light
     friend class DeferredLighting;
 
    protected:
-    // std::shared_ptr<CubeShadowmap> shadowmap;
+    std::shared_ptr<SimpleShadowmap> shadowmap;
 
    public:
     // float shadowNearPlane = 0.1f;
     // PerspectiveCamera shadowCamera;
     OrthographicCamera shadowCamera;
-
+    bool shadowMapInitialized = false;
 
     DirectionalLight();
     ~DirectionalLight() {}
@@ -43,7 +44,9 @@ class SAIGA_VULKAN_API DirectionalLight : public Light
     // void setRadius(float value);
 
 
-    // void createShadowMap(int w, int h, ShadowQuality quality = ShadowQuality::LOW);
+    void createShadowMap(VulkanBase& vulkanDevice, int w, int h,
+                         vk::RenderPass shadowPass);  //, ShadowQuality quality = ShadowQuality::LOW);
+    void destroyShadowMap();
 
     // void bindFace(int face);
     // void calculateCamera(int face);
@@ -72,7 +75,7 @@ class SAIGA_VULKAN_API DirectionalLightRenderer : public Pipeline
     /**
      * Render the texture at the given pixel position and size
      */
-    void render(vk::CommandBuffer cmd, std::shared_ptr<DirectionalLight> light);
+    void render(vk::CommandBuffer cmd);
 
 
 

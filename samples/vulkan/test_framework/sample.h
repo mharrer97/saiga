@@ -35,8 +35,10 @@ class VulkanExample : public Saiga::Updating,
 
     void update(float dt) override;
     void transfer(vk::CommandBuffer cmd, Camera* cam) override;
+    void transferDepth(vk::CommandBuffer cmd, Camera* cam) override;
     void transferForward(vk::CommandBuffer cmd, Camera* cam) override;
     void render(vk::CommandBuffer cmd, Camera* cam) override;
+    void renderDepth(vk::CommandBuffer cmd, Camera* cam) override;
     void renderForward(vk::CommandBuffer cmd, Camera* cam) override;
     void renderGUI() override;
 
@@ -61,7 +63,7 @@ class VulkanExample : public Saiga::Updating,
     Saiga::Vulkan::VulkanVertexColoredAsset teapot, plane, sphere, candle;
     Saiga::Vulkan::VulkanLineVertexColoredAsset grid, frustum;
     Saiga::Vulkan::VulkanPointCloudAsset pointCloud;
-    Saiga::Vulkan::UniversalAssetRenderer assetRenderer;
+    Saiga::Vulkan::UniversalShadowAssetRenderer assetRenderer;
     Saiga::Vulkan::UniversalLineAssetRenderer lineAssetRenderer;
     Saiga::Vulkan::UniversalPointCloudRenderer pointCloudRenderer;
     Saiga::Vulkan::UniversalTexturedAssetRenderer texturedAssetRenderer;

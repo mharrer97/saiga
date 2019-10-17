@@ -141,5 +141,33 @@ using UniversalPointCloudRenderer    = UniversalRenderer<DeferredPointCloudRende
 using UniversalLineAssetRenderer     = UniversalRenderer<DeferredLineAssetRenderer, LineAssetRenderer>;
 using UniversalTexturedAssetRenderer = UniversalRenderer<DeferredTexturedAssetRenderer, TexturedAssetRenderer>;
 using UniversalTextureDisplay        = UniversalRenderer<DeferredTextureDisplay, TextureDisplay>;
+
+template <typename Deferred, typename Forward, typename Shadow>
+class SAIGA_VULKAN_API UniversalShadowRenderer
+{
+   public:
+    ~UniversalShadowRenderer() { destroy(); }
+
+    void destroy()
+    {
+        deferred.destroy();
+        forward.destroy();
+        shadow.destroy();
+    }
+
+    void reload()
+    {
+        deferred.reload();
+        forward.reload();
+        shadow.destroy();
+    }
+
+    Deferred deferred;
+    Forward forward;
+    Shadow shadow;
+};
+
+using UniversalShadowAssetRenderer = UniversalShadowRenderer<DeferredAssetRenderer, AssetRenderer, ShadowAssetRenderer>;
+
 }  // namespace Vulkan
 }  // namespace Saiga

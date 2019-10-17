@@ -23,6 +23,20 @@ namespace Lighting
 // light
 DirectionalLight::DirectionalLight() {}
 
+
+void DirectionalLight::createShadowMap(VulkanBase& vulkanDevice, int w, int h,
+                                       vk::RenderPass shadowPass)  //, ShadowQuality quality)
+{
+    shadowMapInitialized = true;
+    shadowmap            = std::make_shared<SimpleShadowmap>(vulkanDevice, w, h, shadowPass);  //, quality);
+}
+
+void DirectionalLight::destroyShadowMap()
+{
+    shadowMapInitialized = false;
+    shadowmap->~SimpleShadowmap();
+}
+
 void DirectionalLight::setView(vec3 pos, vec3 target, vec3 up)
 {
     //    this->setViewMatrix(lookAt(pos,pos + (pos-target),up));
@@ -67,7 +81,7 @@ void DirectionalLightRenderer::destroy()
     uniformBufferFS.destroy();
 }
 
-void DirectionalLightRenderer::render(vk::CommandBuffer cmd, std::shared_ptr<DirectionalLight> light)
+void DirectionalLightRenderer::render(vk::CommandBuffer cmd)
 {
     bindDescriptorSet(cmd, descriptorSet);
     // vk::Viewport vp(position[0], position[1], size[0], size[1]);

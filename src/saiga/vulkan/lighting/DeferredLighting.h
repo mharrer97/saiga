@@ -16,11 +16,12 @@
 #include "saiga/vulkan/lighting/PointLight.h"
 #include "saiga/vulkan/lighting/SpotLight.h"
 
-
 namespace Saiga
 {
 namespace Vulkan
 {
+class VulkanDeferredRenderingInterface;
+
 namespace Lighting
 {
 struct DeferredLightingShaderNames
@@ -36,6 +37,10 @@ struct DeferredLightingShaderNames
 class SAIGA_VULKAN_API DeferredLighting
 {
    private:
+    VulkanBase* base;
+    vk::Format shadowMapFormat = vk::Format::eD16Unorm;
+
+
     DebugLightRenderer debugLightRenderer;
 
     DirectionalLightRenderer directionalLightRenderer;
@@ -50,8 +55,11 @@ class SAIGA_VULKAN_API DeferredLighting
     BoxLightRenderer boxLightRenderer;
     std::vector<std::shared_ptr<BoxLight>> boxLights;
 
+    void setupShadowPass();
 
    public:
+    vk::RenderPass shadowPass;
+
     int totalLights;
     int visibleLights;
 
@@ -67,7 +75,7 @@ class SAIGA_VULKAN_API DeferredLighting
     DeferredLighting& operator=(DeferredLighting& l) = delete;
     void destroy();
 
-    void init(Saiga::Vulkan::VulkanBase& vulkanDevice, VkRenderPass renderPass);
+    void init(Saiga::Vulkan::VulkanBase& vulkanDevice, vk::RenderPass renderPass);
     void createAndUpdateDescriptorSets(Saiga::Vulkan::Memory::ImageMemoryLocation* diffuse,
                                        Saiga::Vulkan::Memory::ImageMemoryLocation* specular,
                                        Saiga::Vulkan::Memory::ImageMemoryLocation* normal,
@@ -78,6 +86,8 @@ class SAIGA_VULKAN_API DeferredLighting
     void cullLights(Camera* cam);
     void renderLights(vk::CommandBuffer cmd, Camera* cam);
 
+    void renderDepthMaps(VulkanDeferredRenderingInterface* renderer);
+
     void reload();
 
     std::shared_ptr<DirectionalLight> createDirectionalLight();
@@ -85,6 +95,7 @@ class SAIGA_VULKAN_API DeferredLighting
     std::shared_ptr<SpotLight> createSpotLight();
     std::shared_ptr<BoxLight> createBoxLight();
 
+    void enableShadowMapping(std::shared_ptr<DirectionalLight> l);
 
     void removeLight(std::shared_ptr<DirectionalLight> l);
     void removeLight(std::shared_ptr<PointLight> l);

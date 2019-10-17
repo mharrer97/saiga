@@ -37,8 +37,11 @@ class SAIGA_VULKAN_API VulkanDeferredRenderingInterface : public RenderingInterf
     virtual ~VulkanDeferredRenderingInterface() {}
 
     virtual void transfer(vk::CommandBuffer cmd, Camera* cam) {}
+    virtual void transferDepth(vk::CommandBuffer cmd, Camera* cam) {}
     virtual void transferForward(vk::CommandBuffer cmd, Camera* cam) {}
     virtual void render(vk::CommandBuffer cmd, Camera* cam) {}
+    // render depth maps for shadow lights
+    virtual void renderDepth(vk::CommandBuffer cmd, Camera* cam) {}
     virtual void renderForward(vk::CommandBuffer cmd, Camera* cam) {}
     virtual void renderGUI() {}
 };
