@@ -86,7 +86,7 @@ class SAIGA_VULKAN_API DeferredLighting
     void cullLights(Camera* cam);
     void renderLights(vk::CommandBuffer cmd, Camera* cam);
 
-    void renderDepthMaps(VulkanDeferredRenderingInterface* renderer);
+    void renderDepthMaps(vk::CommandBuffer cmd, VulkanDeferredRenderingInterface* renderer);
 
     void reload();
 

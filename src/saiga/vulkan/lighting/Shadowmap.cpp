@@ -35,16 +35,18 @@ void ShadowmapBase::unbindFramebuffer()
     depthBuffer.unbind();
 }
 */
+SimpleShadowmap::SimpleShadowmap() : shadowBuffer() {}
 
-SimpleShadowmap::SimpleShadowmap(VulkanBase& base, int w, int h, vk::RenderPass shadowPass)
-    : shadowBuffer()  //, ShadowQuality quality)
+void SimpleShadowmap::init(VulkanBase& base, int w, int h, vk::RenderPass shadowPass)
+//, ShadowQuality quality)
 {
     this->w = w;
     this->h = h;
     // depthBuffer.create();
     // depthBuffer.unbind();
 
-    // shadowBuffer->destroy();
+    shadowBuffer = std::make_shared<ShadowBuffer>();
+    shadowBuffer->destroy();
     shadowBuffer->init(base, w, h);
 
     frameBuffer.destroy();

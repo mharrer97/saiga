@@ -24,13 +24,12 @@ class SAIGA_VULKAN_API DirectionalLight : public Light
     friend class DeferredLighting;
 
    protected:
-    std::shared_ptr<SimpleShadowmap> shadowmap;
-
    public:
     // float shadowNearPlane = 0.1f;
     // PerspectiveCamera shadowCamera;
     OrthographicCamera shadowCamera;
     bool shadowMapInitialized = false;
+    std::shared_ptr<SimpleShadowmap> shadowmap;
 
     DirectionalLight();
     ~DirectionalLight() {}

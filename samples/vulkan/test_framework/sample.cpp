@@ -167,7 +167,8 @@ void VulkanExample::init(Saiga::Vulkan::VulkanBase& base)
     // directionalLight->setView(vec3(1.f, 1.f, 1.f), vec3(0.f, 0.f, 0.f), vec3(0.f, 1.f, 0.f));
     directionalLight->setDirection(vec3(-1.f, -1.f, -1.f));
     directionalLight->calculateModel();
-
+    // TODO adapt shadopmap creation handling
+    renderer.lighting.enableShadowMapping(directionalLight);
 
     candleLight = renderer.lighting.createSpotLight();
     candleLight->setColorDiffuse(Saiga::Vulkan::Lighting::LightColorPresets::Candle);
@@ -270,8 +271,7 @@ void VulkanExample::update(float dt)
     candleLight->calculateModel();
 
 
-    // TODO adapt shadopmap creation handling
-    renderer.lighting.enableShadowMapping(directionalLight);
+
     directionalLight->setIntensity(dirLightIntensity);
 }
 

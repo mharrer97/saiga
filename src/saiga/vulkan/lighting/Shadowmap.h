@@ -11,6 +11,7 @@
 //#include "saiga/opengl/framebuffer.h"
 //#include "saiga/opengl/texture/arrayTexture.h"
 #include "saiga/core/util/assert.h"
+#include "saiga/vulkan/buffer/DepthBuffer.h"
 #include "saiga/vulkan/buffer/Framebuffer.h"
 #include "saiga/vulkan/buffer/ShadowBuffer.h"
 
@@ -32,25 +33,26 @@ class SAIGA_VULKAN_API ShadowmapBase
 {
    protected:
     int w, h;
-    Framebuffer frameBuffer;
 
    public:
     ivec2 getSize() { return ivec2(w, h); }
     // void bindFramebuffer();
     // void unbindFramebuffer();
+    Framebuffer frameBuffer;
 };
 
 /**
  * Simple shadow map with one 2D depth texture.
  * Used by box- and spotlight
  */
-class SAIGA_OPENGL_API SimpleShadowmap : public ShadowmapBase
+class SAIGA_VULKAN_API SimpleShadowmap : public ShadowmapBase
 {
     std::shared_ptr<ShadowBuffer> shadowBuffer;
 
    public:
-    SimpleShadowmap(VulkanBase& base, int w, int h,
-                    vk::RenderPass shadowPass);  //, ShadowQuality quality = ShadowQuality::LOW);
+    SimpleShadowmap();
+    void init(VulkanBase& base, int w, int h,
+              vk::RenderPass shadowPass);  //, ShadowQuality quality = ShadowQuality::LOW);
     ~SimpleShadowmap() { shadowBuffer->destroy(); }
     std::shared_ptr<ShadowBuffer> getShadowBuffer() { return shadowBuffer; }
 };

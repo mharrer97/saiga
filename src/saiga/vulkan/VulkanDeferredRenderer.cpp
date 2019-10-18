@@ -35,6 +35,16 @@ VulkanDeferredRenderer::VulkanDeferredRenderer(VulkanWindow& window, VulkanParam
     lighting.init(base(), lightingPass);
 
 
+    /*directionalLight = lighting.createDirectionalLight();
+    directionalLight->setColorDiffuse(Saiga::Vulkan::Lighting::LightColorPresets::MoonlightBlue);
+    directionalLight->setColorSpecular(Saiga::Vulkan::Lighting::LightColorPresets::MoonlightBlue);
+    // directionalLight->setView(vec3(1.f, 1.f, 1.f), vec3(0.f, 0.f, 0.f), vec3(0.f, 1.f, 0.f));
+    directionalLight->setDirection(vec3(-1.f, -1.f, -1.f));
+    directionalLight->calculateModel();
+
+    lighting.enableShadowMapping(directionalLight);*/
+
+
     // create semaphore for synchronization (offscreen rendering nad gbuffer usage)
     vk::SemaphoreCreateInfo semCreateInfo = vks::initializers::semaphoreCreateInfo();
     base().device.createSemaphore(&semCreateInfo, nullptr, &geometrySemaphore);
@@ -123,6 +133,10 @@ void VulkanDeferredRenderer::createBuffers(int numImages, int w, int h)
     renderCommandPool.freeCommandBuffers(forwardCmdBuffers);
     forwardCmdBuffers = renderCommandPool.allocateCommandBuffers(numImages, vk::CommandBufferLevel::ePrimary);
     std::cout << "  Forward Command Buffer Allocation -- FINISHED" << std::endl;
+
+    renderCommandPool.freeCommandBuffers(shadowCmdBuffers);
+    shadowCmdBuffers = renderCommandPool.allocateCommandBuffers(numImages, vk::CommandBufferLevel::ePrimary);
+    std::cout << "  ShadowCommand Buffer Allocation -- FINISHED" << std::endl;
 
     if (imGui) imGui->initResources(base(), forwardPass);
 
@@ -629,6 +643,7 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage, Camera* c
     setupGeometryCommandBuffer(currentImage, cam);
     setupDrawCommandBuffer(currentImage, cam);
     setupForwardCommandBuffer(currentImage, cam);
+    lighting.renderDepthMaps(shadowCmdBuffers[currentImage], renderingInterface);
 
     // TODO
     // think about synchronization ...

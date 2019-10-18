@@ -8,6 +8,8 @@
 
 #include "saiga/vulkan/lighting/DeferredLighting.h"
 
+#include "saiga/vulkan/VulkanDeferredRenderer.h"
+
 namespace Saiga
 {
 namespace Vulkan
@@ -231,10 +233,74 @@ void DeferredLighting::renderLights(vk::CommandBuffer cmd, Camera* cam)
 }
 
 
-void DeferredLighting::renderDepthMaps(VulkanDeferredRenderingInterface* renderer)
+void DeferredLighting::renderDepthMaps(vk::CommandBuffer cmd, VulkanDeferredRenderingInterface* renderer)
 {
     // render to depthmaps of all needed lights that have shadows. use renderdepth of renderer to get access to the
     // sample
+
+    // setup renderpass for each light with shadows and render to depthmap of that light
+
+    for (std::shared_ptr<DirectionalLight> l : directionalLights)
+    {
+        if (l->shadowMapInitialized && l->shouldCalculateShadowMap())
+        {
+            // record forwardRenderPass CmdBuffers
+            VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
+
+            // vec4 clearColor = vec4(57, 57, 57, 255) / 255.0f;
+
+            vk::ClearValue clearValue;
+            // clearValues[0].color.setFloat32({clearColor[0], clearColor[1], clearColor[2], clearColor[3]});
+            clearValue.depthStencil.setDepth(1.0f);
+            clearValue.depthStencil.setStencil(0);
+
+            vk::RenderPassBeginInfo renderPassBeginInfo  = vks::initializers::renderPassBeginInfo();
+            renderPassBeginInfo.renderPass               = shadowPass;
+            renderPassBeginInfo.renderArea.offset.x      = 0;
+            renderPassBeginInfo.renderArea.offset.y      = 0;
+            ivec2 shadowmapExtent                        = l->shadowmap->getSize();
+            renderPassBeginInfo.renderArea.extent.width  = shadowmapExtent[0];
+            renderPassBeginInfo.renderArea.extent.height = shadowmapExtent[1];
+            renderPassBeginInfo.clearValueCount          = 1;
+            renderPassBeginInfo.pClearValues             = &clearValue;
+
+            // Set target frame buffer
+            renderPassBeginInfo.framebuffer = l->shadowmap->frameBuffer.framebuffer;
+
+            cmd.begin(cmdBufInfo);
+            // timings.resetFrame(fwdCmd);
+            // timings.enterSection("TRANSFER", cmd);
+
+            renderer->transferDepth(cmd, &l->shadowCamera);
+
+            // timings.leaveSection("TRANSFER", fwdCmd);
+
+            cmd.beginRenderPass(&renderPassBeginInfo, vk::SubpassContents::eInline);
+
+
+            vk::Viewport viewport = vks::initializers::viewport(shadowmapExtent[0], shadowmapExtent[1], 0.0f, 1.0f);
+            cmd.setViewport(0, 1, &viewport);
+
+            vk::Rect2D scissor = vks::initializers::rect2D(shadowmapExtent[0], shadowmapExtent[1], 0, 0);
+            cmd.setScissor(0, 1, &scissor);
+
+            {
+                // Actual rendering
+                // timings.enterSection("MAIN", fwdCmd);
+                renderer->renderDepth(cmd, &l->shadowCamera);
+                // dont render forward if in gbuffer debug mode
+                // timings.leaveSection("MAIN", fwdCmd);
+                // add imgui rendering here -- end of forward rendering
+                // timings.enterSection("IMGUI", fwdCmd);
+                // if (imGui && renderImgui) imGui->render(fwdCmd, currentImage);
+                // timings.leaveSection("IMGUI", fwdCmd);
+            }
+
+            cmd.endRenderPass();
+            cmd.end();
+            SAIGA_ASSERT(cmd);
+        }
+    }
 }
 void DeferredLighting::reload()
 {

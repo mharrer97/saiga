@@ -28,7 +28,8 @@ void DirectionalLight::createShadowMap(VulkanBase& vulkanDevice, int w, int h,
                                        vk::RenderPass shadowPass)  //, ShadowQuality quality)
 {
     shadowMapInitialized = true;
-    shadowmap            = std::make_shared<SimpleShadowmap>(vulkanDevice, w, h, shadowPass);  //, quality);
+    shadowmap            = std::make_shared<SimpleShadowmap>();  //, quality);
+    shadowmap->init(vulkanDevice, w, h, shadowPass);
 }
 
 void DirectionalLight::destroyShadowMap()

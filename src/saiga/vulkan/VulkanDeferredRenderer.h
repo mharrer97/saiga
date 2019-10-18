@@ -89,10 +89,13 @@ class SAIGA_VULKAN_API VulkanDeferredRenderer : public VulkanRenderer
     void setupForwardCommandBuffer(int currentImage, Camera* cam);
 
    protected:
+    // std::shared_ptr<Lighting::DirectionalLight> directionalLight;
+
     DepthBuffer depthBuffer;
     std::vector<vk::CommandBuffer> drawCmdBuffers;
     std::vector<vk::CommandBuffer> geometryCmdBuffers;
     std::vector<vk::CommandBuffer> forwardCmdBuffers;
+    std::vector<vk::CommandBuffer> shadowCmdBuffers;
 
     vk::Semaphore geometrySemaphore;
     vk::Semaphore deferredSemaphore;
