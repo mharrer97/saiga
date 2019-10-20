@@ -52,10 +52,11 @@ class VulkanExample : public Saiga::Updating,
     float timingLoop  = 0.f;  // used for rotating camera and light etc;
     float timingLoop2 = 0.f;  // used for animating candle etc;
 
-    float lightRadius           = 10.f;
-    float spotLightOpeningAngle = 90.f;
-    bool lightRotate            = true;
-    float dirLightIntensity     = 1.f;
+    float lightRadius              = 10.f;
+    float spotLightOpeningAngle    = 90.f;
+    bool lightRotate               = true;
+    float dirLightIntensity        = 1.f;
+    float dirLightAmbientIntensity = 0.2f;
 
     std::shared_ptr<Saiga::Vulkan::Texture2D> texture;
 

@@ -164,8 +164,11 @@ void VulkanExample::init(Saiga::Vulkan::VulkanBase& base)
     directionalLight = renderer.lighting.createDirectionalLight();
     directionalLight->setColorDiffuse(Saiga::Vulkan::Lighting::LightColorPresets::MoonlightBlue);
     directionalLight->setColorSpecular(Saiga::Vulkan::Lighting::LightColorPresets::MoonlightBlue);
-    // directionalLight->setView(vec3(1.f, 1.f, 1.f), vec3(0.f, 0.f, 0.f), vec3(0.f, 1.f, 0.f));
+
+    directionalLight->setView(vec3(10.f, 10.f, 10.f), vec3(0.f, 0.f, 0.f), vec3(0.f, 1.f, 0.f));
     directionalLight->setDirection(vec3(-1.f, -1.f, -1.f));
+    boxLight->setScale(vec3(25.f, 25.f, 25.f));
+
     directionalLight->calculateModel();
     // TODO adapt shadopmap creation handling
     renderer.lighting.enableShadowMapping(directionalLight);
@@ -273,6 +276,8 @@ void VulkanExample::update(float dt)
 
 
     directionalLight->setIntensity(dirLightIntensity);
+    directionalLight->setAmbientIntensity(dirLightAmbientIntensity);
+    directionalLight->fitShadowToCamera(&camera);
 }
 
 void VulkanExample::transfer(vk::CommandBuffer cmd, Camera* cam)
@@ -455,6 +460,7 @@ void VulkanExample::renderGUI()
     ImGui::DragFloat("Light Radius", &lightRadius, 0.25f, 0.f, 20.f);
     ImGui::DragFloat("Spot Opening Angle", &spotLightOpeningAngle, 0.25f, 0.f, 360.f);
     ImGui::DragFloat("Directional Light Intensity", &dirLightIntensity, 0.0125f, 0.f, 5.f);
+    ImGui::DragFloat("Directional Ambient Intensity", &dirLightAmbientIntensity, 0.00125f, 0.f, 2.f);
 
     ImGui::End();
     //    return;

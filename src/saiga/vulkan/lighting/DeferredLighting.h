@@ -26,12 +26,13 @@ namespace Lighting
 {
 struct DeferredLightingShaderNames
 {
-    std::string attenuatedLightShader  = "vulkan/lighting/attenuatedLight.frag";
-    std::string pointLightShader       = "vulkan/lighting/pointLight.frag";
-    std::string spotLightShader        = "vulkan/lighting/spotLight.frag";
-    std::string boxLightShader         = "vulkan/lighting/boxLight.frag";
-    std::string directionalLightShader = "vulkan/lighting/directionalLight.frag";
-    std::string debugLightShader       = "vulkan/lighting/debugLight.frag";
+    std::string attenuatedLightShader        = "vulkan/lighting/attenuatedLight.frag";
+    std::string pointLightShader             = "vulkan/lighting/pointLight.frag";
+    std::string spotLightShader              = "vulkan/lighting/spotLight.frag";
+    std::string boxLightShader               = "vulkan/lighting/boxLight.frag";
+    std::string directionalLightShader       = "vulkan/lighting/directionalLight.frag";
+    std::string debugLightShader             = "vulkan/lighting/debugLight.frag";
+    std::string directionalShadowLightShader = "vulkan/lighting/directionalShadowLight.frag";
 };
 
 class SAIGA_VULKAN_API DeferredLighting
@@ -44,6 +45,7 @@ class SAIGA_VULKAN_API DeferredLighting
     DebugLightRenderer debugLightRenderer;
 
     DirectionalLightRenderer directionalLightRenderer;
+    DirectionalShadowLightRenderer directionalShadowLightRenderer;
     std::vector<std::shared_ptr<DirectionalLight>> directionalLights;
 
     PointLightRenderer pointLightRenderer;
@@ -89,6 +91,20 @@ class SAIGA_VULKAN_API DeferredLighting
     void renderDepthMaps(vk::CommandBuffer cmd, VulkanDeferredRenderingInterface* renderer);
 
     void reload();
+
+    // used for setting each render flag for each light type
+    void setRenderPointLights(bool rP) { renderPointLights = rP; }
+    void setRenderSpotLights(bool rS) { renderSpotLights = rS; }
+    void setRenderBoxLights(bool rB) { renderBoxLights = rB; }
+    void setRenderDirectionalLights(bool rD) { renderDirectionalLights = rD; }
+
+    // setRenderLights does not effect directional lights
+    void setRenderLights(bool rL)
+    {
+        renderPointLights = rL;
+        renderSpotLights  = rL;
+        renderBoxLights   = rL;
+    }
 
     std::shared_ptr<DirectionalLight> createDirectionalLight();
     std::shared_ptr<PointLight> createPointLight();

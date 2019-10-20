@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include "saiga/vulkan/lighting/BoxLight.h"
 #include "saiga/vulkan/lighting/DeferredLighting.h"
+#include "saiga/vulkan/lighting/DirectionalLight.h"
 #include "saiga/vulkan/lighting/PointLight.h"
 #include "saiga/vulkan/lighting/SpotLight.h"

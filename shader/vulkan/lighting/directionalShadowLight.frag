@@ -18,7 +18,9 @@ layout(binding = 13) uniform sampler2D normalTexture;
 layout(binding = 14) uniform sampler2D additionalTexture;
 layout(binding = 15) uniform sampler2D depthTexture;
 
-layout (binding = 16) uniform UBO2 
+layout(binding = 16) uniform sampler2D shadowmap;
+
+layout (binding = 17) uniform UBO2 
 {
 	mat4 proj;
 	mat4 view;
@@ -27,8 +29,10 @@ layout (binding = 16) uniform UBO2
 
 layout (push_constant) uniform PushConstants {
 	mat4 model;
+	mat4 depthBiasMV;
 	vec4 lightSpecularCol;
 	vec4 lightDiffuseCol;
+	vec4 lightDirection;
 	float ambientIntensity;
 } pushConstants;
 
@@ -58,7 +62,7 @@ void main()
 
 	vec4 P = vec4(reconstructPosition(depth, tc), 1.f);
 	vec4 N = vec4(normalize(texture(normalTexture, tc).rgb), 1.f);
-	vec3 L = normalize(mat3(ubo.view) * normalize(vec3(pushConstants.model[2])));//viewLightPos.xyz - P.xyz;
+	vec3 L = -normalize(mat3(ubo.view) * pushConstants.lightDirection.xyz);//normalize(vec3(pushConstants.model[2])));//viewLightPos.xyz - P.xyz;
 	vec3 R = reflect(normalize(L), N.xyz);
 	vec3 V = normalize(P.xyz);
 	
@@ -76,8 +80,16 @@ void main()
 	if(additional.w > 0.99f) {
 		outColor = vec4(diffuseColor, 1.f);
 	}
-
-			
+	
+	vec4 vLight = pushConstants.depthBiasMV * P;
+    vLight = vLight / vLight.w;
+    bool fragmentInShadowMap = false;
+    if(vLight.x>0 && vLight.x<1 && vLight.y>0 && vLight.y<1&& vLight.z>0 && vLight.z<1)
+        fragmentInShadowMap = true;
+    float shadowMapDepth = texture(shadowmap, vLight.xy).r;
+    if( (shadowMapDepth < vLight.z && fragmentInShadowMap) ) outColor = vec4(ambient * diffuseColor, 1.f);
+        
+        //outColor = vec4(vec3(shadowMapDepth),1.f);
 	if(ubo.debug) {
 		vec2 tc2 = inData.tc * 2.f;
 		if (inData.tc.x < 0.5 && inData.tc.y >= 0.5){ //linker unterer bereich der anzeige

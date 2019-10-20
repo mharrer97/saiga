@@ -48,6 +48,9 @@ VulkanDeferredRenderer::VulkanDeferredRenderer(VulkanWindow& window, VulkanParam
     // create semaphore for synchronization (offscreen rendering nad gbuffer usage)
     vk::SemaphoreCreateInfo semCreateInfo = vks::initializers::semaphoreCreateInfo();
     base().device.createSemaphore(&semCreateInfo, nullptr, &geometrySemaphore);
+    // create Semaphore to signal, the shadowpass has finished completely
+    vk::SemaphoreCreateInfo shadowSemCreateInfo = vks::initializers::semaphoreCreateInfo();
+    base().device.createSemaphore(&shadowSemCreateInfo, nullptr, &shadowSemaphore);
     // create Semaphore to signal, the deferred pass has finished completely
     vk::SemaphoreCreateInfo deferredSemCreateInfo = vks::initializers::semaphoreCreateInfo();
     base().device.createSemaphore(&deferredSemCreateInfo, nullptr, &deferredSemaphore);
@@ -62,6 +65,7 @@ VulkanDeferredRenderer::~VulkanDeferredRenderer()
     std::cout << "Destroying VulkanDeferredRenderer" << std::endl;
 
     base().device.destroySemaphore(geometrySemaphore);
+    base().device.destroySemaphore(shadowSemaphore);
     base().device.destroySemaphore(deferredSemaphore);
     lighting.destroy();
     base().device.destroyRenderPass(renderPass);
@@ -536,7 +540,8 @@ void VulkanDeferredRenderer::setupDrawCommandBuffer(int currentImage, Camera* ca
     vk::Rect2D scissor = vks::initializers::rect2D(surfaceWidth, SurfaceHeight, 0, 0);
     drawCmdBuffers[currentImage].setScissor(0, 1, &scissor);
 
-    if (renderLights) lighting.renderLights(drawCmdBuffers[currentImage], cam);
+    lighting.setRenderLights(renderLights);
+    lighting.renderLights(drawCmdBuffers[currentImage], cam);
 
     drawCmdBuffers[currentImage].endRenderPass();
 
@@ -669,6 +674,23 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage, Camera* c
 
 
 
+    vk::PipelineStageFlags shadowSubmitPipelineStages = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+
+    vk::SubmitInfo shadowSubmitInfo;
+    //    submitInfo = vks::initializers::submitInfo();
+    shadowSubmitInfo.pWaitDstStageMask    = &shadowSubmitPipelineStages;
+    shadowSubmitInfo.waitSemaphoreCount   = 1;
+    shadowSubmitInfo.pWaitSemaphores      = &geometrySemaphore;  // wait for finished geometry pass
+    shadowSubmitInfo.signalSemaphoreCount = 1;
+    shadowSubmitInfo.pSignalSemaphores    = &shadowSemaphore;
+
+    shadowSubmitInfo.commandBufferCount = 1;
+    shadowSubmitInfo.pCommandBuffers    = &shadowCmdBuffers[currentImage];  // use correct cmd buffer
+    //    VK_CHECK_RESULT(vkQueueSubmit(graphicsQueue, 1, &submitInfo, sync.frameFence));
+    base().mainQueue.submit(shadowSubmitInfo, nullptr);
+
+
+
     vk::PipelineStageFlags submitPipelineStages =
         vk::PipelineStageFlagBits::eColorAttachmentOutput;  // TODO not right yet
 
@@ -678,7 +700,7 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage, Camera* c
     //    submitInfo = vks::initializers::submitInfo();
     submitInfo.pWaitDstStageMask    = &submitPipelineStages;
     submitInfo.waitSemaphoreCount   = 1;
-    submitInfo.pWaitSemaphores      = &geometrySemaphore;  // wait for finished geometry pass
+    submitInfo.pWaitSemaphores      = &shadowSemaphore;  // wait for finished shadow pass
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores    = &deferredSemaphore;
 

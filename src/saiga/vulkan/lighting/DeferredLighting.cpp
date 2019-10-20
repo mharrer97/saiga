@@ -29,7 +29,7 @@ void DeferredLighting::setupShadowPass()
     attachment.stencilLoadOp  = vk::AttachmentLoadOp::eClear;
     attachment.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
     attachment.initialLayout  = vk::ImageLayout::eUndefined;
-    attachment.finalLayout    = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+    attachment.finalLayout    = vk::ImageLayout::eShaderReadOnlyOptimal;
 
     vk::AttachmentReference depthReference = {};
     depthReference.attachment              = 0;
@@ -88,6 +88,7 @@ void DeferredLighting::destroy()
 {
     debugLightRenderer.destroy();
     directionalLightRenderer.destroy();
+    directionalShadowLightRenderer.destroy();
     pointLightRenderer.destroy();
     spotLightRenderer.destroy();
     boxLightRenderer.destroy();
@@ -107,6 +108,8 @@ void DeferredLighting::init(Saiga::Vulkan::VulkanBase& vulkanDevice, vk::RenderP
     pointLightRenderer.init(vulkanDevice, renderPass, names.pointLightShader);
     spotLightRenderer.init(vulkanDevice, renderPass, names.spotLightShader);
     boxLightRenderer.init(vulkanDevice, renderPass, names.boxLightShader);
+
+    directionalShadowLightRenderer.init(vulkanDevice, renderPass, names.directionalShadowLightShader);
 }
 
 void DeferredLighting::createAndUpdateDescriptorSets(Memory::ImageMemoryLocation* diffuse,
@@ -120,6 +123,8 @@ void DeferredLighting::createAndUpdateDescriptorSets(Memory::ImageMemoryLocation
     pointLightRenderer.createAndUpdateDescriptorSet(diffuse, specular, normal, additional, depth);
     spotLightRenderer.createAndUpdateDescriptorSet(diffuse, specular, normal, additional, depth);
     boxLightRenderer.createAndUpdateDescriptorSet(diffuse, specular, normal, additional, depth);
+
+    directionalShadowLightRenderer.updateImageMemoryLocations(diffuse, specular, normal, additional, depth);
 }
 void DeferredLighting::updateUniformBuffers(vk::CommandBuffer cmd, mat4 proj, mat4 view, bool debugIn)
 {
@@ -130,6 +135,8 @@ void DeferredLighting::updateUniformBuffers(vk::CommandBuffer cmd, mat4 proj, ma
     pointLightRenderer.updateUniformBuffers(cmd, proj, view, debugIn);
     spotLightRenderer.updateUniformBuffers(cmd, proj, view, debugIn);
     boxLightRenderer.updateUniformBuffers(cmd, proj, view, debugIn);
+
+    directionalShadowLightRenderer.updateUniformBuffers(cmd, proj, view, debugIn);
 }
 
 void DeferredLighting::cullLights(Camera* cam)  // TODO broken???
@@ -160,74 +167,111 @@ void DeferredLighting::renderLights(vk::CommandBuffer cmd, Camera* cam)
     {
         if (debugLightRenderer.bind(cmd))
         {
-            for (std::shared_ptr<PointLight>& l : pointLights)
+            if (renderPointLights)
             {
-                if (!l->culled)
+                for (std::shared_ptr<PointLight>& l : pointLights)
                 {
-                    debugLightRenderer.pushLight(cmd, l);
-                    debugLightRenderer.render(cmd, l);
+                    if (!l->culled)
+                    {
+                        debugLightRenderer.pushLight(cmd, l);
+                        debugLightRenderer.render(cmd, l);
+                    }
                 }
             }
-            for (std::shared_ptr<SpotLight>& l : spotLights)
+            if (renderSpotLights)
             {
-                if (!l->culled)
+                for (std::shared_ptr<SpotLight>& l : spotLights)
                 {
-                    debugLightRenderer.pushLight(cmd, l);
-                    debugLightRenderer.render(cmd, l);
+                    if (!l->culled)
+                    {
+                        debugLightRenderer.pushLight(cmd, l);
+                        debugLightRenderer.render(cmd, l);
+                    }
                 }
             }
-            for (std::shared_ptr<BoxLight>& l : boxLights)
+            if (renderBoxLights)
             {
-                if (!l->culled)
+                for (std::shared_ptr<BoxLight>& l : boxLights)
                 {
-                    debugLightRenderer.pushLight(cmd, l);
-                    debugLightRenderer.render(cmd, l);
+                    if (!l->culled)
+                    {
+                        debugLightRenderer.pushLight(cmd, l);
+                        debugLightRenderer.render(cmd, l);
+                    }
                 }
             }
         }
     }
     else
     {
-        if (pointLightRenderer.bind(cmd))
+        if (renderPointLights)
         {
-            for (std::shared_ptr<PointLight>& l : pointLights)
+            if (pointLightRenderer.bind(cmd))
             {
-                if (!l->culled)
+                for (std::shared_ptr<PointLight>& l : pointLights)
                 {
-                    pointLightRenderer.pushLight(cmd, l);
-                    pointLightRenderer.render(cmd, l);
+                    if (!l->culled)
+                    {
+                        pointLightRenderer.pushLight(cmd, l);
+                        pointLightRenderer.render(cmd, l);
+                    }
                 }
             }
         }
-        if (spotLightRenderer.bind(cmd))
+        if (renderSpotLights)
         {
-            for (std::shared_ptr<SpotLight>& l : spotLights)
+            if (spotLightRenderer.bind(cmd))
             {
-                if (!l->culled)
+                for (std::shared_ptr<SpotLight>& l : spotLights)
                 {
-                    spotLightRenderer.pushLight(cmd, l);
-                    spotLightRenderer.render(cmd, l);
+                    if (!l->culled)
+                    {
+                        spotLightRenderer.pushLight(cmd, l);
+                        spotLightRenderer.render(cmd, l);
+                    }
                 }
             }
         }
-        if (boxLightRenderer.bind(cmd))
+        if (renderBoxLights)
         {
-            for (std::shared_ptr<BoxLight>& l : boxLights)
+            if (boxLightRenderer.bind(cmd))
             {
-                if (!l->culled)
+                for (std::shared_ptr<BoxLight>& l : boxLights)
                 {
-                    boxLightRenderer.pushLight(cmd, l, cam);
-                    boxLightRenderer.render(cmd, l);
+                    if (!l->culled)
+                    {
+                        boxLightRenderer.pushLight(cmd, l, cam);
+                        boxLightRenderer.render(cmd, l);
+                    }
                 }
             }
         }
     }
-    if (directionalLightRenderer.bind(cmd))
+    if (renderDirectionalLights)
     {
-        for (std::shared_ptr<DirectionalLight>& l : directionalLights)
+        if (directionalLightRenderer.bind(cmd))
         {
-            directionalLightRenderer.pushLight(cmd, l);
-            directionalLightRenderer.render(cmd);
+            for (std::shared_ptr<DirectionalLight>& l : directionalLights)
+            {
+                if (!l->shouldCalculateShadowMap())
+                {
+                    directionalLightRenderer.pushLight(cmd, l);
+                    directionalLightRenderer.render(cmd);
+                }
+            }
+        }
+        if (directionalShadowLightRenderer.bind(cmd))
+        {
+            for (std::shared_ptr<DirectionalLight>& l : directionalLights)
+            {
+                if (l->shouldCalculateShadowMap())
+                {
+                    directionalShadowLightRenderer.createAndUpdateDescriptorSetShadow(
+                        l->shadowmap->getShadowBuffer()->location);
+                    directionalShadowLightRenderer.pushLight(cmd, l, cam);
+                    directionalShadowLightRenderer.render(cmd);
+                }
+            }
         }
     }
 }
@@ -309,6 +353,8 @@ void DeferredLighting::reload()
     spotLightRenderer.reload();
     pointLightRenderer.reload();
     boxLightRenderer.reload();
+
+    directionalShadowLightRenderer.reload();
 }
 
 std::shared_ptr<DirectionalLight> DeferredLighting::createDirectionalLight()
