@@ -165,13 +165,14 @@ void VulkanExample::init(Saiga::Vulkan::VulkanBase& base)
     directionalLight->setColorDiffuse(Saiga::Vulkan::Lighting::LightColorPresets::MoonlightBlue);
     directionalLight->setColorSpecular(Saiga::Vulkan::Lighting::LightColorPresets::MoonlightBlue);
 
-    directionalLight->setView(vec3(10.f, 10.f, 10.f), vec3(0.f, 0.f, 0.f), vec3(0.f, 1.f, 0.f));
-    directionalLight->setDirection(vec3(-1.f, -1.f, -1.f));
-    boxLight->setScale(vec3(25.f, 25.f, 25.f));
+    directionalLight->setView(vec3(15.f, 15.f, 15.f), vec3(0.f, 0.f, 0.f), vec3(0.f, 1.f, 0.f));
+    // directionalLight->setDirection(vec3(-1.f, -1.f, -1.f));
+    directionalLight->setScale(vec3(7.5f, 7.5f, 25.f));
 
     directionalLight->calculateModel();
     // TODO adapt shadopmap creation handling
     renderer.lighting.enableShadowMapping(directionalLight);
+    // directionalLight->calculateCamera();
 
     candleLight = renderer.lighting.createSpotLight();
     candleLight->setColorDiffuse(Saiga::Vulkan::Lighting::LightColorPresets::Candle);
@@ -277,7 +278,7 @@ void VulkanExample::update(float dt)
 
     directionalLight->setIntensity(dirLightIntensity);
     directionalLight->setAmbientIntensity(dirLightAmbientIntensity);
-    directionalLight->fitShadowToCamera(&camera);
+    // directionalLight->fitShadowToCamera(&camera);
 }
 
 void VulkanExample::transfer(vk::CommandBuffer cmd, Camera* cam)

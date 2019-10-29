@@ -284,19 +284,28 @@ void DeferredLighting::renderDepthMaps(vk::CommandBuffer cmd, VulkanDeferredRend
 
     // setup renderpass for each light with shadows and render to depthmap of that light
 
+    // record forwardRenderPass CmdBuffers
+    VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
+
+    // vec4 clearColor = vec4(57, 57, 57, 255) / 255.0f;
+
+    vk::ClearValue clearValue;
+    // clearValues[0].color.setFloat32({clearColor[0], clearColor[1], clearColor[2], clearColor[3]});
+    clearValue.depthStencil.setDepth(1.0f);
+    clearValue.depthStencil.setStencil(0);
+
+    cmd.begin(cmdBufInfo);
+    // timings.resetFrame(fwdCmd);
+    // timings.enterSection("TRANSFER", cmd);
+
+
     for (std::shared_ptr<DirectionalLight> l : directionalLights)
     {
         if (l->shadowMapInitialized && l->shouldCalculateShadowMap())
         {
-            // record forwardRenderPass CmdBuffers
-            VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
+            l->calculateCamera();
+            l->shadowCamera.recalculatePlanes();
 
-            // vec4 clearColor = vec4(57, 57, 57, 255) / 255.0f;
-
-            vk::ClearValue clearValue;
-            // clearValues[0].color.setFloat32({clearColor[0], clearColor[1], clearColor[2], clearColor[3]});
-            clearValue.depthStencil.setDepth(1.0f);
-            clearValue.depthStencil.setStencil(0);
 
             vk::RenderPassBeginInfo renderPassBeginInfo  = vks::initializers::renderPassBeginInfo();
             renderPassBeginInfo.renderPass               = shadowPass;
@@ -311,9 +320,6 @@ void DeferredLighting::renderDepthMaps(vk::CommandBuffer cmd, VulkanDeferredRend
             // Set target frame buffer
             renderPassBeginInfo.framebuffer = l->shadowmap->frameBuffer.framebuffer;
 
-            cmd.begin(cmdBufInfo);
-            // timings.resetFrame(fwdCmd);
-            // timings.enterSection("TRANSFER", cmd);
 
             renderer->transferDepth(cmd, &l->shadowCamera);
 
@@ -341,10 +347,11 @@ void DeferredLighting::renderDepthMaps(vk::CommandBuffer cmd, VulkanDeferredRend
             }
 
             cmd.endRenderPass();
-            cmd.end();
-            SAIGA_ASSERT(cmd);
         }
     }
+
+    cmd.end();
+    SAIGA_ASSERT(cmd);
 }
 void DeferredLighting::reload()
 {
@@ -390,7 +397,7 @@ void DeferredLighting::enableShadowMapping(std::shared_ptr<DirectionalLight> l)
     // TODO shadowmap creation here?
     if (!l->hasShadows())
     {
-        l->createShadowMap(*base, 100, 100, shadowPass);
+        l->createShadowMap(*base, 1000, 1000, shadowPass);
         l->enableShadows();
     }
 }

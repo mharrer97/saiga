@@ -155,6 +155,7 @@ void ShadowAssetRenderer::init(VulkanBase& vulkanDevice, VkRenderPass renderPass
 
     PipelineInfo info;
     info.addVertexInfo<VertexNC>();
+    info.rasterizationState.cullMode = vk::CullModeFlagBits::eFront;
     create(renderPass, info, 0);
 
 
