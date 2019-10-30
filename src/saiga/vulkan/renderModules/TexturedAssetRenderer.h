@@ -91,5 +91,6 @@ class SAIGA_VULKAN_API DeferredTexturedAssetRenderer : public Pipeline
     UniformBuffer uniformBufferVS;
 };
 
+// ShadowRenderer for textured asset renderer is the same as asset renderer -> use assetrenderer
 }  // namespace Vulkan
 }  // namespace Saiga

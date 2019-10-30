@@ -55,6 +55,8 @@ void DirectionalLight::destroyShadowMap()
 void DirectionalLight::setView(vec3 pos, vec3 target, vec3 up)
 {
     //    this->setViewMatrix(lookAt(pos,pos + (pos-target),up));
+    direction = (target - pos);
+    direction = normalize(direction);
     this->setViewMatrix(lookAt(pos, target, up));
 }
 

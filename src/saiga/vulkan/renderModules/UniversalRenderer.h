@@ -168,6 +168,12 @@ class SAIGA_VULKAN_API UniversalShadowRenderer
 };
 
 using UniversalShadowAssetRenderer = UniversalShadowRenderer<DeferredAssetRenderer, AssetRenderer, ShadowAssetRenderer>;
+using UniversalShadowLineAssetRenderer =
+    UniversalShadowRenderer<DeferredLineAssetRenderer, LineAssetRenderer, ShadowLineAssetRenderer>;
+using UniversalShadowPointCloudRenderer =
+    UniversalShadowRenderer<DeferredPointCloudRenderer, PointCloudRenderer, ShadowPointCloudRenderer>;
+using UniversalShadowTexturedAssetRenderer =
+    UniversalShadowRenderer<DeferredTexturedAssetRenderer, TexturedAssetRenderer, ShadowAssetRenderer>;
 
 }  // namespace Vulkan
 }  // namespace Saiga

@@ -18,7 +18,9 @@ namespace Vulkan
 class SAIGA_VULKAN_API ShadowBuffer
 {
    public:
-    ShadowBuffer(vk::Format format = vk::Format::eD16Unorm) : format(format) {}
+    // ShadowBuffer(vk::Format format = vk::Format::eD16Unorm) : format(format) {}
+    ShadowBuffer(vk::Format format = vk::Format::eD32Sfloat) : format(format) {}
+
     ~ShadowBuffer() { destroy(); }
 
     // depth image

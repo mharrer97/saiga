@@ -39,7 +39,7 @@ class SAIGA_VULKAN_API DeferredLighting
 {
    private:
     VulkanBase* base;
-    vk::Format shadowMapFormat = vk::Format::eD16Unorm;
+    vk::Format shadowMapFormat = vk::Format::eD32Sfloat;
 
 
     DebugLightRenderer debugLightRenderer;

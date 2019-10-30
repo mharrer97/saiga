@@ -397,7 +397,7 @@ void DeferredLighting::enableShadowMapping(std::shared_ptr<DirectionalLight> l)
     // TODO shadowmap creation here?
     if (!l->hasShadows())
     {
-        l->createShadowMap(*base, 1000, 1000, shadowPass);
+        l->createShadowMap(*base, 10000, 10000, shadowPass);
         l->enableShadows();
     }
 }

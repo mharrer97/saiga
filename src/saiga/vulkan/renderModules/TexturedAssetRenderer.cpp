@@ -163,5 +163,6 @@ StaticDescriptorSet DeferredTexturedAssetRenderer::createAndUpdateDescriptorSet(
     return set;
 }
 
+
 }  // namespace Vulkan
 }  // namespace Saiga

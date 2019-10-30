@@ -87,12 +87,12 @@ void main()
     if(vLight.x>0 && vLight.x<1 && vLight.y>0 && vLight.y<1&& vLight.z>0 && vLight.z<1)
         fragmentInShadowMap = true;
     float shadowMapDepth = texture(shadowmap, vLight.xy).r;
-    if( (shadowMapDepth * 0.5 + 0.5  < vLight.z - 0.005 && fragmentInShadowMap) ) outColor = vec4(ambient * diffuseColor, 1.f);
+    if( (shadowMapDepth * 0.5 + 0.5  < vLight.z - 0.0005 && fragmentInShadowMap) ) outColor = vec4(ambient * diffuseColor, 1.f);
 	
 	if(additional.w > 0.99f) {
 		outColor = vec4(diffuseColor, 1.f);
 	}
-	//float shadowTex = texture(shadowmap, tc).r;
+	//float shadowTex = texture(shadowmap, vec2(1) -tc).r;
 	//outColor = vec4(vec3(shadowTex),1.f);        
         //outColor = vec4(vec3(shadowMapDepth),1.f);
 	if(ubo.debug) {
