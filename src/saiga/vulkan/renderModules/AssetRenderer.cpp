@@ -91,7 +91,6 @@ void DeferredAssetRenderer::updateUniformBuffers(vk::CommandBuffer cmd, mat4 vie
 {
     uboVS.projection = proj;
     uboVS.modelview  = view;
-    uboVS.lightPos   = vec4(5, 5, 5, 0);
     uniformBufferVS.update(cmd, sizeof(uboVS), &uboVS);
 }
 
@@ -142,7 +141,6 @@ void ShadowAssetRenderer::updateUniformBuffers(vk::CommandBuffer cmd, mat4 view,
 {
     uboVS.projection = proj;
     uboVS.modelview  = view;
-    uboVS.lightPos   = vec4(5, 5, 5, 0);
     uniformBufferVS.update(cmd, sizeof(uboVS), &uboVS);
 }
 
@@ -155,7 +153,7 @@ void ShadowAssetRenderer::init(VulkanBase& vulkanDevice, VkRenderPass renderPass
 
     PipelineInfo info;
     info.addVertexInfo<VertexNC>();
-    info.rasterizationState.cullMode = vk::CullModeFlagBits::eNone;
+    // info.rasterizationState.cullMode = vk::CullModeFlagBits::eBack;
     create(renderPass, info, 0);
 
 

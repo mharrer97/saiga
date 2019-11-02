@@ -25,3 +25,42 @@ vec3 reconstructPosition(float d, vec2 tc, mat4 proj){
     p = inverse(proj) * p; //TODO outsource inverse to cpu?
     return p.xyz/p.w;
 }
+
+
+float textureProj(vec4 shadowCoord, vec2 off, sampler2D shadowMap, float ambientIntensity)
+{
+        float shadow = 1.0;
+        if ( shadowCoord.z > -1.0 && shadowCoord.z < 1.0 )
+        {
+                float dist = texture( shadowMap, shadowCoord.xy + off ).r;
+                if ( shadowCoord.w > 0.0 && dist * 0.5f + 0.5f < shadowCoord.z - 0.0005 )
+                {
+                        shadow = ambientIntensity;
+                }
+        }
+        return shadow;
+}
+
+//classic pcf
+float filterPCF(vec4 sc, sampler2D shadowMap, float ambientIntensity)
+{
+        ivec2 texDim = textureSize(shadowMap, 0);
+        float scale = 1.0;
+        float dx = scale * 1.0 / float(texDim.x);
+        float dy = scale * 1.0 / float(texDim.y);
+
+        float shadowFactor = 0.0;
+        int count = 0;
+        int range = 1;
+
+        for (int x = -range; x <= range; x++)
+        {
+                for (int y = -range; y <= range; y++)
+                {
+                        shadowFactor += textureProj(sc, vec2(dx*x, dy*y), shadowMap, ambientIntensity);
+                        count++;
+                }
+
+        }
+        return shadowFactor / count;
+}

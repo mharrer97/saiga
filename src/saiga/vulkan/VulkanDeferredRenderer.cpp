@@ -67,7 +67,6 @@ VulkanDeferredRenderer::~VulkanDeferredRenderer()
     base().device.destroySemaphore(geometrySemaphore);
     base().device.destroySemaphore(shadowSemaphore);
     base().device.destroySemaphore(deferredSemaphore);
-    lighting.destroy();
     base().device.destroyRenderPass(renderPass);
     base().device.destroyRenderPass(lightingPass);
     base().device.destroyRenderPass(forwardPass);

@@ -112,6 +112,10 @@ void VulkanExample::init(Saiga::Vulkan::VulkanBase& base)
     teapotTrans.translateGlobal(vec3(0, 2.5, 0));
     teapotTrans.calculateModel();
 
+    bigSphere.loadObj("bigSphere.obj");
+    bigSphere.mesh.computePerVertexNormal();
+    bigSphere.init(renderer.base());
+
     plane.createCheckerBoard(ivec2(20, 20), 1.0f, Saiga::Colors::firebrick, Saiga::Colors::gray);
     plane.init(renderer.base());
 
@@ -338,6 +342,9 @@ void VulkanExample::render(vk::CommandBuffer cmd, Camera* cam)
 
             assetRenderer.deferred.pushModel(cmd, scale(translate(vec3(-5.f, 0.5f, -5.f)), vec3(0.2f, 0.5f, 0.2f)));
             candle.render(cmd);
+
+            assetRenderer.deferred.pushModel(cmd, translate(vec3(10.f, 3.f, 10.f)) * scale(vec3(3.f, 3.f, 3.f)));
+            bigSphere.render(cmd);
         }
 
         /*if (pointCloudRenderer.deferred.bind(cmd))
@@ -385,6 +392,9 @@ void VulkanExample::renderDepth(vk::CommandBuffer cmd, Camera* cam)
 
             assetRenderer.shadow.pushModel(cmd, scale(translate(vec3(-5.f, 0.5f, -5.f)), vec3(0.2f, 0.5f, 0.2f)));
             candle.render(cmd);
+
+            assetRenderer.deferred.pushModel(cmd, translate(vec3(10.f, 3.f, 10.f)) * scale(vec3(3.f, 3.f, 3.f)));
+            bigSphere.render(cmd);
         }
         if (lineAssetRenderer.shadow.bind(cmd))
         {

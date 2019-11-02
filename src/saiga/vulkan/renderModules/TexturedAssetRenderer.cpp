@@ -129,6 +129,7 @@ void DeferredTexturedAssetRenderer::init(VulkanBase& vulkanDevice, VkRenderPass 
     addPushConstantRange({vk::ShaderStageFlagBits::eVertex, 0, sizeof(mat4)});
     shaderPipeline.load(device, {vertShader, fragShader});
     PipelineInfo info;
+    info.rasterizationState.cullMode = vk::CullModeFlagBits::eBack;
     info.addVertexInfo<VertexType>();
     //    auto info2 = info;
 

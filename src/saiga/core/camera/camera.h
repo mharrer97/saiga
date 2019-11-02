@@ -202,8 +202,8 @@ class SAIGA_CORE_API OrthographicCamera : public Camera
    public:
     float left, right, bottom, top;
     OrthographicCamera() {}
-    void setProj(float left, float right, float bottom, float top, float near, float far);
-    void setProj(AABB bb);
+    void setProj(float left, float right, float bottom, float top, float near, float far, bool vulkanTransform = false);
+    void setProj(AABB bb, bool vulkanTransform = false);
 
     friend std::ostream& operator<<(std::ostream& os, const OrthographicCamera& ca);
 

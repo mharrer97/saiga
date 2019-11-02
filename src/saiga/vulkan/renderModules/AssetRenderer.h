@@ -58,7 +58,7 @@ class SAIGA_VULKAN_API DeferredAssetRenderer : public Pipeline
 {
    public:
     // Change these strings before calling 'init' to use your own shaders
-    std::string vertexShader   = "vulkan/coloredAsset.vert";
+    std::string vertexShader   = "vulkan/coloredAssetDeferred.vert";
     std::string fragmentShader = "vulkan/coloredAssetDeferred.frag";
 
     ~DeferredAssetRenderer() { destroy(); }
@@ -81,7 +81,6 @@ class SAIGA_VULKAN_API DeferredAssetRenderer : public Pipeline
     {
         mat4 projection;
         mat4 modelview;
-        vec4 lightPos;
     } uboVS;
 
     UniformBuffer uniformBufferVS;
@@ -93,7 +92,7 @@ class SAIGA_VULKAN_API ShadowAssetRenderer : public Pipeline
    public:
     // Change these strings before calling 'init' to use your own shaders
 
-    std::string vertexShader   = "vulkan/coloredAsset.vert";
+    std::string vertexShader   = "vulkan/coloredAssetDeferred.vert";
     std::string fragmentShader = "vulkan/shadowMap.frag";
 
     ~ShadowAssetRenderer() { destroy(); }
@@ -116,7 +115,6 @@ class SAIGA_VULKAN_API ShadowAssetRenderer : public Pipeline
     {
         mat4 projection;
         mat4 modelview;
-        vec4 lightPos;
     } uboVS;
 
     UniformBuffer uniformBufferVS;

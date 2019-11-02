@@ -61,7 +61,7 @@ class VulkanExample : public Saiga::Updating,
     std::shared_ptr<Saiga::Vulkan::Texture2D> texture;
 
     Saiga::Vulkan::VulkanTexturedAsset box;
-    Saiga::Vulkan::VulkanVertexColoredAsset teapot, plane, sphere, candle;
+    Saiga::Vulkan::VulkanVertexColoredAsset teapot, plane, sphere, candle, bigSphere;
     Saiga::Vulkan::VulkanLineVertexColoredAsset grid, frustum;
     Saiga::Vulkan::VulkanPointCloudAsset pointCloud;
     Saiga::Vulkan::UniversalShadowAssetRenderer assetRenderer;

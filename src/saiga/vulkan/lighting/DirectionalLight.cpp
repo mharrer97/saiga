@@ -72,7 +72,7 @@ void DirectionalLight::calculateCamera()
     mat4 m = T * R;
     shadowCamera.setView(inverse(m));
     //    shadowCamera.setProj(-scale[0], scale[0], -scale[1], scale[1], -scale[2], scale[2]);
-    shadowCamera.setProj(-scale[0], scale[0], -scale[1], scale[1], -scale[2], scale[2]);
+    shadowCamera.setProj(-scale[0], scale[0], -scale[1], scale[1], -scale[2], scale[2], true);
 }
 void DirectionalLight::setDirection(const vec3& dir)
 {

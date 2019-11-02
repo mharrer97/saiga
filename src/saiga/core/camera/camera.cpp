@@ -380,21 +380,23 @@ std::ostream& operator<<(std::ostream& os, const PerspectiveCamera& ca)
 
 //=========================================================================================================================
 
-void OrthographicCamera::setProj(float _left, float _right, float _bottom, float _top, float _near, float _far)
+void OrthographicCamera::setProj(float _left, float _right, float _bottom, float _top, float _near, float _far,
+                                 bool vulkanTransform)
 {
-    this->left   = _left;
-    this->right  = _right;
-    this->bottom = _bottom;
-    this->top    = _top;
-    this->zNear  = _near;
-    this->zFar   = _far;
+    this->left            = _left;
+    this->right           = _right;
+    this->bottom          = _bottom;
+    this->top             = _top;
+    this->zNear           = _near;
+    this->zFar            = _far;
+    this->vulkanTransform = vulkanTransform;
 
     recomputeProj();
 }
 
-void OrthographicCamera::setProj(AABB bb)
+void OrthographicCamera::setProj(AABB bb, bool vulkanTransform)
 {
-    setProj(bb.min[0], bb.max[0], bb.min[1], bb.max[1], bb.min[2], bb.max[2]);
+    setProj(bb.min[0], bb.max[0], bb.min[1], bb.max[1], bb.min[2], bb.max[2], vulkanTransform);
 }
 
 void OrthographicCamera::imgui()
@@ -405,6 +407,11 @@ void OrthographicCamera::imgui()
 void OrthographicCamera::recomputeProj()
 {
     proj = ortho(left, right, bottom, top, zNear, zFar);
+
+    if (vulkanTransform)
+    {
+        proj = getVulkanTransform() * proj;
+    }
 }
 
 void OrthographicCamera::recalculatePlanes()
