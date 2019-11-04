@@ -46,6 +46,21 @@ void PointLightShader::uploadShadowPlanes(float f, float n)
 SpotLight::SpotLight() {}
 
 
+void SpotLight::createShadowMap(VulkanBase& vulkanDevice, int w, int h,
+                                vk::RenderPass shadowPass)  //, ShadowQuality quality)
+{
+    shadowMapInitialized = true;
+    shadowmap            = std::make_shared<SimpleShadowmap>();  //, quality);
+    shadowmap->init(vulkanDevice, w, h, shadowPass);
+}
+
+void SpotLight::destroyShadowMap()
+{
+    shadowMapInitialized = false;
+    shadowmap->~SimpleShadowmap();
+}
+
+
 SpotLight& SpotLight::operator=(const SpotLight& light)
 {
     model         = light.model;
@@ -100,6 +115,16 @@ void SpotLight::setDirection(vec3 value)
     direction = normalize(value);
     rot       = rotation(vec3(0, -1, 0), normalize(direction));
 }
+
+void SpotLight::calculateCamera()
+{
+    vec3 dir = make_vec3(this->getUpVector());
+    vec3 pos = vec3(getPosition());
+    vec3 up  = make_vec3(getRightVector());
+    shadowCamera.setView(pos, pos - dir, up);
+    shadowCamera.setProj(min(135.f, openingAngle), 1, shadowNearPlane, cutoffRadius, true);
+}
+
 /*void PointLight::bindUniforms(std::shared_ptr<PointLightShader> shader, Camera* cam)
 {
     AttenuatedLight::bindUniforms(shader, cam);
@@ -353,7 +378,255 @@ void SpotLightRenderer::pushLight(vk::CommandBuffer cmd, std::shared_ptr<SpotLig
                  &pushConstantObject, 0);
 }
 
+// Shadow Renderer
+void SpotShadowLightRenderer::destroy()
+{
+    Pipeline::destroy();
+    uniformBufferVS.destroy();
+    uniformBufferFS.destroy();
+}
 
+void SpotShadowLightRenderer::render(vk::CommandBuffer cmd, std::shared_ptr<SpotLight> light,
+                                     DescriptorSet& descriptorSet)
+{
+    // vec4 pos = vec4(light->position[0], light->position[1], light->position[2], 1.f);
+    // updateUniformBuffers(cmd, proj, view, pos, 25.f, false);
+    bindDescriptorSet(cmd, descriptorSet);
+    // vk::Viewport vp(position[0], position[1], size[0], size[1]);
+    // cmd.setViewport(0, vp);
+    if (pushConstantObject.openingAngle < 135.f)  // render pyramid if small angle
+    {
+        lightMesh.render(cmd);
+    }
+    else  // render icosphere if large angle
+    {
+        lightMeshIco.render(cmd);
+    }
+}
+
+
+
+void SpotShadowLightRenderer::init(VulkanBase& vulkanDevice, VkRenderPass renderPass, std::string fragmentShader)
+{
+    PipelineBase::init(vulkanDevice, 1);
+    addDescriptorSetLayout({{0, {11, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment}},
+                            {1, {12, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment}},
+                            {2, {13, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment}},
+                            {3, {14, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment}},
+                            {4, {15, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment}},
+                            {5, {16, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment}},
+                            {6, {17, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eFragment}},
+                            {7, {7, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex}}});
+
+    // addPushConstantRange({vk::ShaderStageFlagBits::eVertex, 0, sizeof(mat4)});
+    addPushConstantRange(
+        {vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, 0, sizeof(pushConstantObject)});
+    shaderPipeline.load(device, {vertexShader, fragmentShader});
+    PipelineInfo info;
+    info.addVertexInfo<VertexType>();
+    info.blendAttachmentState.blendEnable         = VK_TRUE;
+    info.blendAttachmentState.alphaBlendOp        = vk::BlendOp::eAdd;
+    info.blendAttachmentState.colorBlendOp        = vk::BlendOp::eAdd;
+    info.blendAttachmentState.dstColorBlendFactor = vk::BlendFactor::eOne;
+    info.blendAttachmentState.srcColorBlendFactor = vk::BlendFactor::eOne;
+    info.blendAttachmentState.dstAlphaBlendFactor = vk::BlendFactor::eOne;
+    info.blendAttachmentState.srcAlphaBlendFactor = vk::BlendFactor::eOne;
+    info.rasterizationState.cullMode              = vk::CullModeFlagBits::eFront;
+    info.depthStencilState.depthWriteEnable       = VK_FALSE;
+
+    // info.blendAttachmentState.
+    // info.depthStencilState.depthWriteEnable = VK_TRUE;
+    // info.depthStencilState.depthTestEnable  = VK_FALSE;
+
+    create(renderPass, info);
+
+
+    Cone c(make_vec3(0), vec3(0, 1, 0), 1.0f, 1.0f);
+    lightMesh.mesh = *TriangleMeshGenerator::createConeMesh(c, 10);
+    //    cb->createBuffers(spotLightMesh);
+    // lightMesh.createUniformPyramid();
+    lightMesh.init(vulkanDevice);
+
+    lightMeshIco.loadObj("icosphere.obj");
+    lightMeshIco.init(vulkanDevice);
+
+    uniformBufferVS.init(*base, &uboVS, sizeof(uboVS));
+    uniformBufferFS.init(*base, &uboFS, sizeof(uboFS));
+}
+
+void SpotShadowLightRenderer::updateUniformBuffers(vk::CommandBuffer cmd, mat4 proj, mat4 view, bool debug)
+{
+    uboFS.proj  = proj;
+    uboFS.view  = view;
+    uboFS.debug = debug;
+    uniformBufferFS.update(cmd, sizeof(uboFS), &uboFS);
+
+    uboVS.proj = proj;
+    uboVS.view = view;
+    uniformBufferVS.update(cmd, sizeof(uboVS), &uboVS);
+}
+
+void SpotShadowLightRenderer::createAndUpdateDescriptorSet(Saiga::Vulkan::Memory::ImageMemoryLocation* diffuse,
+                                                           Saiga::Vulkan::Memory::ImageMemoryLocation* specular,
+                                                           Saiga::Vulkan::Memory::ImageMemoryLocation* normal,
+                                                           Saiga::Vulkan::Memory::ImageMemoryLocation* additional,
+                                                           Saiga::Vulkan::Memory::ImageMemoryLocation* depth,
+                                                           Saiga::Vulkan::Memory::ImageMemoryLocation* shadowmap)
+{
+    auto descriptorSet = createDescriptorSet();
+
+
+    vk::DescriptorImageInfo diffuseDescriptorInfo = diffuse->data.get_descriptor_info();
+    diffuseDescriptorInfo.setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
+    diffuseDescriptorInfo.setImageView(diffuse->data.view);
+    diffuseDescriptorInfo.setSampler(diffuse->data.sampler);
+
+    vk::DescriptorImageInfo specularDescriptorInfo = specular->data.get_descriptor_info();
+    specularDescriptorInfo.setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
+    specularDescriptorInfo.setImageView(specular->data.view);
+    specularDescriptorInfo.setSampler(specular->data.sampler);
+
+    vk::DescriptorImageInfo normalDescriptorInfo = normal->data.get_descriptor_info();
+    normalDescriptorInfo.setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
+    normalDescriptorInfo.setImageView(normal->data.view);
+    normalDescriptorInfo.setSampler(normal->data.sampler);
+
+    vk::DescriptorImageInfo additionalDescriptorInfo = additional->data.get_descriptor_info();
+    additionalDescriptorInfo.setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
+    additionalDescriptorInfo.setImageView(additional->data.view);
+    additionalDescriptorInfo.setSampler(additional->data.sampler);
+
+    vk::DescriptorImageInfo depthDescriptorInfo = depth->data.get_descriptor_info();
+    depthDescriptorInfo.setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
+    depthDescriptorInfo.setImageView(depth->data.view);
+    depthDescriptorInfo.setSampler(depth->data.sampler);
+
+    vk::DescriptorImageInfo shadowDescriptorInfo = shadowmap->data.get_descriptor_info();
+    shadowDescriptorInfo.setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
+    shadowDescriptorInfo.setImageView(shadowmap->data.view);
+    shadowDescriptorInfo.setSampler(shadowmap->data.sampler);
+
+
+
+    vk::DescriptorBufferInfo uboVSDescriptorInfo = uniformBufferVS.getDescriptorInfo();
+
+    vk::DescriptorBufferInfo uboFSDescriptorInfo = uniformBufferFS.getDescriptorInfo();
+
+    device.updateDescriptorSets(
+        {
+            vk::WriteDescriptorSet(descriptorSet, 11, 0, 1, vk::DescriptorType::eCombinedImageSampler,
+                                   &diffuseDescriptorInfo, nullptr, nullptr),
+            vk::WriteDescriptorSet(descriptorSet, 12, 0, 1, vk::DescriptorType::eCombinedImageSampler,
+                                   &specularDescriptorInfo, nullptr, nullptr),
+            vk::WriteDescriptorSet(descriptorSet, 13, 0, 1, vk::DescriptorType::eCombinedImageSampler,
+                                   &normalDescriptorInfo, nullptr, nullptr),
+            vk::WriteDescriptorSet(descriptorSet, 14, 0, 1, vk::DescriptorType::eCombinedImageSampler,
+                                   &additionalDescriptorInfo, nullptr, nullptr),
+            vk::WriteDescriptorSet(descriptorSet, 15, 0, 1, vk::DescriptorType::eCombinedImageSampler,
+                                   &depthDescriptorInfo, nullptr, nullptr),
+            vk::WriteDescriptorSet(descriptorSet, 16, 0, 1, vk::DescriptorType::eCombinedImageSampler,
+                                   &shadowDescriptorInfo, nullptr, nullptr),
+            vk::WriteDescriptorSet(descriptorSet, 17, 0, 1, vk::DescriptorType::eUniformBuffer, nullptr,
+                                   &uboFSDescriptorInfo, nullptr),
+            vk::WriteDescriptorSet(descriptorSet, 7, 0, 1, vk::DescriptorType::eUniformBuffer, nullptr,
+                                   &uboVSDescriptorInfo, nullptr),
+        },
+        nullptr);
+}
+
+void SpotShadowLightRenderer::updateImageMemoryLocations(Memory::ImageMemoryLocation* diffuse,
+                                                         Memory::ImageMemoryLocation* specular,
+                                                         Memory::ImageMemoryLocation* normal,
+                                                         Memory::ImageMemoryLocation* additional,
+                                                         Memory::ImageMemoryLocation* depth)
+{
+    diffuseLocation    = diffuse;
+    specularLocation   = specular;
+    normalLocation     = normal;
+    additionalLocation = additional;
+    depthLocation      = depth;
+}
+
+StaticDescriptorSet SpotShadowLightRenderer::createAndUpdateDescriptorSetShadow(Memory::ImageMemoryLocation* shadowmap)
+{
+    auto descriptorSet = createDescriptorSet();
+
+
+    vk::DescriptorImageInfo diffuseDescriptorInfo = diffuseLocation->data.get_descriptor_info();
+    diffuseDescriptorInfo.setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
+    diffuseDescriptorInfo.setImageView(diffuseLocation->data.view);
+    diffuseDescriptorInfo.setSampler(diffuseLocation->data.sampler);
+
+    vk::DescriptorImageInfo specularDescriptorInfo = specularLocation->data.get_descriptor_info();
+    specularDescriptorInfo.setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
+    specularDescriptorInfo.setImageView(specularLocation->data.view);
+    specularDescriptorInfo.setSampler(specularLocation->data.sampler);
+
+    vk::DescriptorImageInfo normalDescriptorInfo = normalLocation->data.get_descriptor_info();
+    normalDescriptorInfo.setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
+    normalDescriptorInfo.setImageView(normalLocation->data.view);
+    normalDescriptorInfo.setSampler(normalLocation->data.sampler);
+
+    vk::DescriptorImageInfo additionalDescriptorInfo = additionalLocation->data.get_descriptor_info();
+    additionalDescriptorInfo.setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
+    additionalDescriptorInfo.setImageView(additionalLocation->data.view);
+    additionalDescriptorInfo.setSampler(additionalLocation->data.sampler);
+
+    vk::DescriptorImageInfo depthDescriptorInfo = depthLocation->data.get_descriptor_info();
+    depthDescriptorInfo.setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
+    depthDescriptorInfo.setImageView(depthLocation->data.view);
+    depthDescriptorInfo.setSampler(depthLocation->data.sampler);
+
+    vk::DescriptorImageInfo shadowDescriptorInfo = shadowmap->data.get_descriptor_info();
+    shadowDescriptorInfo.setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
+    shadowDescriptorInfo.setImageView(shadowmap->data.view);
+    shadowDescriptorInfo.setSampler(shadowmap->data.sampler);
+
+
+
+    vk::DescriptorBufferInfo uboVSDescriptorInfo = uniformBufferVS.getDescriptorInfo();
+
+    vk::DescriptorBufferInfo uboFSDescriptorInfo = uniformBufferFS.getDescriptorInfo();
+
+    device.updateDescriptorSets(
+        {
+            vk::WriteDescriptorSet(descriptorSet, 11, 0, 1, vk::DescriptorType::eCombinedImageSampler,
+                                   &diffuseDescriptorInfo, nullptr, nullptr),
+            vk::WriteDescriptorSet(descriptorSet, 12, 0, 1, vk::DescriptorType::eCombinedImageSampler,
+                                   &specularDescriptorInfo, nullptr, nullptr),
+            vk::WriteDescriptorSet(descriptorSet, 13, 0, 1, vk::DescriptorType::eCombinedImageSampler,
+                                   &normalDescriptorInfo, nullptr, nullptr),
+            vk::WriteDescriptorSet(descriptorSet, 14, 0, 1, vk::DescriptorType::eCombinedImageSampler,
+                                   &additionalDescriptorInfo, nullptr, nullptr),
+            vk::WriteDescriptorSet(descriptorSet, 15, 0, 1, vk::DescriptorType::eCombinedImageSampler,
+                                   &depthDescriptorInfo, nullptr, nullptr),
+            vk::WriteDescriptorSet(descriptorSet, 16, 0, 1, vk::DescriptorType::eCombinedImageSampler,
+                                   &shadowDescriptorInfo, nullptr, nullptr),
+            vk::WriteDescriptorSet(descriptorSet, 17, 0, 1, vk::DescriptorType::eUniformBuffer, nullptr,
+                                   &uboFSDescriptorInfo, nullptr),
+            vk::WriteDescriptorSet(descriptorSet, 7, 0, 1, vk::DescriptorType::eUniformBuffer, nullptr,
+                                   &uboVSDescriptorInfo, nullptr),
+        },
+        nullptr);
+    return descriptorSet;
+}
+
+void SpotShadowLightRenderer::pushLight(vk::CommandBuffer cmd, std::shared_ptr<SpotLight> light, Camera* cam)
+{
+    pushConstantObject.depthBiasMV = light->viewToLightTransform(*cam, light->shadowCamera);
+
+    pushConstantObject.attenuation  = make_vec4(light->getAttenuation(), light->getRadius());
+    pushConstantObject.pos          = make_vec4(light->getPosition(), 1.f);
+    pushConstantObject.dir          = make_vec4(light->getDirection(), 0.f);
+    pushConstantObject.openingAngle = light->getAngle();
+    pushConstantObject.model        = light->model;
+    pushConstantObject.specularCol  = make_vec4(light->getColorSpecular(), 1.f);
+    pushConstantObject.diffuseCol   = make_vec4(light->getColorDiffuse(), light->getIntensity());
+
+    // pushConstant(cmd, vk::ShaderStageFlagBits::eVertex, sizeof(mat4), data(translate(light->position)));
+    pushConstant(cmd, vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, sizeof(pushConstantObject),
+                 &pushConstantObject, 0);
+}
 }  // namespace Lighting
 }  // namespace Vulkan
 }  // namespace Saiga

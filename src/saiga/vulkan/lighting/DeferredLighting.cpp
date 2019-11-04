@@ -91,6 +91,7 @@ void DeferredLighting::destroy()
     directionalShadowLightRenderer.destroy();
     pointLightRenderer.destroy();
     spotLightRenderer.destroy();
+    spotShadowLightRenderer.destroy();
     boxLightRenderer.destroy();
     base->device.destroyRenderPass(shadowPass);
 }
@@ -110,6 +111,7 @@ void DeferredLighting::init(Saiga::Vulkan::VulkanBase& vulkanDevice, vk::RenderP
     boxLightRenderer.init(vulkanDevice, renderPass, names.boxLightShader);
 
     directionalShadowLightRenderer.init(vulkanDevice, renderPass, names.directionalShadowLightShader);
+    spotShadowLightRenderer.init(vulkanDevice, renderPass, names.spotShadowLightShader);
 }
 
 void DeferredLighting::createAndUpdateDescriptorSets(Memory::ImageMemoryLocation* diffuse,
@@ -125,6 +127,20 @@ void DeferredLighting::createAndUpdateDescriptorSets(Memory::ImageMemoryLocation
     boxLightRenderer.createAndUpdateDescriptorSet(diffuse, specular, normal, additional, depth);
 
     directionalShadowLightRenderer.updateImageMemoryLocations(diffuse, specular, normal, additional, depth);
+    for (auto& l : directionalLights)
+    {
+        if (l->shadowMapInitialized)
+            l->shadowMapDescriptor = directionalShadowLightRenderer.createAndUpdateDescriptorSetShadow(
+                l->shadowmap->getShadowBuffer()->location);
+    }
+
+    spotShadowLightRenderer.updateImageMemoryLocations(diffuse, specular, normal, additional, depth);
+    for (auto& l : spotLights)
+    {
+        if (l->shadowMapInitialized)
+            l->shadowMapDescriptor =
+                spotShadowLightRenderer.createAndUpdateDescriptorSetShadow(l->shadowmap->getShadowBuffer()->location);
+    }
 }
 void DeferredLighting::updateUniformBuffers(vk::CommandBuffer cmd, mat4 proj, mat4 view, bool debugIn)
 {
@@ -137,6 +153,7 @@ void DeferredLighting::updateUniformBuffers(vk::CommandBuffer cmd, mat4 proj, ma
     boxLightRenderer.updateUniformBuffers(cmd, proj, view, debugIn);
 
     directionalShadowLightRenderer.updateUniformBuffers(cmd, proj, view, debugIn);
+    spotShadowLightRenderer.updateUniformBuffers(cmd, proj, view, debugIn);
 }
 
 void DeferredLighting::cullLights(Camera* cam)  // TODO broken???
@@ -210,7 +227,7 @@ void DeferredLighting::renderLights(vk::CommandBuffer cmd, Camera* cam)
             {
                 for (std::shared_ptr<PointLight>& l : pointLights)
                 {
-                    if (!l->culled)
+                    if (l->shouldRender())
                     {
                         pointLightRenderer.pushLight(cmd, l);
                         pointLightRenderer.render(cmd, l);
@@ -224,10 +241,21 @@ void DeferredLighting::renderLights(vk::CommandBuffer cmd, Camera* cam)
             {
                 for (std::shared_ptr<SpotLight>& l : spotLights)
                 {
-                    if (!l->culled)
+                    if (l->shouldRender() && !l->shouldCalculateShadowMap())
                     {
                         spotLightRenderer.pushLight(cmd, l);
                         spotLightRenderer.render(cmd, l);
+                    }
+                }
+            }
+            if (spotShadowLightRenderer.bind(cmd))
+            {
+                for (std::shared_ptr<SpotLight>& l : spotLights)
+                {
+                    if (l->shouldRender() && l->shouldCalculateShadowMap())
+                    {
+                        spotShadowLightRenderer.pushLight(cmd, l, cam);
+                        spotShadowLightRenderer.render(cmd, l, l->shadowMapDescriptor);
                     }
                 }
             }
@@ -238,7 +266,7 @@ void DeferredLighting::renderLights(vk::CommandBuffer cmd, Camera* cam)
             {
                 for (std::shared_ptr<BoxLight>& l : boxLights)
                 {
-                    if (!l->culled)
+                    if (l->shouldRender())
                     {
                         boxLightRenderer.pushLight(cmd, l, cam);
                         boxLightRenderer.render(cmd, l);
@@ -253,7 +281,7 @@ void DeferredLighting::renderLights(vk::CommandBuffer cmd, Camera* cam)
         {
             for (std::shared_ptr<DirectionalLight>& l : directionalLights)
             {
-                if (!l->shouldCalculateShadowMap())
+                if (l->shouldRender() && !l->shouldCalculateShadowMap())
                 {
                     directionalLightRenderer.pushLight(cmd, l);
                     directionalLightRenderer.render(cmd);
@@ -264,12 +292,13 @@ void DeferredLighting::renderLights(vk::CommandBuffer cmd, Camera* cam)
         {
             for (std::shared_ptr<DirectionalLight>& l : directionalLights)
             {
-                if (l->shouldCalculateShadowMap())
+                if (l->shouldRender() && l->shouldCalculateShadowMap())
                 {
-                    directionalShadowLightRenderer.createAndUpdateDescriptorSetShadow(
-                        l->shadowmap->getShadowBuffer()->location);
+                    // if (!l->shadowMapDescriptor)
+                    //    l->shadowMapDescriptor = directionalShadowLightRenderer.createAndUpdateDescriptorSetShadow(
+                    //        l->shadowmap->getShadowBuffer()->location);
                     directionalShadowLightRenderer.pushLight(cmd, l, cam);
-                    directionalShadowLightRenderer.render(cmd);
+                    directionalShadowLightRenderer.render(cmd, l->shadowMapDescriptor);
                 }
             }
         }
@@ -350,6 +379,58 @@ void DeferredLighting::renderDepthMaps(vk::CommandBuffer cmd, VulkanDeferredRend
         }
     }
 
+    for (std::shared_ptr<SpotLight> l : spotLights)
+    {
+        if (l->shadowMapInitialized && l->shouldCalculateShadowMap())
+        {
+            // TODO adjust for spotlights
+            l->calculateCamera();
+            l->shadowCamera.recalculatePlanes();
+
+
+            vk::RenderPassBeginInfo renderPassBeginInfo  = vks::initializers::renderPassBeginInfo();
+            renderPassBeginInfo.renderPass               = shadowPass;
+            renderPassBeginInfo.renderArea.offset.x      = 0;
+            renderPassBeginInfo.renderArea.offset.y      = 0;
+            ivec2 shadowmapExtent                        = l->shadowmap->getSize();
+            renderPassBeginInfo.renderArea.extent.width  = shadowmapExtent[0];
+            renderPassBeginInfo.renderArea.extent.height = shadowmapExtent[1];
+            renderPassBeginInfo.clearValueCount          = 1;
+            renderPassBeginInfo.pClearValues             = &clearValue;
+
+            // Set target frame buffer
+            renderPassBeginInfo.framebuffer = l->shadowmap->frameBuffer.framebuffer;
+
+
+            renderer->transferDepth(cmd, &l->shadowCamera);
+
+            // timings.leaveSection("TRANSFER", fwdCmd);
+
+            cmd.beginRenderPass(&renderPassBeginInfo, vk::SubpassContents::eInline);
+
+
+            vk::Viewport viewport = vks::initializers::viewport(shadowmapExtent[0], shadowmapExtent[1], 0.0f, 1.0f);
+            cmd.setViewport(0, 1, &viewport);
+
+            vk::Rect2D scissor = vks::initializers::rect2D(shadowmapExtent[0], shadowmapExtent[1], 0, 0);
+            cmd.setScissor(0, 1, &scissor);
+
+            {
+                // Actual rendering
+                // timings.enterSection("MAIN", fwdCmd);
+                renderer->renderDepth(cmd, &l->shadowCamera);
+                // dont render forward if in gbuffer debug mode
+                // timings.leaveSection("MAIN", fwdCmd);
+                // add imgui rendering here -- end of forward rendering
+                // timings.enterSection("IMGUI", fwdCmd);
+                // if (imGui && renderImgui) imGui->render(fwdCmd, currentImage);
+                // timings.leaveSection("IMGUI", fwdCmd);
+            }
+
+            cmd.endRenderPass();
+        }
+    }
+
     cmd.end();
     SAIGA_ASSERT(cmd);
 }
@@ -362,6 +443,7 @@ void DeferredLighting::reload()
     boxLightRenderer.reload();
 
     directionalShadowLightRenderer.reload();
+    spotShadowLightRenderer.reload();
 }
 
 std::shared_ptr<DirectionalLight> DeferredLighting::createDirectionalLight()
@@ -397,8 +479,22 @@ void DeferredLighting::enableShadowMapping(std::shared_ptr<DirectionalLight> l)
     // TODO shadowmap creation here?
     if (!l->hasShadows())
     {
-        l->createShadowMap(*base, 4096, 4096, shadowPass);
+        l->createShadowMap(*base, 4000, 4000, shadowPass);
         l->enableShadows();
+        // l->shadowMapDescriptor = directionalShadowLightRenderer.createAndUpdateDescriptorSetShadow(
+        //    l->shadowmap->getShadowBuffer()->location);
+    }
+}
+
+void DeferredLighting::enableShadowMapping(std::shared_ptr<SpotLight> l)
+{
+    // TODO shadowmap creation here?
+    if (!l->hasShadows())
+    {
+        l->createShadowMap(*base, 1000, 1000, shadowPass);
+        l->enableShadows();
+        // l->shadowMapDescriptor = directionalShadowLightRenderer.createAndUpdateDescriptorSetShadow(
+        //    l->shadowmap->getShadowBuffer()->location);
     }
 }
 

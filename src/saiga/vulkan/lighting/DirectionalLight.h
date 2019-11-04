@@ -59,6 +59,7 @@ class SAIGA_VULKAN_API DirectionalLight : public Light
     OrthographicCamera shadowCamera;
     bool shadowMapInitialized = false;
     std::shared_ptr<SimpleShadowmap> shadowmap;
+    StaticDescriptorSet shadowMapDescriptor;
 
     DirectionalLight();
     ~DirectionalLight() {}
@@ -177,7 +178,7 @@ class SAIGA_VULKAN_API DirectionalShadowLightRenderer : public Pipeline
     /**
      * Render the texture at the given pixel position and size
      */
-    void render(vk::CommandBuffer cmd);
+    void render(vk::CommandBuffer cmd, DescriptorSet& dscriptorSet);
 
 
 
@@ -199,7 +200,7 @@ class SAIGA_VULKAN_API DirectionalShadowLightRenderer : public Pipeline
                                     Saiga::Vulkan::Memory::ImageMemoryLocation* additional,
                                     Saiga::Vulkan::Memory::ImageMemoryLocation* depth);
     // only change shadowmap
-    void createAndUpdateDescriptorSetShadow(Saiga::Vulkan::Memory::ImageMemoryLocation* shadowmap);
+    StaticDescriptorSet createAndUpdateDescriptorSetShadow(Saiga::Vulkan::Memory::ImageMemoryLocation* shadowmap);
 
     void pushLight(vk::CommandBuffer cmd, std::shared_ptr<DirectionalLight> light, Camera* cam);
 
@@ -224,7 +225,7 @@ class SAIGA_VULKAN_API DirectionalShadowLightRenderer : public Pipeline
 
     UniformBuffer uniformBufferFS;
 
-    Saiga::Vulkan::StaticDescriptorSet descriptorSet;
+    // Saiga::Vulkan::StaticDescriptorSet descriptorSet;
     Saiga::Vulkan::VulkanVertexColoredAsset blitMesh;
 
     Saiga::Vulkan::Memory::ImageMemoryLocation* diffuseLocation;

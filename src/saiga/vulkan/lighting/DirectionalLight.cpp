@@ -32,6 +32,7 @@ void DirectionalLight::createShadowMap(VulkanBase& vulkanDevice, int w, int h,
     shadowmap->init(vulkanDevice, w, h, shadowPass);
 
 
+
     numCascades = 1;
     orthoBoxes.resize(numCascades);
 
@@ -67,6 +68,7 @@ void DirectionalLight::calculateCamera()
     calculateModel();
     // trs matrix without scale
     //(scale is applied through projection matrix
+    // TODO adjust to current pos
     mat4 T = translate(identityMat4(), make_vec3(10));
     mat4 R = make_mat4(rot);
     mat4 m = T * R;
@@ -464,7 +466,7 @@ void DirectionalShadowLightRenderer::destroy()
     uniformBufferFS.destroy();
 }
 
-void DirectionalShadowLightRenderer::render(vk::CommandBuffer cmd)
+void DirectionalShadowLightRenderer::render(vk::CommandBuffer cmd, DescriptorSet& descriptorSet)
 {
     bindDescriptorSet(cmd, descriptorSet);
     // vk::Viewport vp(position[0], position[1], size[0], size[1]);
@@ -518,7 +520,7 @@ void DirectionalShadowLightRenderer::createAndUpdateDescriptorSet(
     Saiga::Vulkan::Memory::ImageMemoryLocation* normal, Saiga::Vulkan::Memory::ImageMemoryLocation* additional,
     Saiga::Vulkan::Memory::ImageMemoryLocation* depth, Saiga::Vulkan::Memory::ImageMemoryLocation* shadowmap)
 {
-    descriptorSet = createDescriptorSet();
+    auto descriptorSet = createDescriptorSet();
 
 
     vk::DescriptorImageInfo diffuseDescriptorInfo = diffuse->data.get_descriptor_info();
@@ -574,6 +576,8 @@ void DirectionalShadowLightRenderer::createAndUpdateDescriptorSet(
 
         },
         nullptr);
+
+    // return descriptorSet;
 }
 
 void DirectionalShadowLightRenderer::updateImageMemoryLocations(Memory::ImageMemoryLocation* diffuse,
@@ -589,9 +593,10 @@ void DirectionalShadowLightRenderer::updateImageMemoryLocations(Memory::ImageMem
     depthLocation      = depth;
 }
 
-void DirectionalShadowLightRenderer::createAndUpdateDescriptorSetShadow(Memory::ImageMemoryLocation* shadowmap)
+StaticDescriptorSet DirectionalShadowLightRenderer::createAndUpdateDescriptorSetShadow(
+    Memory::ImageMemoryLocation* shadowmap)
 {
-    descriptorSet = createDescriptorSet();
+    auto descriptorSet = createDescriptorSet();
 
 
     vk::DescriptorImageInfo diffuseDescriptorInfo = diffuseLocation->data.get_descriptor_info();
@@ -647,6 +652,7 @@ void DirectionalShadowLightRenderer::createAndUpdateDescriptorSetShadow(Memory::
 
         },
         nullptr);
+    return descriptorSet;
 }
 void DirectionalShadowLightRenderer::pushLight(vk::CommandBuffer cmd, std::shared_ptr<DirectionalLight> light,
                                                Camera* cam)

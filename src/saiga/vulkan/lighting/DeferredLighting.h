@@ -33,6 +33,7 @@ struct DeferredLightingShaderNames
     std::string directionalLightShader       = "vulkan/lighting/directionalLight.frag";
     std::string debugLightShader             = "vulkan/lighting/debugLight.frag";
     std::string directionalShadowLightShader = "vulkan/lighting/directionalShadowLight.frag";
+    std::string spotShadowLightShader        = "vulkan/lighting/spotShadowLight.frag";
 };
 
 class SAIGA_VULKAN_API DeferredLighting
@@ -52,6 +53,7 @@ class SAIGA_VULKAN_API DeferredLighting
     std::vector<std::shared_ptr<PointLight>> pointLights;
 
     SpotLightRenderer spotLightRenderer;
+    SpotShadowLightRenderer spotShadowLightRenderer;
     std::vector<std::shared_ptr<SpotLight>> spotLights;
 
     BoxLightRenderer boxLightRenderer;
@@ -112,6 +114,7 @@ class SAIGA_VULKAN_API DeferredLighting
     std::shared_ptr<BoxLight> createBoxLight();
 
     void enableShadowMapping(std::shared_ptr<DirectionalLight> l);
+    void enableShadowMapping(std::shared_ptr<SpotLight> l);
 
     void removeLight(std::shared_ptr<DirectionalLight> l);
     void removeLight(std::shared_ptr<PointLight> l);

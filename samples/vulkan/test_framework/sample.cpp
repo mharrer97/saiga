@@ -143,7 +143,7 @@ void VulkanExample::init(Saiga::Vulkan::VulkanBase& base)
 
 
     std::shared_ptr<Saiga::Vulkan::Lighting::PointLight> pointTestLight;
-    int count = 3;
+    int count = 0;
     for (int i = 0; i < count; ++i)
     {
         vec3 pos = vec3(sin((float(i) / float(count)) * 6.28f), 1.f, cos((float(i) / float(count)) * 6.28f));
@@ -164,10 +164,12 @@ void VulkanExample::init(Saiga::Vulkan::VulkanBase& base)
     spotLight = renderer.lighting.createSpotLight();
     spotLight->setColorDiffuse(Saiga::Vulkan::Lighting::LightColorPresets::Candle);
     spotLight->setColorSpecular(Saiga::Vulkan::Lighting::LightColorPresets::Candle);
+    renderer.lighting.enableShadowMapping(spotLight);
 
     boxLight = renderer.lighting.createBoxLight();
     boxLight->setColorDiffuse(Saiga::Vulkan::Lighting::LightColorPresets::MuzzleFlash);
     boxLight->setColorSpecular(Saiga::Vulkan::Lighting::LightColorPresets::MuzzleFlash);
+    boxLight->setActive(false);
 
     directionalLight = renderer.lighting.createDirectionalLight();
     directionalLight->setColorDiffuse(Saiga::Vulkan::Lighting::LightColorPresets::MoonlightBlue);
@@ -178,7 +180,10 @@ void VulkanExample::init(Saiga::Vulkan::VulkanBase& base)
     //    directionalLight->setScale(vec3(7.5f, 7.5f, 25.f));
     directionalLight->setScale(vec3(30.f, 30.f, 30.f));
 
+    directionalLight->setAmbientIntensity(0.f);
+    directionalLight->setIntensity(0.f);
     directionalLight->calculateModel();
+
     // TODO adapt shadopmap creation handling
     renderer.lighting.enableShadowMapping(directionalLight);
     // directionalLight->calculateCamera();
@@ -186,6 +191,8 @@ void VulkanExample::init(Saiga::Vulkan::VulkanBase& base)
     candleLight = renderer.lighting.createSpotLight();
     candleLight->setColorDiffuse(Saiga::Vulkan::Lighting::LightColorPresets::Candle);
     candleLight->setColorSpecular(Saiga::Vulkan::Lighting::LightColorPresets::Candle);
+
+    candleLight->setActive(false);
 }
 
 
@@ -223,7 +230,7 @@ void VulkanExample::update(float dt)
 
     if (lightRotate)
     {
-        timingLoop = fmod(timingLoop + dt, 2.f * 3.1415f);
+        timingLoop = fmod(timingLoop + 0.2f * dt, 2.f * 3.1415f);
 
 
         int count = pointLights.size();

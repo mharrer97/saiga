@@ -11,6 +11,8 @@
 
 #include "saiga/core/camera/camera.h"
 #include "saiga/vulkan/lighting/AttenuatedLight.h"
+#include "saiga/vulkan/lighting/Shadowmap.h"
+
 namespace Saiga
 {
 namespace Vulkan
@@ -39,15 +41,23 @@ class SAIGA_VULKAN_API SpotLight : public AttenuatedLight
     vec3 direction     = vec3(0.f, -1.f, 0.f);
 
    public:
-    // float shadowNearPlane = 0.1f;
+    float shadowNearPlane = 0.1f;
     // PerspectiveCamera shadowCamera;
-
+    PerspectiveCamera shadowCamera;
+    bool shadowMapInitialized = false;
+    std::shared_ptr<SimpleShadowmap> shadowmap;
+    StaticDescriptorSet shadowMapDescriptor;
 
     SpotLight();
     virtual ~SpotLight() {}
 
     SpotLight& operator=(const SpotLight& light);
 
+
+
+    void createShadowMap(VulkanBase& vulkanDevice, int w, int h,
+                         vk::RenderPass shadowPass);  //, ShadowQuality quality = ShadowQuality::LOW);
+    void destroyShadowMap();
 
 
     // void bindUniforms(std::shared_ptr<PointLightShader> shader, Camera* shadowCamera);
@@ -68,6 +78,7 @@ class SAIGA_VULKAN_API SpotLight : public AttenuatedLight
     // void bindFace(int face);
     // void calculateCamera(int face);
 
+    void calculateCamera();
 
     bool cullLight(Camera* camera);
     // bool renderShadowmap(DepthFunction f, UniformBuffer& shadowCameraBuffer);
@@ -138,6 +149,87 @@ class SAIGA_VULKAN_API SpotLightRenderer : public Pipeline
     Saiga::Vulkan::VulkanVertexAsset lightMesh;
     Saiga::Vulkan::VulkanVertexAsset lightMeshIco;
 };
+
+class SAIGA_VULKAN_API SpotShadowLightRenderer : public Pipeline
+{
+   public:
+    using VertexType = Vertex;
+
+    // Change these strings before calling 'init' to use your own shaders
+    std::string vertexShader = "vulkan/lighting/attenuatedLight.vert";
+
+    ~SpotShadowLightRenderer() { destroy(); }
+    void destroy();
+
+
+    /**
+     * Render the texture at the given pixel position and size
+     */
+    void render(vk::CommandBuffer cmd, std::shared_ptr<SpotLight> light, DescriptorSet& descriptorSet);
+
+
+
+    void init(Saiga::Vulkan::VulkanBase& vulkanDevice, VkRenderPass renderPass, std::string fragmentShader);
+
+    void updateUniformBuffers(vk::CommandBuffer, mat4 proj, mat4 view, bool debug);
+
+    void createAndUpdateDescriptorSet(Saiga::Vulkan::Memory::ImageMemoryLocation* diffuse,
+                                      Saiga::Vulkan::Memory::ImageMemoryLocation* specular,
+                                      Saiga::Vulkan::Memory::ImageMemoryLocation* normal,
+                                      Saiga::Vulkan::Memory::ImageMemoryLocation* additional,
+                                      Saiga::Vulkan::Memory::ImageMemoryLocation* depth,
+                                      Saiga::Vulkan::Memory::ImageMemoryLocation* shadowmap);
+
+    // alternative for createandupdatedescriptorset: save gbuffer imagememorylocations
+    void updateImageMemoryLocations(Saiga::Vulkan::Memory::ImageMemoryLocation* diffuse,
+                                    Saiga::Vulkan::Memory::ImageMemoryLocation* specular,
+                                    Saiga::Vulkan::Memory::ImageMemoryLocation* normal,
+                                    Saiga::Vulkan::Memory::ImageMemoryLocation* additional,
+                                    Saiga::Vulkan::Memory::ImageMemoryLocation* depth);
+    // only change shadowmap
+    StaticDescriptorSet createAndUpdateDescriptorSetShadow(Saiga::Vulkan::Memory::ImageMemoryLocation* shadowmap);
+    void pushLight(vk::CommandBuffer cmd, std::shared_ptr<SpotLight> light, Camera* cam);
+
+   private:
+    struct UBOFS
+    {
+        mat4 proj;
+        mat4 view;
+        bool debug;
+
+    } uboFS;
+
+    struct UBOVS
+    {
+        mat4 proj;
+        mat4 view;
+    } uboVS;
+
+    struct PCO  // TODO evtl use separate pushconstants in each shader stage?
+    {
+        mat4 model;
+        mat4 depthBiasMV;
+        vec4 pos;
+        vec4 attenuation;
+        vec4 dir;
+        vec4 specularCol;
+        vec4 diffuseCol;
+        float openingAngle;
+    } pushConstantObject;
+
+    UniformBuffer uniformBufferVS;
+    UniformBuffer uniformBufferFS;
+
+    Saiga::Vulkan::VulkanVertexAsset lightMesh;
+    Saiga::Vulkan::VulkanVertexAsset lightMeshIco;
+
+    Saiga::Vulkan::Memory::ImageMemoryLocation* diffuseLocation;
+    Saiga::Vulkan::Memory::ImageMemoryLocation* specularLocation;
+    Saiga::Vulkan::Memory::ImageMemoryLocation* normalLocation;
+    Saiga::Vulkan::Memory::ImageMemoryLocation* additionalLocation;
+    Saiga::Vulkan::Memory::ImageMemoryLocation* depthLocation;
+};
+
 }  // namespace Lighting
 }  // namespace Vulkan
 }  // namespace Saiga
