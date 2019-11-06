@@ -1,7 +1,5 @@
-#ifndef SOPHUS_TEST_LOCAL_PARAMETERIZATION_SE3_HPP
-#define SOPHUS_TEST_LOCAL_PARAMETERIZATION_SE3_HPP
-
-#include <sophus/se3.hpp>
+#pragma once
+#include "saiga/vision/sophus/Sophus.h"
 
 #include <ceres/local_parameterization.h>
 
@@ -9,7 +7,7 @@ namespace Sophus
 {
 namespace test
 {
-template <bool LEFT_MULT = false>
+// if this is used in ceres autodiff functors LEFT_MULT should be false
 class LocalParameterizationSE3 : public ceres::LocalParameterization
 {
    public:
@@ -24,14 +22,8 @@ class LocalParameterizationSE3 : public ceres::LocalParameterization
         Eigen::Map<SE3d const> const T(T_raw);
         Eigen::Map<Vector6d const> const delta(delta_raw);
         Eigen::Map<SE3d> T_plus_delta(T_plus_delta_raw);
-        if (LEFT_MULT)
-        {
-            T_plus_delta = SE3d::exp(delta) * T;
-        }
-        else
-        {
-            T_plus_delta = T * SE3d::exp(delta);
-        }
+        T_plus_delta = T * SE3d::exp(delta);
+
         return true;
     }
 
@@ -44,14 +36,9 @@ class LocalParameterizationSE3 : public ceres::LocalParameterization
         Eigen::Map<SE3d const> T(T_raw);
         Eigen::Map<Eigen::Matrix<double, 7, 6, Eigen::RowMajor>> jacobian(jacobian_raw);
 
-        if (LEFT_MULT)
-        {
-            jacobian = -T.Dx_this_mul_exp_x_at_0();
-        }
-        else
-        {
-            jacobian = T.Dx_this_mul_exp_x_at_0();
-        }
+        // Returns derivative of  this * exp(x)  wrt x at x=0.
+        jacobian = T.Dx_this_mul_exp_x_at_0();
+
         return true;
     }
 
@@ -60,6 +47,7 @@ class LocalParameterizationSE3 : public ceres::LocalParameterization
     virtual int LocalSize() const { return SE3d::DoF; }
 };
 
+// use for analytical diff with lie algebra
 template <bool LEFT_MULT = true>
 class LocalParameterizationSE32 : public ceres::LocalParameterization
 {
@@ -101,11 +89,9 @@ class LocalParameterizationSE32 : public ceres::LocalParameterization
     }
 
     virtual int GlobalSize() const { return SE3d::num_parameters; }
-
     virtual int LocalSize() const { return SE3d::DoF; }
 };
 
+
 }  // namespace test
 }  // namespace Sophus
-
-#endif

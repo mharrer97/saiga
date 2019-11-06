@@ -92,7 +92,7 @@ class SAIGA_VULKAN_API BoxLightRenderer : public Pipeline
 
     void init(Saiga::Vulkan::VulkanBase& vulkanDevice, VkRenderPass renderPass, std::string fragmentShader);
 
-    void updateUniformBuffers(vk::CommandBuffer, mat4 proj, mat4 view, bool debug);
+    void updateUniformBuffers(vk::CommandBuffer, mat4 proj, mat4 view);
 
     void createAndUpdateDescriptorSet(Saiga::Vulkan::Memory::ImageMemoryLocation* diffuse,
                                       Saiga::Vulkan::Memory::ImageMemoryLocation* specular,
@@ -106,7 +106,6 @@ class SAIGA_VULKAN_API BoxLightRenderer : public Pipeline
     {
         mat4 proj;
         mat4 view;
-        bool debug;
 
     } uboFS;
 

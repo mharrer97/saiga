@@ -21,7 +21,7 @@ void simpleForLoop()
 #pragma omp parallel for num_threads(4)
     for (int i = 0; i < 20; ++i)
     {
-        int tid = omp_get_thread_num();
+        //        int tid = omp_get_thread_num();
         report(i);
     }
     std::cout << std::endl;
@@ -48,13 +48,13 @@ void simpleGroup()
 #pragma omp for
         for (int i = 0; i < 20; ++i)
         {
-            int tid2 = omp_get_thread_num();
+            //            int tid2 = omp_get_thread_num();
             report(i);
         }
 
 #pragma omp parallel
         {
-            int tid2 = omp_get_thread_num();
+            //            int tid2 = omp_get_thread_num();
             report(tid);
         }
     }
@@ -78,11 +78,12 @@ void reduction()
     std::cout << "Reduction: " << sum << std::endl;
 
 
-
+#if 0
+// looks like this is only supported in the very latest eigen versions by default
     // Use an eigen vector
-    std::vector<Vec4> dataV(N, Vec4(1, 1, 1, 1));
+    AlignedVector<Vec4> dataV(N, Vec4(1, 1, 1, 1));
     Vec4 sumV(0, 0, 0, 0);
-#pragma omp parallel for reduction(+ : sumV)
+#    pragma omp parallel for reduction(+ : sumV)
     for (int i = 0; i < N; ++i)
     {
         sumV += dataV[i];
@@ -90,11 +91,14 @@ void reduction()
     //    SAIGA_ASSERT(sumV == Vec4(N, N, N, N));
     std::cout << "Reduction Vector: " << sumV.transpose() << std::endl;
     std::cout << std::endl;
+#endif
 }
 
 
 void tasks()
 {
+	//doesn't work on msvc
+#ifndef WIN32
     std::cout << "Starting OpenMP tasks..." << std::endl;
 #pragma omp parallel num_threads(4)
     {
@@ -118,6 +122,7 @@ void tasks()
         report(-1);
     }
     std::cout << std::endl;
+#endif
 }
 
 void nested()

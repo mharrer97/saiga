@@ -3,15 +3,14 @@
 #include "saiga/core/math/random.h"
 #include "saiga/core/time/timer.h"
 #include "saiga/core/util/Thread/omp.h"
-#include "saiga/vision/LM.h"
 #include "saiga/vision/VisionIncludes.h"
 #include "saiga/vision/kernels/BAPoint.h"
 #include "saiga/vision/kernels/BAPose.h"
 #include "saiga/vision/kernels/BAPosePoint.h"
+#include "saiga/vision/util/LM.h"
 
 #include "Eigen/Sparse"
 #include "Eigen/SparseCholesky"
-#include "EigenRecursive/All.h"
 
 #include <fstream>
 
@@ -26,6 +25,7 @@ void BAPoseOnly::init()
     resBlocks.resize(n);
     x_v.resize(n);
     delta_x.resize(n);
+    oldx_v.resize(n);
 
     for (int i = 0; i < n; ++i)
     {
@@ -229,6 +229,7 @@ void BAPoseOnly::addDelta()
 #pragma omp for
     for (int i = 0; i < n; ++i)
     {
+        oldx_v[i] = x_v[i];
         x_v[i] += delta_x[i];
     }
 }

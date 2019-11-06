@@ -15,7 +15,7 @@
 #include "saiga/opengl/rendering/program.h"
 #include "saiga/opengl/rendering/renderer.h"
 #include "saiga/opengl/shader/shaderLoader.h"
-#include "saiga/opengl/texture/cube_texture.h"
+#include "saiga/opengl/texture/CubeTexture.h"
 
 namespace Saiga
 {
@@ -33,7 +33,7 @@ void DeferredLighting::loadShaders()
 
 
 
-    stencilShader = ShaderLoader::instance()->load<MVPShader>(names.stencilShader);
+    stencilShader = shaderLoader.load<MVPShader>(names.stencilShader);
 }
 
 void DeferredLighting::init(int _width, int _height, bool _useTimers)
@@ -60,7 +60,7 @@ void DeferredLighting::init(int _width, int _height, bool _useTimers)
     lightAccumulationBuffer.create();
 
     //    std::shared_ptr<Texture> depth_stencil = new Texture();
-    //    depth_stencil->createEmptyTexture(width,height,GL_DEPTH_STENCIL, GL_DEPTH24_STENCIL8,GL_UNSIGNED_INT_24_8);
+    //    depth_stencil->create(width,height,GL_DEPTH_STENCIL, GL_DEPTH24_STENCIL8,GL_UNSIGNED_INT_24_8);
     //    lightAccumulationBuffer.attachTextureDepthStencil( framebuffer_texture_t(depth_stencil) );
 
     // NOTE: Use the same depth-stencil buffer as the gbuffer. I hope this works on every hardware :).
@@ -68,13 +68,13 @@ void DeferredLighting::init(int _width, int _height, bool _useTimers)
 
     {
         lightAccumulationTexture = std::make_shared<Texture>();
-        lightAccumulationTexture->createEmptyTexture(_width, _height, GL_RGBA, GL_RGBA16, GL_UNSIGNED_SHORT);
+        lightAccumulationTexture->create(_width, _height, GL_RGBA, GL_RGBA16, GL_UNSIGNED_SHORT);
         lightAccumulationBuffer.attachTexture(framebuffer_texture_t(lightAccumulationTexture));
     }
 
     {
         volumetricLightTexture = std::make_shared<Texture>();
-        volumetricLightTexture->createEmptyTexture(_width, _height, GL_RGBA, GL_RGBA16, GL_UNSIGNED_SHORT);
+        volumetricLightTexture->create(_width, _height, GL_RGBA, GL_RGBA16, GL_UNSIGNED_SHORT);
         lightAccumulationBuffer.attachTexture(framebuffer_texture_t(volumetricLightTexture));
     }
 
@@ -87,7 +87,7 @@ void DeferredLighting::init(int _width, int _height, bool _useTimers)
     volumetricBuffer.create();
     {
         volumetricLightTexture2 = std::make_shared<Texture>();
-        volumetricLightTexture2->createEmptyTexture(_width, _height, GL_RGBA, GL_RGBA16, GL_UNSIGNED_SHORT);
+        volumetricLightTexture2->create(_width, _height, GL_RGBA, GL_RGBA16, GL_UNSIGNED_SHORT);
         volumetricBuffer.attachTexture(framebuffer_texture_t(volumetricLightTexture2));
     }
     volumetricBuffer.drawTo({0});
@@ -113,7 +113,8 @@ void DeferredLighting::resize(int _width, int _height)
 
 void DeferredLighting::cullLights(Camera* cam)
 {
-    visibleLights = directionalLights.size();
+    visibleLights           = directionalLights.size();
+    visibleVolumetricLights = 0;
 
     // cull lights that are not visible
     for (auto& light : spotLights)
@@ -122,7 +123,9 @@ void DeferredLighting::cullLights(Camera* cam)
         {
             light->calculateCamera();
             light->shadowCamera.recalculatePlanes();
-            visibleLights += (light->cullLight(cam)) ? 0 : 1;
+            bool visible = !light->cullLight(cam);
+            visibleLights += visible;
+            visibleVolumetricLights += (visible && light->isVolumetric());
         }
     }
 
@@ -132,7 +135,9 @@ void DeferredLighting::cullLights(Camera* cam)
         {
             light->calculateCamera();
             light->shadowCamera.recalculatePlanes();
-            visibleLights += (light->cullLight(cam)) ? 0 : 1;
+            bool visible = !light->cullLight(cam);
+            visibleLights += visible;
+            visibleVolumetricLights += (visible && light->isVolumetric());
         }
     }
 
@@ -141,9 +146,13 @@ void DeferredLighting::cullLights(Camera* cam)
     {
         if (light->isActive())
         {
-            visibleLights += (light->cullLight(cam)) ? 0 : 1;
+            bool visible = !light->cullLight(cam);
+            visibleLights += visible;
+            visibleVolumetricLights += (visible && light->isVolumetric());
         }
     }
+
+    renderVolumetric = visibleVolumetricLights > 0;
 }
 
 void DeferredLighting::printTimings()
@@ -161,16 +170,27 @@ void DeferredLighting::initRender()
     totalLights       = 0;
     renderedDepthmaps = 0;
     totalLights       = directionalLights.size() + spotLights.size() + pointLights.size() + boxLights.size();
+
+    lightAccumulationBuffer.bind();
+    if (renderVolumetric)
+        lightAccumulationBuffer.drawTo({0, 1});
+    else
+        lightAccumulationBuffer.drawTo({0});
+
+    //    glClearColor(0,0,0,0);
+    glClearColor(clearColor[0], clearColor[1], clearColor[2], clearColor[3]);
+    glClear(GL_COLOR_BUFFER_BIT);
+    lightAccumulationBuffer.unbind();
 }
 
 void DeferredLighting::renderDepthMaps(DeferredRenderingInterface* renderer)
 {
     // When GL_POLYGON_OFFSET_FILL, GL_POLYGON_OFFSET_LINE, or GL_POLYGON_OFFSET_POINT is enabled,
     // each fragment's depth value will be offset after it is interpolated from the depth values of the appropriate
-    // vertices. The value of the offset is factor×DZ+r×units, where DZ is a measurement of the change in depth relative
-    // to the screen area of the polygon, and r is the smallest value that is guaranteed to produce a resolvable offset
-    // for a given implementation. The offset is added before the depth test is performed and before the value is
-    // written into the depth buffer.
+    // vertices. The value of the offset is factor×DZ+r×units, where DZ is a measurement of the change in depth
+    // relative to the screen area of the polygon, and r is the smallest value that is guaranteed to produce a
+    // resolvable offset for a given implementation. The offset is added before the depth test is performed and
+    // before the value is written into the depth buffer.
     glEnable(GL_POLYGON_OFFSET_FILL);
 
     float shadowMult = backFaceShadows ? -1 : 1;
@@ -206,7 +226,7 @@ void DeferredLighting::renderDepthMaps(DeferredRenderingInterface* renderer)
     glDisable(GL_POLYGON_OFFSET_FILL);
 }
 
-void DeferredLighting::render(Camera* cam)
+void DeferredLighting::render(Camera* cam, const ViewPort& viewPort)
 {
     //    gbuffer.blitDepth(lightAccumulationBuffer.getId());
 
@@ -214,7 +234,7 @@ void DeferredLighting::render(Camera* cam)
 
 
     // viewport is maybe different after shadow map rendering
-    glViewport(0, 0, width, height);
+    //    glViewport(0, 0, width, height);
 
 
 
@@ -228,7 +248,7 @@ void DeferredLighting::render(Camera* cam)
 
     lightAccumulationBuffer.bind();
 
-
+#if 0
     if (renderVolumetric)
         lightAccumulationBuffer.drawTo({0, 1});
     else
@@ -237,7 +257,7 @@ void DeferredLighting::render(Camera* cam)
     //    glClearColor(0,0,0,0);
     glClearColor(clearColor[0], clearColor[1], clearColor[2], clearColor[3]);
     glClear(GL_COLOR_BUFFER_BIT);
-
+#endif
     //    blitGbufferDepthToAccumulationBuffer();
 
 
@@ -274,7 +294,7 @@ void DeferredLighting::render(Camera* cam)
     for (auto& l : pointLights)
     {
         renderLightVolume<std::shared_ptr<PointLight>, std::shared_ptr<PointLightShader>>(
-            pointLightMesh, l, cam, pointLightShader, pointLightShadowShader, pointLightVolumetricShader);
+            pointLightMesh, l, cam, viewPort, pointLightShader, pointLightShadowShader, pointLightVolumetricShader);
     }
     stopTimer(1);
 
@@ -282,7 +302,7 @@ void DeferredLighting::render(Camera* cam)
     for (auto& l : spotLights)
     {
         renderLightVolume<std::shared_ptr<SpotLight>, std::shared_ptr<SpotLightShader>>(
-            spotLightMesh, l, cam, spotLightShader, spotLightShadowShader, spotLightVolumetricShader);
+            spotLightMesh, l, cam, viewPort, spotLightShader, spotLightShadowShader, spotLightVolumetricShader);
     }
     stopTimer(2);
 
@@ -290,7 +310,7 @@ void DeferredLighting::render(Camera* cam)
     for (auto& l : boxLights)
     {
         renderLightVolume<std::shared_ptr<BoxLight>, std::shared_ptr<BoxLightShader>>(
-            boxLightMesh, l, cam, boxLightShader, boxLightShadowShader, boxLightVolumetricShader);
+            boxLightMesh, l, cam, viewPort, boxLightShader, boxLightShadowShader, boxLightVolumetricShader);
     }
     stopTimer(3);
     assert_no_glerror();
@@ -320,8 +340,8 @@ void DeferredLighting::render(Camera* cam)
     // volumetric directional lights are not supported
     if (renderVolumetric) lightAccumulationBuffer.drawTo({0});
 
-    renderDirectionalLights(cam, false);
-    renderDirectionalLights(cam, true);
+    renderDirectionalLights(cam, viewPort, false);
+    renderDirectionalLights(cam, viewPort, true);
     stopTimer(4);
 
     if (stencilCulling)
@@ -338,6 +358,7 @@ void DeferredLighting::render(Camera* cam)
 
     // reset state
     glEnable(GL_DEPTH_TEST);
+    glDepthMask(GL_TRUE);
     glDisable(GL_BLEND);
 
     if (drawDebug)
@@ -356,8 +377,8 @@ void DeferredLighting::postprocessVolumetric()
     // lazy load
     if (!volumetricBlurShader)
     {
-        volumetricBlurShader  = ShaderLoader::instance()->load<MVPTextureShader>("lighting/volumetricBlur.glsl");
-        volumetricBlurShader2 = ShaderLoader::instance()->load<Shader>("lighting/volumetricBlur2.glsl");
+        volumetricBlurShader  = shaderLoader.load<MVPTextureShader>("lighting/volumetricBlur.glsl");
+        volumetricBlurShader2 = shaderLoader.load<Shader>("lighting/volumetricBlur2.glsl");
     }
 
     glDisable(GL_DEPTH_TEST);
@@ -366,7 +387,7 @@ void DeferredLighting::postprocessVolumetric()
     volumetricBuffer.bind();
     volumetricBlurShader->bind();
     volumetricBlurShader->uploadModel(identityMat4());
-    volumetricBlurShader->uploadTexture(volumetricLightTexture);
+    volumetricBlurShader->uploadTexture(volumetricLightTexture.get());
     directionalLightMesh.bindAndDraw();
     volumetricBlurShader->unbind();
     volumetricBuffer.unbind();
@@ -456,7 +477,7 @@ void DeferredLighting::setupLightPass(bool isVolumetric)
 
 
 
-void DeferredLighting::renderDirectionalLights(Camera* cam, bool shadow)
+void DeferredLighting::renderDirectionalLights(Camera* cam, const ViewPort& vp, bool shadow)
 {
     if (directionalLights.empty()) return;
 
@@ -464,7 +485,7 @@ void DeferredLighting::renderDirectionalLights(Camera* cam, bool shadow)
     SAIGA_ASSERT(shader);
     shader->bind();
     shader->DeferredShader::uploadFramebuffer(&gbuffer);
-    shader->uploadScreenSize(vec2(width, height));
+    shader->uploadScreenSize(vp.getVec4());
     shader->uploadSsaoTexture(ssaoTexture);
 
     directionalLightMesh.bind();
@@ -485,7 +506,7 @@ void DeferredLighting::renderDirectionalLights(Camera* cam, bool shadow)
 
 void DeferredLighting::renderDebug(Camera* cam)
 {
-    if (!debugShader) debugShader = ShaderLoader::instance()->load<MVPColorShader>("lighting/debugmesh.glsl");
+    if (!debugShader) debugShader = shaderLoader.load<MVPColorShader>("lighting/debugmesh.glsl");
 
     debugShader->bind();
 
@@ -601,8 +622,8 @@ void DeferredLighting::blitGbufferDepthToAccumulationBuffer()
 
     //    glBindFramebuffer(GL_READ_FRAMEBUFFER, gbuffer.getId());
     //    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, lightAccumulationBuffer.getId());
-    //    glBlitFramebuffer(0, 0, gbuffer.getTextureDepth()->getWidth(), gbuffer.getTextureDepth()->getHeight(), 0, 0,
-    //    gbuffer.getTextureDepth()->getWidth(), gbuffer.getTextureDepth()->getHeight(),GL_DEPTH_BUFFER_BIT |
+    //    glBlitFramebuffer(0, 0, gbuffer.getTextureDepth()->getWidth(), gbuffer.getTextureDepth()->getHeight(), 0,
+    //    0, gbuffer.getTextureDepth()->getWidth(), gbuffer.getTextureDepth()->getHeight(),GL_DEPTH_BUFFER_BIT |
     //    GL_STENCIL_BUFFER_BIT, GL_NEAREST);
 
     //    glClearColor(0,0,0,0);
@@ -613,7 +634,7 @@ void DeferredLighting::applyVolumetricLightBuffer()
 {
     if (!renderVolumetric) return;
 
-    if (!textureShader) textureShader = ShaderLoader::instance()->load<MVPTextureShader>("lighting/light_test.glsl");
+    if (!textureShader) textureShader = shaderLoader.load<MVPTextureShader>("lighting/light_test.glsl");
 
     glDisable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
@@ -628,7 +649,7 @@ void DeferredLighting::applyVolumetricLightBuffer()
     textureShader->bind();
 
     textureShader->uploadModel(identityMat4());
-    textureShader->uploadTexture(volumetricLightTexture2);
+    textureShader->uploadTexture(volumetricLightTexture2.get());
     directionalLightMesh.bindAndDraw();
     textureShader->unbind();
 
@@ -710,9 +731,9 @@ std::shared_ptr<DirectionalLight> DeferredLighting::createDirectionalLight()
     if (!directionalLightShader)
     {
         const DeferredLightingShaderNames& names = DeferredLightingShaderNames();
-        directionalLightShader = ShaderLoader::instance()->load<DirectionalLightShader>(names.directionalLightShader);
+        directionalLightShader = shaderLoader.load<DirectionalLightShader>(names.directionalLightShader);
         directionalLightShadowShader =
-            ShaderLoader::instance()->load<DirectionalLightShader>(names.directionalLightShader, shadowInjection);
+            shaderLoader.load<DirectionalLightShader>(names.directionalLightShader, shadowInjection);
     }
 
     std::shared_ptr<DirectionalLight> l = std::make_shared<DirectionalLight>();
@@ -725,11 +746,9 @@ std::shared_ptr<PointLight> DeferredLighting::createPointLight()
     if (!pointLightShader)
     {
         const DeferredLightingShaderNames& names = DeferredLightingShaderNames();
-        pointLightShader = ShaderLoader::instance()->load<PointLightShader>(names.pointLightShader);
-        pointLightShadowShader =
-            ShaderLoader::instance()->load<PointLightShader>(names.pointLightShader, shadowInjection);
-        pointLightVolumetricShader =
-            ShaderLoader::instance()->load<PointLightShader>(names.pointLightShader, volumetricInjection);
+        pointLightShader                         = shaderLoader.load<PointLightShader>(names.pointLightShader);
+        pointLightShadowShader     = shaderLoader.load<PointLightShader>(names.pointLightShader, shadowInjection);
+        pointLightVolumetricShader = shaderLoader.load<PointLightShader>(names.pointLightShader, volumetricInjection);
     }
 
     std::shared_ptr<PointLight> l = std::make_shared<PointLight>();
@@ -742,10 +761,9 @@ std::shared_ptr<SpotLight> DeferredLighting::createSpotLight()
     if (!spotLightShader)
     {
         const DeferredLightingShaderNames& names = DeferredLightingShaderNames();
-        spotLightShader       = ShaderLoader::instance()->load<SpotLightShader>(names.spotLightShader);
-        spotLightShadowShader = ShaderLoader::instance()->load<SpotLightShader>(names.spotLightShader, shadowInjection);
-        spotLightVolumetricShader =
-            ShaderLoader::instance()->load<SpotLightShader>(names.spotLightShader, volumetricInjection);
+        spotLightShader                          = shaderLoader.load<SpotLightShader>(names.spotLightShader);
+        spotLightShadowShader     = shaderLoader.load<SpotLightShader>(names.spotLightShader, shadowInjection);
+        spotLightVolumetricShader = shaderLoader.load<SpotLightShader>(names.spotLightShader, volumetricInjection);
     }
 
     std::shared_ptr<SpotLight> l = std::make_shared<SpotLight>();
@@ -758,10 +776,9 @@ std::shared_ptr<BoxLight> DeferredLighting::createBoxLight()
     if (!boxLightShader)
     {
         const DeferredLightingShaderNames& names = DeferredLightingShaderNames();
-        boxLightShader                           = ShaderLoader::instance()->load<BoxLightShader>(names.boxLightShader);
-        boxLightShadowShader = ShaderLoader::instance()->load<BoxLightShader>(names.boxLightShader, shadowInjection);
-        boxLightVolumetricShader =
-            ShaderLoader::instance()->load<BoxLightShader>(names.boxLightShader, volumetricInjection);
+        boxLightShader                           = shaderLoader.load<BoxLightShader>(names.boxLightShader);
+        boxLightShadowShader     = shaderLoader.load<BoxLightShader>(names.boxLightShader, shadowInjection);
+        boxLightVolumetricShader = shaderLoader.load<BoxLightShader>(names.boxLightShader, volumetricInjection);
     }
 
     std::shared_ptr<BoxLight> l = std::make_shared<BoxLight>();

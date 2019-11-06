@@ -232,11 +232,10 @@ void BoxLightRenderer::init(VulkanBase& vulkanDevice, VkRenderPass renderPass, s
     lightMesh.init(vulkanDevice);
 }
 
-void BoxLightRenderer::updateUniformBuffers(vk::CommandBuffer cmd, mat4 proj, mat4 view, bool debug)
+void BoxLightRenderer::updateUniformBuffers(vk::CommandBuffer cmd, mat4 proj, mat4 view)
 {
-    uboFS.proj  = proj;
-    uboFS.view  = view;
-    uboFS.debug = debug;
+    uboFS.proj = proj;
+    uboFS.view = view;
     uniformBufferFS.update(cmd, sizeof(uboFS), &uboFS);
 
     uboVS.proj = proj;

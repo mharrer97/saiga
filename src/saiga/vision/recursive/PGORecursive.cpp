@@ -3,10 +3,10 @@
 #include "saiga/core/imgui/imgui.h"
 #include "saiga/core/time/timer.h"
 #include "saiga/core/util/Algorithm.h"
-#include "saiga/vision/HistogramImage.h"
-#include "saiga/vision/LM.h"
 #include "saiga/vision/kernels/PGO.h"
 #include "saiga/vision/kernels/Robust.h"
+#include "saiga/vision/util/HistogramImage.h"
+#include "saiga/vision/util/LM.h"
 
 #include <fstream>
 #include <numeric>
@@ -108,8 +108,8 @@ double PGORec::computeQuadraticForm()
 
     //    SAIGA_BLOCK_TIMER();
     //    SAIGA_OPTIONAL_BLOCK_TIMER(optimizationOptions.debugOutput);
-    using T          = BlockPGOScalar;
-    using KernelType = Saiga::Kernel::PGO<T>;
+    // using T          = BlockPGOScalar;
+    using KernelType = Saiga::Kernel::PGO<PGOTransformation>;
 
     b.setZero();
 
@@ -176,6 +176,7 @@ double PGORec::computeQuadraticForm()
             }
 
 
+
             chi2local += c;
         }
     }
@@ -205,8 +206,8 @@ double PGORec::computeCost()
     auto& scene = *_scene;
 
     //    SAIGA_OPTIONAL_BLOCK_TIMER(optimizationOptions.debugOutput);
-    using T          = BlockPGOScalar;
-    using KernelType = Saiga::Kernel::PGO<T>;
+    // using T          = BlockPGOScalar;
+    using KernelType = Saiga::Kernel::PGO<PGOTransformation>;
 
 
 
@@ -249,7 +250,12 @@ void PGORec::addDelta()
     {
         if (scene.poses[i].constant) continue;
         auto t = delta_x(i).get();
-        x_u[i] = SE3::exp(t) * x_u[i];
+#ifdef PGO_SIM3
+        if (scene.fixScale) t[6] = 0;
+#endif
+
+        //        std::cout << t.transpose() << std::endl;
+        x_u[i] = PGOTransformation::exp(t) * x_u[i];
     }
 }
 
@@ -278,13 +284,13 @@ void PGORec::finalize()
 {
     auto& scene = *_scene;
 
-//    int i = 0;
-//    for (auto& e : scene.poses)
-//    {
+    //    int i = 0;
+    //    for (auto& e : scene.poses)
+    //    {
     for (int i = 0; i < n; ++i)
     {
-        auto& e = scene.poses[i];
-        if (!e.constant) e.se3 = x_u[i];
+        auto& p = scene.poses[i];
+        if (!p.constant) p.se3 = x_u[i];
     }
 }
 

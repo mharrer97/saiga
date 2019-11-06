@@ -78,7 +78,7 @@ void main()
 	}
 
 			
-	if(ubo.debug) {
+        if(!ubo.debug) {
 		vec2 tc2 = inData.tc * 2.f;
 		if (inData.tc.x < 0.5 && inData.tc.y >= 0.5){ //linker unterer bereich der anzeige
 				//outColor = vec4(vec3(depth), 1);
@@ -101,17 +101,9 @@ void main()
 		else //rechter oberer
 				outColor = vec4(texture(normalTexture, tc2 - vec2(1,0)).rgb, 1);
 				
-		//outColor = vec4(vec3(depth),1.f);
 	}
 	
-	//outColor = vec4(inData.tc, 0, 1);
-		//outColor = vec4(0);
 
-	
-	//outColor = vec4(N, 1.f);
-    //outColor = texture(diffuseTexture,inData.tc) * texture(normalTexture,inData.tc) * max(1.f,texture(specularTexture,inData.tc).r + 0.75f) * texture(additionalTexture,inData.tc);
-	//outColor = ubo.lightPos;
-	
 }
 
 

@@ -18,6 +18,7 @@ using std::min;
 using std::round;
 
 
+
 template <typename T>
 constexpr T epsilon()
 {
@@ -50,6 +51,15 @@ HD inline T ele_div(const T& a, const T& b)
     return a.array() / b.array();
 }
 
+HD inline vec4 min(const vec4& a, const vec4& b)
+{
+    return a.array().min(b.array());
+}
+
+HD inline vec4 max(const vec4& a, const vec4& b)
+{
+    return a.array().max(b.array());
+}
 
 HD inline vec3 min(const vec3& a, const vec3& b)
 {
@@ -61,6 +71,15 @@ HD inline vec3 max(const vec3& a, const vec3& b)
     return a.array().max(b.array());
 }
 
+HD inline vec2 min(const vec2& a, const vec2& b)
+{
+    return a.array().min(b.array());
+}
+
+HD inline vec2 max(const vec2& a, const vec2& b)
+{
+    return a.array().max(b.array());
+}
 
 HD inline vec4 round(const vec4& a)
 {
@@ -172,7 +191,10 @@ HD inline ucvec4 make_ucvec4(const ucvec3& v, unsigned char a)
     return ucvec4(v(0), v(1), v(2), a);
 }
 
-
+HD inline float degrees(float a)
+{
+    return a * 180.0 / pi<float>();
+}
 
 HD inline float radians(float a)
 {
@@ -201,6 +223,15 @@ HD inline mat4 make_mat4(float a00, float a01, float a02, float a03, float a10, 
     mat4 m;
     m << a00, a01, a02, a03, a10, a11, a12, a13, a20, a21, a22, a23, a30, a31, a32, a33;
     return m.transpose();
+}
+
+HD inline mat4 make_mat4_row_major(float a00, float a01, float a02, float a03, float a10, float a11, float a12,
+                                   float a13, float a20, float a21, float a22, float a23, float a30, float a31,
+                                   float a32, float a33)
+{
+    mat4 m;
+    m << a00, a01, a02, a03, a10, a11, a12, a13, a20, a21, a22, a23, a30, a31, a32, a33;
+    return m;
 }
 
 HD inline mat4 make_mat4(const mat3& m)
@@ -255,10 +286,16 @@ HD inline T normalize(const T& v)
     return v.normalized();
 }
 
-HD inline vec3 col(const mat3& m, int id)
+HD inline auto col(const mat3& m, int id)
 {
     return m.col(id);
 }
+
+HD inline auto col(mat3& m, int id)
+{
+    return m.col(id);
+}
+
 HD inline auto col(mat4& m, int id)
 {
     return m.col(id);
@@ -479,6 +516,11 @@ HD inline mat4 make_mat4(const quat& q)
     return make_mat4(q.matrix());
 }
 
+HD inline mat3 make_mat3(const quat& q)
+{
+    return q.matrix();
+}
+
 HD inline quat make_quat(float x, float y, float z, float w)
 {
     // Eigen quats are stored as (x,y,z,w), but the constructor is (w,x,y,z)
@@ -515,7 +557,7 @@ HD inline quat mix(const quat& a, const quat& b, float alpha)
 }
 HD inline quat quat_cast(const mat3& m)
 {
-    return quat(m);
+    return quat(m).normalized();
 }
 HD inline quat quat_cast(const mat4& m)
 {
@@ -568,6 +610,8 @@ HD inline mat4 createTRSmatrix(const vec4& t, const quat& r, const vec4& s)
     mat4 S = scale(identityMat4(), make_vec3(s));
     return T * R * S;
 }
+
+
 
 }  // namespace Saiga
 

@@ -142,18 +142,19 @@ void DeferredLighting::createAndUpdateDescriptorSets(Memory::ImageMemoryLocation
                 spotShadowLightRenderer.createAndUpdateDescriptorSetShadow(l->shadowmap->getShadowBuffer()->location);
     }
 }
-void DeferredLighting::updateUniformBuffers(vk::CommandBuffer cmd, mat4 proj, mat4 view, bool debugIn)
+void DeferredLighting::updateUniformBuffers(vk::CommandBuffer cmd, mat4 proj, mat4 view, bool debugLights,
+                                            bool debugGBuffer)
 {
-    this->debug = debugIn;
+    this->debug = debugLights;
     debugLightRenderer.updateUniformBuffers(cmd, proj, view);
 
-    directionalLightRenderer.updateUniformBuffers(cmd, proj, view, debugIn);
-    pointLightRenderer.updateUniformBuffers(cmd, proj, view, debugIn);
-    spotLightRenderer.updateUniformBuffers(cmd, proj, view, debugIn);
-    boxLightRenderer.updateUniformBuffers(cmd, proj, view, debugIn);
+    directionalLightRenderer.updateUniformBuffers(cmd, proj, view, debugGBuffer);
+    pointLightRenderer.updateUniformBuffers(cmd, proj, view);
+    spotLightRenderer.updateUniformBuffers(cmd, proj, view);
+    boxLightRenderer.updateUniformBuffers(cmd, proj, view);
 
-    directionalShadowLightRenderer.updateUniformBuffers(cmd, proj, view, debugIn);
-    spotShadowLightRenderer.updateUniformBuffers(cmd, proj, view, debugIn);
+    directionalShadowLightRenderer.updateUniformBuffers(cmd, proj, view, debugGBuffer);
+    spotShadowLightRenderer.updateUniformBuffers(cmd, proj, view);
 }
 
 void DeferredLighting::cullLights(Camera* cam)  // TODO broken???
@@ -474,24 +475,24 @@ std::shared_ptr<BoxLight> DeferredLighting::createBoxLight()
     return l;
 }
 
-void DeferredLighting::enableShadowMapping(std::shared_ptr<DirectionalLight> l)
+void DeferredLighting::enableShadowMapping(std::shared_ptr<DirectionalLight> l, unsigned int extent)
 {
     // TODO shadowmap creation here?
     if (!l->hasShadows())
     {
-        l->createShadowMap(*base, 4000, 4000, shadowPass);
+        l->createShadowMap(*base, extent, extent, shadowPass);
         l->enableShadows();
         // l->shadowMapDescriptor = directionalShadowLightRenderer.createAndUpdateDescriptorSetShadow(
         //    l->shadowmap->getShadowBuffer()->location);
     }
 }
 
-void DeferredLighting::enableShadowMapping(std::shared_ptr<SpotLight> l)
+void DeferredLighting::enableShadowMapping(std::shared_ptr<SpotLight> l, unsigned int extent)
 {
     // TODO shadowmap creation here?
     if (!l->hasShadows())
     {
-        l->createShadowMap(*base, 1000, 1000, shadowPass);
+        l->createShadowMap(*base, extent, extent, shadowPass);
         l->enableShadows();
         // l->shadowMapDescriptor = directionalShadowLightRenderer.createAndUpdateDescriptorSetShadow(
         //    l->shadowmap->getShadowBuffer()->location);

@@ -14,6 +14,18 @@
 
 namespace Saiga
 {
+struct ViewPort
+{
+    ivec2 position;
+    ivec2 size;
+    ViewPort() = default;
+    ViewPort(ivec2 position, ivec2 size) : position(position), size(size) {}
+
+    vec4 getVec4() const { return vec4(position(0), position(1), size(0), size(1)); }
+};
+
+
+
 class SAIGA_CORE_API Camera : public Object3D
 {
    public:
@@ -165,11 +177,6 @@ class SAIGA_CORE_API Camera : public Object3D
         return make_vec3(wp);
     }
 
-    static mat4 getVulkanTransform()
-    {
-        return make_mat4(1.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.5f, 0.0f, 0.0f, 0.0f, 0.5f,
-                         1.0f);
-    }
 
     virtual void recomputeProj(){};
 
@@ -188,7 +195,7 @@ class SAIGA_CORE_API PerspectiveCamera : public Camera
     float tang;
     PerspectiveCamera() {}
     void setProj(float fovy, float aspect, float zNear, float zFar, bool vulkanTransform = false);
-    friend std::ostream& operator<<(std::ostream& os, const PerspectiveCamera& ca);
+    SAIGA_CORE_API friend std::ostream& operator<<(std::ostream& os, const PerspectiveCamera& ca);
 
     void imgui();
     virtual void recomputeProj() override;
@@ -205,7 +212,7 @@ class SAIGA_CORE_API OrthographicCamera : public Camera
     void setProj(float left, float right, float bottom, float top, float near, float far, bool vulkanTransform = false);
     void setProj(AABB bb, bool vulkanTransform = false);
 
-    friend std::ostream& operator<<(std::ostream& os, const OrthographicCamera& ca);
+    SAIGA_CORE_API friend std::ostream& operator<<(std::ostream& os, const OrthographicCamera& ca);
 
     void imgui();
     virtual void recomputeProj() override;

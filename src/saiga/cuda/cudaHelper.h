@@ -6,14 +6,15 @@
 
 #pragma once
 
+#define SAIGA_ARRAY_VIEW_THRUST
 
 #include "saiga/config.h"
+#include "saiga/core/math/imath.h"
+#include "saiga/core/util/DataStructures/ArrayView.h"
+#include "saiga/core/util/assert.h"
 #include "saiga/cuda/cuda.h"
 #include "saiga/cuda/cudaTimer.h"
 #include "saiga/cuda/thrust_helper.h"
-#include "saiga/core/util/DataStructures/ArrayView.h"
-#include "saiga/core/util/assert.h"
-#include "saiga/core/math/imath.h"
 
 
 
@@ -46,11 +47,6 @@ HD SAIGA_CONSTEXPR T1 getBlockCount(T1 problemSize, T2 threadCount)
 {
     return (problemSize + (threadCount - T2(1))) / (threadCount);
 }
-
-
-SAIGA_CUDA_API extern void initCUDA();
-SAIGA_CUDA_API extern void destroyCUDA();
-
 }  // namespace CUDA
 }  // namespace Saiga
 

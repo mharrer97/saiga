@@ -66,13 +66,7 @@
 #    define SAIGA_DEBUG
 #endif
 
-// includes that are used for everything
-//#include <iostream>
-// This includes forward declarations for basic IO types
-// such as std::ostream
-#include <iosfwd>
 
-#define SAIGA_INCLUDED
 
 // ============== CUDA Stuff ==============
 
@@ -102,7 +96,22 @@
 #    endif
 #endif
 
+#ifdef __CUDACC__
+#else
+#    define SAIGA_HAS_STRING_VIEW
+#endif
+
 #define WARP_SIZE 32
 #define L1_CACHE_LINE_SIZE 128
 #define L2_CACHE_LINE_SIZE 32
 #define MAX_THREADS_PER_SM 2048
+
+// ============== CUDA Stuff ==============
+
+// includes that are used for everything
+//#include <iostream>
+// This includes forward declarations for basic IO types
+// such as std::ostream
+#include <iosfwd>
+
+#define SAIGA_INCLUDED

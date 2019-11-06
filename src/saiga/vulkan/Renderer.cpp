@@ -84,7 +84,11 @@ void VulkanRenderer::init()
     std::cout << "Init VulkanRenderer -- FINISHED" << std::endl;
 }
 
-void VulkanRenderer::render(Camera* cam)
+//<<<<<<< HEAD
+// void VulkanRenderer::render(Camera* cam)
+//=======
+void VulkanRenderer::render(const RenderInfo& renderInfo)
+//>>>>>>> 846204787640a24705ee005762712b233cf0ef24
 {
     if (state == State::RESET)
     {
@@ -112,7 +116,7 @@ void VulkanRenderer::render(Camera* cam)
     VK_CHECK_RESULT(err);
 
 
-    render(sync, currentBuffer, cam);
+    render(sync, currentBuffer, renderInfo.cameras.at(0).first);
 
 
     err = swapChain.queuePresent(base().mainQueue, currentBuffer, sync.renderComplete);

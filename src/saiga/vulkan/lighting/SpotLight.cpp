@@ -291,11 +291,10 @@ void SpotLightRenderer::init(VulkanBase& vulkanDevice, VkRenderPass renderPass, 
     lightMeshIco.init(vulkanDevice);
 }
 
-void SpotLightRenderer::updateUniformBuffers(vk::CommandBuffer cmd, mat4 proj, mat4 view, bool debug)
+void SpotLightRenderer::updateUniformBuffers(vk::CommandBuffer cmd, mat4 proj, mat4 view)
 {
-    uboFS.proj  = proj;
-    uboFS.view  = view;
-    uboFS.debug = debug;
+    uboFS.proj = proj;
+    uboFS.view = view;
     uniformBufferFS.update(cmd, sizeof(uboFS), &uboFS);
 
     uboVS.proj = proj;
@@ -454,11 +453,10 @@ void SpotShadowLightRenderer::init(VulkanBase& vulkanDevice, VkRenderPass render
     uniformBufferFS.init(*base, &uboFS, sizeof(uboFS));
 }
 
-void SpotShadowLightRenderer::updateUniformBuffers(vk::CommandBuffer cmd, mat4 proj, mat4 view, bool debug)
+void SpotShadowLightRenderer::updateUniformBuffers(vk::CommandBuffer cmd, mat4 proj, mat4 view)
 {
-    uboFS.proj  = proj;
-    uboFS.view  = view;
-    uboFS.debug = debug;
+    uboFS.proj = proj;
+    uboFS.view = view;
     uniformBufferFS.update(cmd, sizeof(uboFS), &uboFS);
 
     uboVS.proj = proj;

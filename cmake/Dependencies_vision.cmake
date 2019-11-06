@@ -6,6 +6,8 @@
 # MODULE_VISION:      True if all required dependencies are found.
 #
 
+include(ExternalProject)
+
 unset(PACKAGE_INCLUDES)
 unset(LIB_TARGETS)
 unset(LIBS)
@@ -17,22 +19,41 @@ if(NOT MODULE_CORE)
 endif()
 
 
+#opencv
+find_package(OpenCV QUIET)
+if(OpenCV_FOUND)
+    SET(SAIGA_USE_OPENCV 1)
+endif()
+PackageHelper(OpenCV "${OpenCV_FOUND}" "${OpenCV_INCLUDE_DIRS}" "${OpenCV_LIBRARIES}")
+
+
+set(CMAKE_FIND_PACKAGE_NO_PACKAGE_REGISTRY ON)
+set(CMAKE_EXPORT_NO_PACKAGE_REGISTRY ON)
+
+
 #Sophus
 find_package(Sophus QUIET)
 PackageHelperTarget(Sophus::Sophus SOPHUS_FOUND)
+if(SOPHUS_FOUND)
+    SET(SAIGA_SYSTEM_SOPHUS 1)
+endif()
+
 
 
 #Recursive
+SET(SAIGA_USE_EIGENRECURSIVE 1)
 find_package(EigenRecursive QUIET)
 PackageHelperTarget(Eigen::EigenRecursive EIGENRECURSIVE_FOUND)
 if(EIGENRECURSIVE_FOUND)
-    SET(SAIGA_USE_EIGENRECURSIVE 1)
+    SET(SAIGA_SYSTEM_EIGENRECURSIVE 1)
 endif()
 
 #g2o
 find_package(g2o QUIET)
 PackageHelperTarget(g2o::core G2O_FOUND)
-
+if(G2O_FOUND)
+    SET(SAIGA_USE_G2O 1)
+endif()
 
 #ceres
 find_package(Ceres QUIET)
@@ -79,20 +100,15 @@ PackageHelper(OpenNI2 "${OPENNI2_FOUND}" "${OPENNI2_INCLUDE_DIRS}" "${OPENNI2_LI
 
 
 
-
-
-
-
 set(VISION_INCLUDES ${PACKAGE_INCLUDES})
 set(VISION_LIBS ${LIBS})
 set(VISION_TARGETS saiga_core ${LIB_TARGETS})
 
 message(STATUS ${VISION_TARGETS})
 
-if(EIGEN3_FOUND AND SOPHUS_FOUND)
-    message(STATUS "Saiga vision enabled.")
-    SET(MODULE_VISION 1)
-    SET(SAIGA_VISION 1)
-endif()
+message(STATUS "Saiga vision enabled.")
+SET(MODULE_VISION 1)
+SET(SAIGA_VISION 1)
+
 
 

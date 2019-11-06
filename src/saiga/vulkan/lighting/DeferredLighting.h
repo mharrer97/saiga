@@ -85,7 +85,8 @@ class SAIGA_VULKAN_API DeferredLighting
                                        Saiga::Vulkan::Memory::ImageMemoryLocation* normal,
                                        Saiga::Vulkan::Memory::ImageMemoryLocation* additional,
                                        Saiga::Vulkan::Memory::ImageMemoryLocation* depth);
-    void updateUniformBuffers(vk::CommandBuffer cmd, mat4 proj, mat4 view, bool debug);
+    void updateUniformBuffers(vk::CommandBuffer cmd, mat4 proj, mat4 view, bool debugLights = false,
+                              bool debugGBuffer = false);
 
     void cullLights(Camera* cam);
     void renderLights(vk::CommandBuffer cmd, Camera* cam);
@@ -113,8 +114,8 @@ class SAIGA_VULKAN_API DeferredLighting
     std::shared_ptr<SpotLight> createSpotLight();
     std::shared_ptr<BoxLight> createBoxLight();
 
-    void enableShadowMapping(std::shared_ptr<DirectionalLight> l);
-    void enableShadowMapping(std::shared_ptr<SpotLight> l);
+    void enableShadowMapping(std::shared_ptr<DirectionalLight> l, unsigned int extent = 4000);
+    void enableShadowMapping(std::shared_ptr<SpotLight> l, unsigned int extent = 1000);
 
     void removeLight(std::shared_ptr<DirectionalLight> l);
     void removeLight(std::shared_ptr<PointLight> l);

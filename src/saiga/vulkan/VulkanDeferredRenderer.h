@@ -33,7 +33,7 @@ namespace Vulkan
 class SAIGA_VULKAN_API VulkanDeferredRenderingInterface : public RenderingInterfaceBase
 {
    public:
-    VulkanDeferredRenderingInterface(RendererBase& parent) : RenderingInterfaceBase(parent) {}
+    // VulkanDeferredRenderingInterface(RendererBase& parent) : RenderingInterfaceBase(parent) {}
     virtual ~VulkanDeferredRenderingInterface() {}
 
     virtual void transfer(vk::CommandBuffer cmd, Camera* cam) {}
@@ -54,11 +54,17 @@ class SAIGA_VULKAN_API VulkanDeferredRenderingInterface : public RenderingInterf
         VkFormat format;
 };*/
 
+struct SAIGA_VULKAN_API DeferredRenderingParameters
+{
+    void fromConfigFile(const std::string& file) {}
+};
 
 class SAIGA_VULKAN_API VulkanDeferredRenderer : public VulkanRenderer
 {
    public:
-    // TODO change?
+    using InterfaceType = VulkanDeferredRenderingInterface;
+    using ParameterType = DeferredRenderingParameters;
+
     Saiga::Vulkan::Lighting::DeferredLighting lighting;
 
 

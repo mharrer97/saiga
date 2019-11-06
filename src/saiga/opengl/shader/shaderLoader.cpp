@@ -8,6 +8,8 @@
 
 namespace Saiga
 {
+ShaderLoader shaderLoader;
+
 void ShaderLoader::reload()
 {
     std::cout << "ShaderLoader::reload " << cache.objects.size() << std::endl;
@@ -36,5 +38,7 @@ bool ShaderLoader::reload(std::shared_ptr<Shader> shader, const std::string& nam
     }
     return false;
 }
+
+
 
 }  // namespace Saiga

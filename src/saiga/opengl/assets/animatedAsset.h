@@ -7,12 +7,12 @@
 #pragma once
 
 #include "saiga/opengl/assets/asset.h"
-#include "saiga/opengl/texture/texture.h"
+#include "saiga/opengl/texture/Texture.h"
 #include "saiga/opengl/uniformBuffer.h"
 
 namespace Saiga
 {
-class AnimatedModel : public TriangleModel<BoneVertexCD, uint32_t>
+class AnimatedModel : public TriangleMesh<BoneVertexCD, uint32_t>
 {
    public:
 };
@@ -50,8 +50,8 @@ class SAIGA_OPENGL_API AnimatedAsset : public BasicAsset<AnimatedModel>
     std::map<std::string, int> boneMap;
     std::map<std::string, int> nodeindexMap;
 
-    std::vector<mat4> boneOffsets;
-    std::vector<mat4> inverseBoneOffsets;
+    AlignedVector<mat4> boneOffsets;
+    AlignedVector<mat4> inverseBoneOffsets;
 
     std::vector<Animation> animations;
 

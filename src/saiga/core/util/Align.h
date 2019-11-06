@@ -17,8 +17,24 @@
 #    include <malloc.h>
 #endif
 
+
 namespace Saiga
 {
+// returns true if the pointer is actually aligned to the given size
+template <typename T, int alignment>
+constexpr bool isAligned(const T* ptr)
+{
+    return (((uintptr_t)ptr) % (alignment)) == 0;
+}
+
+template <typename T>
+constexpr bool isAligned(const T* ptr)
+{
+    return isAligned<T, alignof(T)>(ptr);
+}
+
+
+
 /**
  * Get an aligned piece of memory.
  * Alignment must be a power of 2!
@@ -30,6 +46,14 @@ inline void* aligned_malloc(size_t size)
 #ifdef WIN32
     // Windows doesn't implement std::aligned_alloc :(
     return _aligned_malloc(num, Alignment);
+#elif defined(IS_CUDA)
+    // nvcc currently doesn't support std::aligned_alloc (CUDA 10)
+    // we cannot use the trick of padding the beginnning because that would break
+    // allocating in a .cpp file and freeing in .cu.
+    // So let's just hope malloc is already aligned :(
+    auto ptr = std::malloc(num);
+    if (!isAligned<void, Alignment>(ptr)) throw std::runtime_error("Malloc Not Aligned!");
+    return ptr;
 #else
     return std::aligned_alloc(Alignment, num);
 #endif
@@ -115,7 +139,11 @@ inline std::shared_ptr<_Tp> make_aligned_shared(_Args&&... __args)
     // control block without alignment
     auto ptr = (_Tp*)aligned_malloc<Alignment>(sizeof(_Tp));
     new (ptr) _Tp(std::forward<_Args>(__args)...);
-    return std::shared_ptr<_Tp>(ptr, &aligned_free);
+    //    return std::shared_ptr<_Tp>(ptr, &aligned_free);
+    return std::shared_ptr<_Tp>(ptr, [](_Tp* ptr) {
+        ptr->~_Tp();
+        aligned_free(ptr);
+    });
 
     //    typedef typename std::remove_cv<_Tp>::type _Tp_nc;
     //    return std::allocate_shared<_Tp>(aligned_allocator<_Tp_nc, Alignment>(), std::forward<_Args>(__args)...);
@@ -138,7 +166,7 @@ inline auto make_aligned_unique(_Args&&... __args)
 }
 
 template <typename _Tp, typename... _Args>
-inline std::shared_ptr<_Tp> make_aligned_unique(_Args&&... __args)
+inline std::unique_ptr<_Tp> make_aligned_unique(_Args&&... __args)
 {
     return make_aligned_unique<_Tp, alignof(_Tp), _Args...>(std::forward<_Args>(__args)...);
 }
@@ -148,6 +176,10 @@ template <typename T, int alignment>
 struct SAIGA_ALIGN(alignment) AlignedStruct
 {
     T element;
+
+    T& operator()() { return element; }
 };
+
+
 
 }  // namespace Saiga

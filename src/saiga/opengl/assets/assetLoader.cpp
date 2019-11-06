@@ -10,7 +10,7 @@
 #include "saiga/core/geometry/triangle_mesh_generator.h"
 #include "saiga/core/image/imageGenerator.h"
 #include "saiga/opengl/shader/shaderLoader.h"
-#include "saiga/opengl/texture/textureLoader.h"
+#include "saiga/opengl/texture/TextureLoader.h"
 
 namespace Saiga
 {
@@ -22,28 +22,27 @@ AssetLoader::~AssetLoader() {}
 void AssetLoader::loadBasicShaders()
 {
     if (basicAssetShader) return;
-    basicAssetShader          = ShaderLoader::instance()->load<MVPShader>("geometry/deferred_mvp_model.glsl");
-    basicAssetForwardShader   = ShaderLoader::instance()->load<MVPShader>("geometry/deferred_mvp_model_forward.glsl");
-    basicAssetDepthshader     = ShaderLoader::instance()->load<MVPShader>("geometry/deferred_mvp_model_depth.glsl");
-    basicAssetWireframeShader = ShaderLoader::instance()->load<MVPShader>("geometry/deferred_mvp_model_wireframe.glsl");
+    basicAssetShader          = shaderLoader.load<MVPShader>("geometry/deferred_mvp_model.glsl");
+    basicAssetForwardShader   = shaderLoader.load<MVPShader>("geometry/deferred_mvp_model_forward.glsl");
+    basicAssetDepthshader     = shaderLoader.load<MVPShader>("geometry/deferred_mvp_model_depth.glsl");
+    basicAssetWireframeShader = shaderLoader.load<MVPShader>("geometry/deferred_mvp_model_wireframe.glsl");
 }
 
 void AssetLoader::loadTextureShaders()
 {
     if (texturedAssetShader) return;
-    texturedAssetShader        = ShaderLoader::instance()->load<MVPTextureShader>("geometry/texturedAsset.glsl");
-    texturedAssetForwardShader = ShaderLoader::instance()->load<MVPTextureShader>("geometry/texturedAsset.glsl");
-    texturedAssetDepthShader   = ShaderLoader::instance()->load<MVPTextureShader>("geometry/texturedAsset_depth.glsl");
-    texturedAssetWireframeShader =
-        ShaderLoader::instance()->load<MVPTextureShader>("geometry/texturedAsset_wireframe.glsl");
+    texturedAssetShader          = shaderLoader.load<MVPTextureShader>("geometry/texturedAsset.glsl");
+    texturedAssetForwardShader   = shaderLoader.load<MVPTextureShader>("geometry/texturedAsset.glsl");
+    texturedAssetDepthShader     = shaderLoader.load<MVPTextureShader>("geometry/texturedAsset_depth.glsl");
+    texturedAssetWireframeShader = shaderLoader.load<MVPTextureShader>("geometry/texturedAsset_wireframe.glsl");
 }
 
 void AssetLoader::loadAnimatedShaders()
 {
     if (animatedAssetShader) return;
-    animatedAssetShader          = ShaderLoader::instance()->load<BoneShader>("geometry/deferred_mvp_bones.glsl");
-    animatedAssetDepthshader     = ShaderLoader::instance()->load<BoneShader>("geometry/deferred_mvp_bones_depth.glsl");
-    animatedAssetWireframeShader = ShaderLoader::instance()->load<BoneShader>("geometry/deferred_mvp_bones.glsl");
+    animatedAssetShader          = shaderLoader.load<BoneShader>("geometry/deferred_mvp_bones.glsl");
+    animatedAssetDepthshader     = shaderLoader.load<BoneShader>("geometry/deferred_mvp_bones_depth.glsl");
+    animatedAssetWireframeShader = shaderLoader.load<BoneShader>("geometry/deferred_mvp_bones.glsl");
 }
 
 
@@ -56,13 +55,13 @@ std::shared_ptr<TexturedAsset> AssetLoader::loadDebugPlaneAsset(vec2 size, float
     cbTexture->setWrap(GL_REPEAT);
     cbTexture->generateMipmaps();
     std::shared_ptr<TexturedAsset> asset = loadDebugTexturedPlane(cbTexture, size);
-    for (auto& v : asset->model.mesh.vertices)
+    for (auto& v : asset->vertices)
     {
         //        v.texture *= size / quadSize;
         v.texture = ele_mult(v.texture, vec2(size * (1.0f / quadSize)));
     }
-    //    asset->model.mesh.createBuffers(asset->buffer);
-    asset->buffer.fromMesh(asset->model.mesh);
+    //    asset->createBuffers(asset->buffer);
+    asset->buffer.fromMesh(*asset);
     return asset;
 }
 
@@ -70,7 +69,7 @@ std::shared_ptr<ColoredAsset> AssetLoader::loadDebugPlaneAsset2(ivec2 size, floa
 {
     std::shared_ptr<ColoredAsset> asset = std::make_shared<ColoredAsset>();
 
-    asset->model.createCheckerBoard(size, quadSize, color1, color2);
+    asset->createCheckerBoard(size, quadSize, color1, color2);
 
     loadBasicShaders();
     asset->create(basicAssetShader, basicAssetForwardShader, basicAssetDepthshader, basicAssetWireframeShader);
@@ -86,9 +85,9 @@ std::shared_ptr<TexturedAsset> AssetLoader::loadDebugTexturedPlane(std::shared_p
 
     auto asset = std::make_shared<TexturedAsset>();
 
-    asset->model.mesh.addMesh(*plainMesh);
+    asset->addMesh(*plainMesh);
 
-    for (auto& v : asset->model.mesh.vertices)
+    for (auto& v : asset->vertices)
     {
         v.data = vec4(0.5, 0, 0, 0);
     }
@@ -150,10 +149,10 @@ std::shared_ptr<ColoredAsset> AssetLoader::loadDebugArrow(float radius, float le
     coneMesh->transform(m);
 
     auto asset = std::make_shared<ColoredAsset>();
-    asset->model.mesh.addMesh(*cylinderMesh);
-    asset->model.mesh.addMesh(*coneMesh);
+    asset->addMesh(*cylinderMesh);
+    asset->addMesh(*coneMesh);
 
-    for (auto& v : asset->model.mesh.vertices)
+    for (auto& v : asset->vertices)
     {
         v.color = color;
         v.data  = vec4(0.5, 0, 0, 0);
@@ -168,9 +167,9 @@ std::shared_ptr<ColoredAsset> AssetLoader::loadDebugArrow(float radius, float le
 std::shared_ptr<ColoredAsset> AssetLoader::assetFromMesh(TriangleMesh<VertexNT, GLuint>& mesh, const vec4& color)
 {
     auto asset = std::make_shared<ColoredAsset>();
-    asset->model.mesh.addMesh(mesh);
+    asset->addMesh(mesh);
 
-    for (auto& v : asset->model.mesh.vertices)
+    for (auto& v : asset->vertices)
     {
         v.color = color;
         v.data  = vec4(0.5, 0, 0, 0);
@@ -184,9 +183,9 @@ std::shared_ptr<ColoredAsset> AssetLoader::assetFromMesh(TriangleMesh<VertexNT, 
 std::shared_ptr<ColoredAsset> AssetLoader::assetFromMesh(TriangleMesh<VertexNC, GLuint>& mesh)
 {
     auto asset = std::make_shared<ColoredAsset>();
-    asset->model.mesh.addMesh(mesh);
+    asset->addMesh(mesh);
 
-    for (auto& v : asset->model.mesh.vertices)
+    for (auto& v : asset->vertices)
     {
         v.data = vec4(0.5, 0, 0, 0);
     }
@@ -203,15 +202,15 @@ std::shared_ptr<ColoredAsset> AssetLoader::nonTriangleMesh(std::vector<vec3> ver
 
     for (auto v : vertices)
     {
-        asset->model.mesh.vertices.push_back(VertexNC(v, vec3(0, 1, 0), make_vec3(color)));
+        asset->vertices.push_back(VertexNC(v, vec3(0, 1, 0), make_vec3(color)));
     }
-    //    for(auto& v : asset->model.mesh.vertices){
+    //    for(auto& v : asset->vertices){
     //        v.color = color;
     //        v.data = vec4(0.5,0,0,0);
     //    }
     loadBasicShaders();
     asset->create(basicAssetShader, basicAssetForwardShader, basicAssetDepthshader, basicAssetWireframeShader);
-    asset->buffer.set(asset->model.mesh.vertices, indices, GL_STATIC_DRAW);
+    asset->buffer.set(asset->vertices, indices, GL_STATIC_DRAW);
     asset->buffer.setDrawMode(mode);
     return asset;
 }

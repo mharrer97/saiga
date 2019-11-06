@@ -47,6 +47,7 @@ endif()
 
 if(SAIGA_CXX_CLANG OR SAIGA_CXX_GNU)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror=return-type")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-strict-aliasing")
 endif()
 
@@ -66,6 +67,13 @@ endif()
 
 if(SAIGA_CXX_CLANG OR SAIGA_CXX_GNU)
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden")
+endif()
+
+if(SAIGA_CXX_WCLANG)
+	# Fixes: cannot use 'throw' with exceptions disabled
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Xclang -fcxx-exceptions")
+	# some eigen header generates this warning
+	add_definitions(-D_SILENCE_CXX17_RESULT_OF_DEPRECATION_WARNING)
 endif()
 
 if(SAIGA_CXX_MSVC OR SAIGA_CXX_WCLANG)
@@ -93,10 +101,13 @@ else()
     add_definitions(-DCUDA_NDEBUG)
 endif()
 
-if(SAIGA_FULL_OPTIMIZE)
+if(SAIGA_FULL_OPTIMIZE OR SAIGA_ARCHNATIVE)
     if(SAIGA_CXX_CLANG OR SAIGA_CXX_GNU)
         SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
     endif()
+endif()
+
+if(SAIGA_FULL_OPTIMIZE)
     if(SAIGA_CXX_MSVC)
         #todo check if avx is present
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Oi /Ot /Oy /GL /fp:fast /Gy /arch:AVX2")
@@ -107,7 +118,6 @@ endif()
 
 # Sanitizers
 # https://github.com/google/sanitizers
-
 if(SAIGA_DEBUG_ASAN)
     if(SAIGA_CXX_CLANG OR SAIGA_CXX_GNU)
         SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fno-omit-frame-pointer -g")
@@ -128,4 +138,12 @@ if(SAIGA_DEBUG_TSAN)
     else()
         message(FATAL_ERROR "TSAN not supported for your compiler.")
     endif()
+endif()
+
+
+if(SAIGA_DEBIAN_BUILD)
+    if( NOT SAIGA_CXX_CLANG AND NOT SAIGA_CXX_GNU)
+         message(FATAL_ERROR "Only GCC and Clang is supported for a debian build.")
+    endif()
+     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx2 -mfma")
 endif()

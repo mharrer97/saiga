@@ -58,12 +58,13 @@ struct SAIGA_OPENGL_API DeferredRenderingParameters : public RenderingParameters
 
     GBufferParameters gbp;
     PostProcessorParameters ppp;
+
+    void fromConfigFile(const std::string& file) {}
 };
 
 class SAIGA_OPENGL_API DeferredRenderingInterface : public RenderingInterfaceBase
 {
    public:
-    DeferredRenderingInterface(RendererBase& parent) : RenderingInterfaceBase(parent) {}
     virtual ~DeferredRenderingInterface() {}
 
     // rendering into the gbuffer
@@ -83,17 +84,21 @@ class SAIGA_OPENGL_API DeferredRenderingInterface : public RenderingInterfaceBas
 };
 
 
-class SAIGA_OPENGL_API Deferred_Renderer : public Renderer
+class SAIGA_OPENGL_API DeferredRenderer : public OpenGLRenderer
 {
    public:
+    using InterfaceType = DeferredRenderingInterface;
+    using ParameterType = DeferredRenderingParameters;
+
     DeferredLighting lighting;
     PostProcessor postProcessor;
+    DeferredRenderingParameters params;
 
-    Deferred_Renderer(OpenGLWindow& window, DeferredRenderingParameters _params = DeferredRenderingParameters());
-    Deferred_Renderer& operator=(Deferred_Renderer& l) = delete;
-    virtual ~Deferred_Renderer();
+    DeferredRenderer(OpenGLWindow& window, DeferredRenderingParameters _params = DeferredRenderingParameters());
+    DeferredRenderer& operator=(DeferredRenderer& l) = delete;
+    virtual ~DeferredRenderer();
 
-    void render(Camera* cam) override;
+    void render(const RenderInfo& renderInfo) override;
     void renderImGui(bool* p_open = nullptr) override;
 
 
@@ -122,10 +127,13 @@ class SAIGA_OPENGL_API Deferred_Renderer : public Renderer
         if (!params.useGPUTimers && timer != TOTAL) return 0;
         return timers[timer].MultiFrameOpenGLTimer::getTimeMS();
     }
-    float getTotalRenderTime() override { return getUnsmoothedTimeMS(Deferred_Renderer::DeferredTimings::TOTAL); }
+    float getTotalRenderTime() override { return getUnsmoothedTimeMS(DeferredRenderer::DeferredTimings::TOTAL); }
 
     void printTimings() override;
     void resize(int outputWidth, int outputHeight) override;
+
+    int getRenderWidth() { return renderWidth; }
+    int getRenderHeight() { return renderHeight; }
 
    private:
     int renderWidth, renderHeight;
@@ -133,7 +141,6 @@ class SAIGA_OPENGL_API Deferred_Renderer : public Renderer
     std::shared_ptr<SMAA> smaa;
     GBuffer gbuffer;
 
-    DeferredRenderingParameters params;
     std::shared_ptr<MVPTextureShader> blitDepthShader;
     IndexedVertexBuffer<VertexNT, GLushort> quadMesh;
     std::vector<FilteredMultiFrameOpenGLTimer> timers;
@@ -143,10 +150,11 @@ class SAIGA_OPENGL_API Deferred_Renderer : public Renderer
     DeferredDebugOverlay ddo;
 
 
-    void renderGBuffer(Camera* cam);
+    void clearGBuffer();
+    void renderGBuffer(const std::pair<Camera*, ViewPort>& camera);
     void renderDepthMaps();  // render the scene from the lights perspective (don't need user camera here)
-    void renderLighting(Camera* cam);
-    void renderSSAO(Camera* cam);
+    void renderLighting(const std::pair<Camera*, ViewPort>& camera);
+    void renderSSAO(const std::pair<Camera*, ViewPort>& camera);
 
     void writeGbufferDepthToCurrentFramebuffer();
 

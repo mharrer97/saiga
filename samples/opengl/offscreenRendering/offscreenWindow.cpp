@@ -9,7 +9,8 @@
 #include "saiga/core/geometry/triangle_mesh_generator.h"
 #include "saiga/opengl/shader/shaderLoader.h"
 
-Sample::Sample(OpenGLWindow& window, Renderer& renderer) : Updating(window), DeferredRenderingInterface(renderer)
+#if 0
+Sample::Sample(OpenGLWindow& window, OpenGLRenderer& renderer) : Updating(window), DeferredRenderingInterface(renderer)
 {
     // create a perspective camera
     float aspect = window.getAspectRatio();
@@ -60,7 +61,7 @@ Sample::Sample(OpenGLWindow& window, Renderer& renderer) : Updating(window), Def
     groundPlane.asset = assetLoader.loadDebugPlaneAsset(vec2(20, 20), 1.0f, Colors::lightgray, Colors::gray);
 
     // create one directional light
-    Deferred_Renderer& r = static_cast<Deferred_Renderer&>(parentRenderer);
+    DeferredRenderer& r = static_cast<DeferredRenderer&>(parentRenderer);
     sun                  = r.lighting.createDirectionalLight();
     sun->setDirection(vec3(-1, -3, -2));
     sun->setColorDiffuse(LightColorPresets::DirectSunlight);
@@ -114,3 +115,4 @@ void Sample::renderFinal(Camera* cam)
     // The final render path (after post processing).
     // Usually the GUI is rendered here.
 }
+#endif

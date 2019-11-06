@@ -44,11 +44,13 @@ struct SAIGA_VISION_API Correspondence
     double weight = 1;
 
     // Apply this transfomration to the src point and normal
-    void apply(const SE3& se3)
+    void apply(const SE3& T)
     {
-        srcPoint  = se3 * srcPoint;
-        srcNormal = se3.so3() * srcNormal;
+        srcPoint  = T * srcPoint;
+        srcNormal = T.so3() * srcNormal;
     }
+
+
 
     double residualPointToPoint() { return (refPoint - srcPoint).squaredNorm(); }
 
@@ -73,12 +75,11 @@ SAIGA_VISION_API SE3 pointToPointIterative(const AlignedVector<Correspondence>& 
  * The funtion is solved using the polar decomposition.
  * See also "Orthonormal Procrustus Problem".
  *
- * For larger offsets it makes sense to apply this function multiple times.
+ * If scale != nullptr a scaling between the point clouds is also computed
  *
  *
  */
-SAIGA_VISION_API SE3 pointToPointDirect(const AlignedVector<Correspondence>& corrs, const SE3& guess = SE3(),
-                                        int innerIterations = 1);
+SAIGA_VISION_API SE3 pointToPointDirect(const AlignedVector<Correspondence>& corrs, double* scale = nullptr);
 
 /**
  * Minimized the distance between the source point to the surface plane at the reference point:
@@ -109,5 +110,12 @@ SAIGA_VISION_API SE3 planeToPlane(const AlignedVector<Correspondence>& corrs, co
                                   double covE = 0.001, int innerIterations = 5);
 
 
+SAIGA_VISION_API Quat orientationFromMixedMatrixUQ(const Mat3& M);
+SAIGA_VISION_API Quat orientationFromMixedMatrixSVD(const Mat3& M);
+
+// aligning 3 points from src to dst.
+// this is the minimal problem and used for example in the p3p solution.
+// similar to eigen::umeyama but faster
+SAIGA_VISION_API SE3 alignMinimal(const Mat3& src, const Mat3& dst);
 }  // namespace ICP
 }  // namespace Saiga

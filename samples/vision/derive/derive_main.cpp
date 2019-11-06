@@ -119,7 +119,7 @@ void analyticDeriv(JType& JA, JType& JB)
     //    JA = -JB;
     //#endif
 
-    // ==================== Only log operator =====================\
+    // ==================== Only log operator =====================
 
     std::cout << A << std::endl;
     std::cout << A.inverse() << std::endl;
@@ -167,9 +167,7 @@ using namespace Saiga;
 
 int main(int, char**)
 {
-    Saiga::SaigaParameters saigaParameters;
-    Saiga::initSample(saigaParameters);
-    Saiga::initSaiga(saigaParameters);
+    initSaigaSampleNoWindow();
 
     Saiga::Random::setSeed(93865023985);
     test();

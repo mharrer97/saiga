@@ -7,6 +7,7 @@
 #include "CeresBA.h"
 
 #include "saiga/core/time/timer.h"
+#include "saiga/vision/scene/Scene.h"
 
 #include "CeresHelper.h"
 #include "Eigen/Sparse"
@@ -19,7 +20,7 @@
 #include "CeresKernel_BA_Intr4.h"
 #include "local_parameterization_se3.h"
 
-//#define BA_AUTODIFF
+#define BA_AUTODIFF
 
 namespace Saiga
 {
@@ -45,17 +46,20 @@ OptimizationResults CeresBA::initAndSolve()
     for (size_t i = 0; i < scene.extrinsics.size(); ++i)
     {
         problem.AddParameterBlock(scene.extrinsics[i].se3.data(), 7, &camera_parameterization);
+        if (scene.extrinsics[i].constant) problem.SetParameterBlockConstant(scene.extrinsics[i].se3.data());
     }
 
     ceres::HuberLoss lossFunctionMono(baOptions.huberMono);
     ceres::HuberLoss lossFunctionStereo(baOptions.huberStereo);
 
-
+    ceres::LossFunction* lossStereo = baOptions.huberStereo > 0 ? &lossFunctionStereo : nullptr;
+    ceres::LossFunction* lossMono   = baOptions.huberMono > 0 ? &lossFunctionMono : nullptr;
 
     int monoCount   = 0;
     int stereoCount = 0;
     for (auto& img : scene.images)
     {
+        if (!img) continue;
         for (auto& ip : img.stereoPoints)
         {
             if (!ip) continue;
@@ -82,9 +86,13 @@ OptimizationResults CeresBA::initAndSolve()
 
     for (auto& img : scene.images)
     {
+        if (!img) continue;
+
         auto& extr   = scene.extrinsics[img.extr].se3;
         auto& camera = scene.intrinsics[img.intr];
         StereoCamera4 scam(camera, scene.bf);
+
+
 
         for (auto& ip : img.stereoPoints)
         {
@@ -98,8 +106,8 @@ OptimizationResults CeresBA::initAndSolve()
 #ifdef BA_AUTODIFF
                 auto stereoPoint   = ip.point(0) - scene.bf / ip.depth;
                 auto cost_function = CostBAStereo<>::create(camera, ip.point, stereoPoint, scene.bf, Vec2(w, w));
-                ceres::LossFunction* lossFunction = baOptions.huberStereo > 0 ? &lossFunctionStereo : nullptr;
-                problem.AddResidualBlock(cost_function, lossFunction, extr.data(), wp.data());
+
+                problem.AddResidualBlock(cost_function, lossStereo, extr.data(), wp.data());
 #else
                 auto* cost = new CostBAStereoAnalytic(scam, ip.point, ip.depth, w);
                 stereoCostFunctions.emplace_back(cost);
@@ -113,21 +121,22 @@ OptimizationResults CeresBA::initAndSolve()
             else
             {
 #ifdef BA_AUTODIFF
-                auto cost_function                = CostBAMono::create(camera, ip.point, w);
-                ceres::LossFunction* lossFunction = baOptions.huberMono > 0 ? &lossFunctionMono : nullptr;
-                problem.AddResidualBlock(cost_function, lossFunction, extr.data(), wp.data());
+                auto cost_function = CostBAMono::create(camera, ip.point, w);
+
+                problem.AddResidualBlock(cost_function, lossMono, extr.data(), wp.data());
 #else
                 auto* cost = new CostBAMonoAnalytic(camera, ip.point, w);
                 monoCostFunctions.emplace_back(cost);
                 problem.AddResidualBlock(cost, baOptions.huberMono > 0 ? &lossFunctionMono : nullptr, extr.data(),
                                          wp.data());
+#endif
                 // With this ordering the schur complement is computed in the correct order
                 ordering->AddElementToGroup(wp.data(), 0);
                 ordering->AddElementToGroup(extr.data(), 1);
-#endif
             }
         }
     }
+
 
 
     //    double costInit = 0;

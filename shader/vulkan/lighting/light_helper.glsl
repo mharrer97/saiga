@@ -33,7 +33,7 @@ float textureProj(vec4 shadowCoord, vec2 off, sampler2D shadowMap, float ambient
         if ( shadowCoord.z > -1.0 && shadowCoord.z < 1.0 )
         {
                 float dist = texture( shadowMap, shadowCoord.xy + off ).r;
-                if ( shadowCoord.w > 0.0 && dist * 0.5f + 0.5f < shadowCoord.z - 0.0005 )
+                if ( shadowCoord.w > 0.0 && dist * 0.5f + 0.5f < shadowCoord.z - 0.00005 )
                 {
                         shadow = ambientIntensity;
                 }

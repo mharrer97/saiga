@@ -75,13 +75,22 @@ PackageHelper(Opus ${OPUS_FOUND} "${OPUS_INCLUDE_DIRS}" "${OPUS_LIBRARIES}")
 
 
 #openmp
+if(SAIGA_CXX_WCLANG)
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Xclang -fopenmp")
+	find_library(OMP_LIB libomp PATH_SUFFIXES lib)
+	message(STATUS ${OMP_LIB})
+	 SET(LIBS ${LIBS} ${OMP_LIB})
+else()
 find_package(OpenMP REQUIRED)
-#if (OPENMP_FOUND)
-#    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-#    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-#endif()
-#PackageHelper(OpenMP ${OPENMP_FOUND} "${OPENMP_INCLUDE_DIRS}" "${OPENMP_LIBRARIES}")
-PackageHelperTarget(OpenMP::OpenMP_CXX OPENMP_FOUND)
+   PackageHelperTarget(OpenMP::OpenMP_CXX OPENMP_FOUND)
+# nvcc + gcc8.3 somehow doesn't work with the line above.
+if (OPENMP_FOUND)
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+endif()
+	PackageHelper(OpenMP ${OPENMP_FOUND} "${OPENMP_INCLUDE_DIRS}" "${OPENMP_LIBRARIES}")
+endif()
+
+
 
 #libfreeimage
 
@@ -122,4 +131,4 @@ set(CORE_LIBS ${LIBS})
 set(CORE_TARGETS ${LIB_TARGETS})
 set(MODULE_CORE 1)
 
-message(STATUS ${LIBS})
+message(STATUS "${LIBS}")

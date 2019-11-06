@@ -42,7 +42,7 @@ struct FreeListEntry
 
 
 template <typename T>
-struct SAIGA_VULKAN_API Chunk
+struct SAIGA_TEMPLATE Chunk
 {
     using FreeList      = std::vector<FreeListEntry>;
     using FreeIterator  = typename std::vector<FreeListEntry>::iterator;

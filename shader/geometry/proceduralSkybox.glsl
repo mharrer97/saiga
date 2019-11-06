@@ -8,12 +8,14 @@
 ##GL_VERTEX_SHADER
 
 #version 330
-    layout(location = 0) in vec3 in_position;
+#extension GL_ARB_explicit_uniform_location : enable
+
+layout(location = 0) in vec3 in_position;
 layout(location = 1) in vec3 in_normal;
 layout(location = 2) in vec2 in_tex;
 
 #include "camera.glsl"
-uniform mat4 model;
+uniform mat4 model = mat4(1);
 
 
 out vec2 texCoord;
@@ -29,7 +31,7 @@ void main()
     gl_Position = vec4(in_position, 1);
 
 
-    mat4 invView  = inverse(view);
+    mat4 invView  = model * inverse(view) ;
     vec4 worldPos = inverse(proj) * pos;
     worldPos /= worldPos.w;
     worldPos = invView * worldPos;
@@ -42,11 +44,12 @@ void main()
 
 
 ##GL_FRAGMENT_SHADER
-#version 330
 
+#version 330
 #extension GL_ARB_explicit_uniform_location : enable
+
 #include "camera.glsl"
-    uniform mat4 model;
+uniform mat4 model;
 layout(location = 0) uniform vec4 params;
 layout(location = 1) uniform vec3 lightDir = vec3(0, -1, 0);
 

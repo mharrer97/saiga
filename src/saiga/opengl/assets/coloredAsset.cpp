@@ -6,8 +6,30 @@
 
 #include "coloredAsset.h"
 
+#include "saiga/opengl/shader/shaderLoader.h"
 namespace Saiga
 {
+void ColoredAsset::loadDefaultShaders()
+{
+    this->shader          = shaderLoader.load<MVPShader>(deferredShaderStr);
+    this->forwardShader   = shaderLoader.load<MVPShader>(forwardShaderStr);
+    this->depthshader     = shaderLoader.load<MVPShader>(depthShaderStr);
+    this->wireframeshader = shaderLoader.load<MVPShader>(wireframeShaderStr);
+}
+void LineVertexColoredAsset::loadDefaultShaders()
+{
+    this->shader          = shaderLoader.load<MVPShader>(deferredShaderStr);
+    this->forwardShader   = shaderLoader.load<MVPShader>(forwardShaderStr);
+    this->depthshader     = shaderLoader.load<MVPShader>(depthShaderStr);
+    this->wireframeshader = shaderLoader.load<MVPShader>(wireframeShaderStr);
+}
+void TexturedAsset::loadDefaultShaders()
+{
+    this->shader          = shaderLoader.load<MVPShader>(deferredShaderStr);
+    this->forwardShader   = shaderLoader.load<MVPShader>(forwardShaderStr);
+    this->depthshader     = shaderLoader.load<MVPShader>(depthShaderStr);
+    this->wireframeshader = shaderLoader.load<MVPShader>(wireframeShaderStr);
+}
 void TexturedAsset::render(Camera* cam, const mat4& model)
 {
     auto tshader = std::static_pointer_cast<MVPTextureShader>(this->shader);
@@ -17,7 +39,7 @@ void TexturedAsset::render(Camera* cam, const mat4& model)
     buffer.bind();
     for (TextureGroup& tg : groups)
     {
-        tshader->uploadTexture(tg.texture);
+        tshader->uploadTexture(tg.texture.get());
 
         int start = 0;
         start += tg.startIndex;
@@ -45,7 +67,7 @@ void TexturedAsset::renderDepth(Camera* cam, const mat4& model)
     buffer.bind();
     for (TextureGroup& tg : groups)
     {
-        dshader->uploadTexture(tg.texture);
+        dshader->uploadTexture(tg.texture.get());
 
         int start = 0;
         start += tg.startIndex;
@@ -57,5 +79,7 @@ void TexturedAsset::renderDepth(Camera* cam, const mat4& model)
 
     dshader->unbind();
 }
+
+
 
 }  // namespace Saiga

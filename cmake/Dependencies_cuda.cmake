@@ -54,15 +54,23 @@ if(CUDA_FOUND)
     endif()
 
 
+
+
     if(SAIGA_CUDA_COMP)
         SET(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode arch=compute_30,code=sm_30")
         SET(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode arch=compute_30,code=compute_30")
     endif()
     SET(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode arch=compute_52,code=sm_52")
-    SET(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_61,code=sm_61")
-    SET(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_61,code=sm_61") # Pascal
+
+    if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL "9")
+        SET(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_61,code=sm_61") # Pascal
+    endif()
+
     #SET(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_70,code=sm_70") # Volta
-    SET(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_75,code=sm_75") # Turing
+
+    if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL "10")
+        SET(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_75,code=sm_75") # Turing
+    endif()
 
 
     if(SAIGA_CUDA_RDC)
@@ -79,16 +87,14 @@ if(CUDA_FOUND)
     #ignore warning "__device__ on defaulted function..."
     SET(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcudafe --diag_suppress=esa_on_defaulted_function_ignored")
 
+    if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        SET(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcompiler -stdlib=libstdc++")
+    endif()
+
     if(BUILD_SHARED)
         SET(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcompiler -DSAIGA_DLL_EXPORTS")
     endif()
     SET(SAIGA_USE_CUDA 1)
-
-    if(SAIGA_U_EIGEN_CUDA)
-        #if(${Eigen3_VERSION} VERSION_GREATER_EQUAL "3.3.90" AND ${CUDA_VERSION} VERSION_GREATER_EQUAL "9.2")
-        SET(SAIGA_EIGEN_AND_CUDA 1)
-        #endif()
-    endif()
 
     set(MODULE_CUDA 1)
 

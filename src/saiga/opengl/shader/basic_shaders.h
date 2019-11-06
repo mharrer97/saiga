@@ -44,7 +44,7 @@ class SAIGA_OPENGL_API MVPTextureShader : public MVPShader
     GLint location_texture;
 
     virtual void checkUniforms();
-    virtual void uploadTexture(std::shared_ptr<raw_Texture> texture);
+    virtual void uploadTexture(TextureBase* texture);
 };
 
 
@@ -60,12 +60,12 @@ class SAIGA_OPENGL_API FBShader : public MVPShader
 class SAIGA_OPENGL_API DeferredShader : public MVPShader
 {
    public:
-    GLint location_screen_size;
+    GLint location_viewPort;
     GLint location_texture_diffuse, location_texture_normal, location_texture_depth, location_texture_data;
 
     virtual void checkUniforms();
     void uploadFramebuffer(GBuffer* gbuffer);
-    void uploadScreenSize(vec2 sc) { Shader::upload(location_screen_size, sc); }
+    void uploadScreenSize(const vec4& vp) { Shader::upload(location_viewPort, vp); }
 };
 
 }  // namespace Saiga

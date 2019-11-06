@@ -527,7 +527,7 @@ void VulkanDeferredRenderer::setupDrawCommandBuffer(int currentImage, Camera* ca
     // begin recording cmdBuffer
     drawCmdBuffers[currentImage].begin(cmdBufBeginInfo);
 
-    lighting.updateUniformBuffers(drawCmdBuffers[currentImage], cam->proj, cam->view, lightDebug);
+    lighting.updateUniformBuffers(drawCmdBuffers[currentImage], cam->proj, cam->view, lightDebug, debug);
 
 
     drawCmdBuffers[currentImage].beginRenderPass(&renderPassBeginInfo, vk::SubpassContents::eInline);

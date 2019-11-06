@@ -6,9 +6,10 @@
 
 #pragma once
 
-#include "saiga/vision/Distortion.h"
-#include "saiga/vision/Intrinsics4.h"
+#include "saiga/core/util/DataStructures/ArrayView.h"
 #include "saiga/vision/VisionIncludes.h"
+#include "saiga/vision/cameraModel/Distortion.h"
+#include "saiga/vision/cameraModel/Intrinsics4.h"
 
 namespace Saiga
 {
@@ -46,13 +47,17 @@ inline double rotationalError(const SE3& a, const SE3& b)
 }
 
 // Spherical interpolation
-inline SE3 slerp(const SE3& a, const SE3& b, double alpha)
+template <typename T>
+inline Sophus::SE3<T> slerp(const Sophus::SE3<T>& a, const Sophus::SE3<T>& b, T alpha)
 {
+    using Vec3 = Eigen::Matrix<T, 3, 1>;
+    using Quat = Eigen::Quaternion<T>;
+
     Vec3 t  = (1.0 - alpha) * a.translation() + (alpha)*b.translation();
     Quat q1 = a.unit_quaternion();
     Quat q2 = b.unit_quaternion();
     Quat q  = q1.slerp(alpha, q2);
-    return SE3(q, t);
+    return Sophus::SE3<T>(q, t);
 }
 
 // scale the transformation by a scalar
@@ -105,6 +110,24 @@ inline Mat3 onb(const Vec3& dir, const Vec3& up)
     return R;
 }
 
+inline Mat3 enforceRank2(const Mat3& M)
+{
+    // enforce it with svd
+    // det(F)=0
+    auto svde = M.jacobiSvd(Eigen::ComputeFullU | Eigen::ComputeFullV);
+    auto svs  = svde.singularValues();
+    // set third singular value to 0
+    svs(2) = 0;
+
+    Eigen::DiagonalMatrix<double, 3> sigma;
+    sigma.diagonal() = svs;
+
+    Mat3 u = svde.matrixU();
+    Mat3 v = svde.matrixV();
+    auto F = u * sigma * v.transpose();
+    return F;
+}
+
 
 /**
  * Undistorts all points from begin to end and writes them to output.
@@ -128,11 +151,22 @@ inline void undistortAll(_InputIterator1 __first1, _InputIterator1 __last1, _Inp
 template <typename T>
 inline std::ostream& operator<<(std::ostream& os, const Sophus::SE3<T>& se3)
 {
-    //    os << se3.unit_quaternion().coeffs().transpose() << " | " << se3.translation().transpose();
     Quat q = se3.unit_quaternion();
     Vec3 t = se3.translation();
     os << "SE3(Quat(" << q.w() << "," << q.x() << "," << q.y() << "," << q.z() << "),Vec3(" << t(0) << "," << t(1)
        << "," << t(2) << "))";
+
+    return os;
+}
+
+
+template <typename T>
+inline std::ostream& operator<<(std::ostream& os, const Sophus::Sim3<T>& sim3)
+{
+    Quat q = sim3.rxso3().quaternion();
+    Vec3 t = sim3.translation();
+    os << "Sim3(ScaledQuat(" << q.w() << "," << q.x() << "," << q.y() << "," << q.z() << "),Vec3(" << t(0) << ","
+       << t(1) << "," << t(2) << "))";
 
     return os;
 }

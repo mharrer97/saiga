@@ -19,8 +19,9 @@
 #    error OpenGL was included somewhere.
 #endif
 
-VulkanExample::VulkanExample(Saiga::Vulkan::VulkanWindow& window, Saiga::Vulkan::VulkanDeferredRenderer& renderer)
-    : Updating(window), Saiga::Vulkan::VulkanDeferredRenderingInterface(renderer), renderer(renderer)
+/*VulkanExample::VulkanExample(Saiga::Vulkan::VulkanWindow& window, Saiga::Vulkan::VulkanDeferredRenderer& renderer)
+    : Updating(), Saiga::Vulkan::VulkanDeferredRenderingInterface(renderer), renderer(renderer)
+//: Updating(window), Saiga::Vulkan::VulkanDeferredRenderingInterface(renderer), renderer(renderer)
 {
     float aspect = window.getAspectRatio();
     camera.setProj(60.0f, aspect, 0.1f, 100.0f, true);
@@ -36,6 +37,7 @@ VulkanExample::VulkanExample(Saiga::Vulkan::VulkanWindow& window, Saiga::Vulkan:
 
     init(renderer.base());
 }
+*/
 
 VulkanExample::~VulkanExample()
 {
@@ -46,8 +48,9 @@ VulkanExample::~VulkanExample()
     texturedAssetRenderer.destroy();
 }
 
-void VulkanExample::init(Saiga::Vulkan::VulkanBase& base)
+VulkanExample::VulkanExample()
 {
+    auto& base = renderer->base();
     {
         auto tex = std::make_shared<Saiga::Vulkan::Texture2D>();
 
@@ -76,20 +79,20 @@ void VulkanExample::init(Saiga::Vulkan::VulkanBase& base)
     }
 
 
-    assetRenderer.deferred.init(base, renderer.renderPass);
-    assetRenderer.forward.init(base, renderer.forwardPass);
-    assetRenderer.shadow.init(base, renderer.lighting.shadowPass);
-    lineAssetRenderer.deferred.init(base, renderer.renderPass, 2);
-    lineAssetRenderer.forward.init(base, renderer.forwardPass, 2);
-    lineAssetRenderer.shadow.init(base, renderer.lighting.shadowPass, 2);
-    pointCloudRenderer.deferred.init(base, renderer.renderPass, 5);
-    pointCloudRenderer.forward.init(base, renderer.forwardPass, 5);
-    pointCloudRenderer.shadow.init(base, renderer.lighting.shadowPass, 5);
-    texturedAssetRenderer.deferred.init(base, renderer.renderPass);
-    texturedAssetRenderer.forward.init(base, renderer.forwardPass);
-    texturedAssetRenderer.shadow.init(base, renderer.lighting.shadowPass);
-    textureDisplay.deferred.init(base, renderer.renderPass);
-    textureDisplay.forward.init(base, renderer.forwardPass);
+    assetRenderer.deferred.init(base, renderer->renderPass);
+    assetRenderer.forward.init(base, renderer->forwardPass);
+    assetRenderer.shadow.init(base, renderer->lighting.shadowPass);
+    lineAssetRenderer.deferred.init(base, renderer->renderPass, 2);
+    lineAssetRenderer.forward.init(base, renderer->forwardPass, 2);
+    lineAssetRenderer.shadow.init(base, renderer->lighting.shadowPass, 2);
+    pointCloudRenderer.deferred.init(base, renderer->renderPass, 5);
+    pointCloudRenderer.forward.init(base, renderer->forwardPass, 5);
+    pointCloudRenderer.shadow.init(base, renderer->lighting.shadowPass, 5);
+    texturedAssetRenderer.deferred.init(base, renderer->renderPass);
+    texturedAssetRenderer.forward.init(base, renderer->forwardPass);
+    texturedAssetRenderer.shadow.init(base, renderer->lighting.shadowPass);
+    textureDisplay.deferred.init(base, renderer->renderPass);
+    textureDisplay.forward.init(base, renderer->forwardPass);
 
     textureDes    = textureDisplay.forward.createAndUpdateDescriptorSet(*texture);
     textureDesDef = textureDisplay.deferred.createAndUpdateDescriptorSet(*texture);
@@ -98,39 +101,39 @@ void VulkanExample::init(Saiga::Vulkan::VulkanBase& base)
     box.loadObj("box.obj");
 
     ////    box.loadObj("cat.obj");
-    box.init(renderer.base());
+    box.init(renderer->base());
     box.descriptor = texturedAssetRenderer.forward.createAndUpdateDescriptorSet(*box.textures[0]);
 
 
     teapot.loadObj("teapot.obj");
     //        teapot.loadPly("dragon_10k.ply");
     //    teapot.loadPly("fr3_office.ply");
-    teapot.mesh.computePerVertexNormal();
-    teapot.init(renderer.base());
+    // teapot.mesh.computePerVertexNormal();
+    teapot.init(renderer->base());
     teapotTrans.setScale(vec3(2, 2, 2));
     //    teapotTrans.rotateGlobal(vec3(1, 0, 0), pi<float>());
     teapotTrans.translateGlobal(vec3(0, 2.5, 0));
     teapotTrans.calculateModel();
 
     bigSphere.loadObj("bigSphere.obj");
-    bigSphere.mesh.computePerVertexNormal();
-    bigSphere.init(renderer.base());
+    // bigSphere.mesh.computePerVertexNormal();
+    bigSphere.init(renderer->base());
 
     plane.createCheckerBoard(ivec2(20, 20), 1.0f, Saiga::Colors::firebrick, Saiga::Colors::gray);
-    plane.init(renderer.base());
+    plane.init(renderer->base());
 
     sphere.loadObj("icosphere.obj");
-    sphere.init(renderer.base());
+    sphere.init(renderer->base());
 
     candle.loadObj("box.obj");
-    candle.mesh.computePerVertexNormal();
-    candle.init(renderer.base());
+    // candle.mesh.computePerVertexNormal();
+    candle.init(renderer->base());
 
     grid.createGrid(10, 10);
-    grid.init(renderer.base());
+    grid.init(renderer->base());
 
     frustum.createFrustum(camera.proj, 2, make_vec4(1), true);
-    frustum.init(renderer.base());
+    frustum.init(renderer->base());
 
     pointCloud.init(base, 1000 * 1000);
     for (int i = 0; i < 1000 * 1000; ++i)
@@ -151,7 +154,7 @@ void VulkanExample::init(Saiga::Vulkan::VulkanBase& base)
 
         // pos                           = vec3(1.f, 0.f, 1.f) * (3 * float(i));
         pos[1]         = 5.f;
-        pointTestLight = renderer.lighting.createPointLight();
+        pointTestLight = renderer->lighting.createPointLight();
         pointTestLight->setPosition(pos);
 
         float ratio     = float(i) / float(count);
@@ -161,17 +164,17 @@ void VulkanExample::init(Saiga::Vulkan::VulkanBase& base)
         pointLights.push_back(pointTestLight);
     }
 
-    spotLight = renderer.lighting.createSpotLight();
+    spotLight = renderer->lighting.createSpotLight();
     spotLight->setColorDiffuse(Saiga::Vulkan::Lighting::LightColorPresets::Candle);
     spotLight->setColorSpecular(Saiga::Vulkan::Lighting::LightColorPresets::Candle);
-    renderer.lighting.enableShadowMapping(spotLight);
+    renderer->lighting.enableShadowMapping(spotLight);
 
-    boxLight = renderer.lighting.createBoxLight();
+    boxLight = renderer->lighting.createBoxLight();
     boxLight->setColorDiffuse(Saiga::Vulkan::Lighting::LightColorPresets::MuzzleFlash);
     boxLight->setColorSpecular(Saiga::Vulkan::Lighting::LightColorPresets::MuzzleFlash);
-    boxLight->setActive(false);
+    boxLight->setActive(true);
 
-    directionalLight = renderer.lighting.createDirectionalLight();
+    directionalLight = renderer->lighting.createDirectionalLight();
     directionalLight->setColorDiffuse(Saiga::Vulkan::Lighting::LightColorPresets::MoonlightBlue);
     directionalLight->setColorSpecular(Saiga::Vulkan::Lighting::LightColorPresets::MoonlightBlue);
 
@@ -185,14 +188,14 @@ void VulkanExample::init(Saiga::Vulkan::VulkanBase& base)
     directionalLight->calculateModel();
 
     // TODO adapt shadopmap creation handling
-    renderer.lighting.enableShadowMapping(directionalLight);
+    renderer->lighting.enableShadowMapping(directionalLight);
     // directionalLight->calculateCamera();
 
-    candleLight = renderer.lighting.createSpotLight();
+    candleLight = renderer->lighting.createSpotLight();
     candleLight->setColorDiffuse(Saiga::Vulkan::Lighting::LightColorPresets::Candle);
     candleLight->setColorSpecular(Saiga::Vulkan::Lighting::LightColorPresets::Candle);
 
-    candleLight->setActive(false);
+    candleLight->setActive(true);
 }
 
 
@@ -506,7 +509,7 @@ void VulkanExample::renderGUI()
         lineAssetRenderer.reload();
         textureDisplay.reload();
         pointCloudRenderer.reload();
-        renderer.reload();
+        renderer->reload();
     }
 
     ImGui::Checkbox("Rotate Lights", &lightRotate);
@@ -518,22 +521,23 @@ void VulkanExample::renderGUI()
     ImGui::End();
     //    return;
 
-    parentWindow.renderImGui();
+    window->renderImGui();
     //    ImGui::SetNextWindowPos(ImVec2(650, 20), ImGuiSetCond_FirstUseEver);
     //    ImGui::ShowTestWindow();
 }
 
 
-void VulkanExample::keyPressed(SDL_Keysym key)
-{
-    switch (key.scancode)
-    {
-        case SDL_SCANCODE_ESCAPE:
-            parentWindow.close();
-            break;
-        default:
-            break;
-    }
-}
+#undef main
 
-void VulkanExample::keyReleased(SDL_Keysym key) {}
+int main(const int argc, const char* argv[])
+{
+    using namespace Saiga;
+
+    {
+        VulkanExample example;
+
+        example.run();
+    }
+
+    return 0;
+}

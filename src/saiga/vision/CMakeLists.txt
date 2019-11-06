@@ -1,13 +1,23 @@
 set(MODULE_NAME "saiga_vision")
 
 
-add_subdirectory(camera)
+add_subdirectory(arap)
 add_subdirectory(ba)
+add_subdirectory(camera)
+add_subdirectory(cameraModel)
 add_subdirectory(icp)
 add_subdirectory(kernels)
+add_subdirectory(optimizationProblems)
 add_subdirectory(pgo)
-add_subdirectory(arap)
+add_subdirectory(reconstruction)
 add_subdirectory(scene)
+add_subdirectory(slam)
+add_subdirectory(sophus)
+add_subdirectory(util)
+
+if (OPENCV_FOUND)
+    add_subdirectory(orb)
+endif()
 
 if(MKL_FOUND)
     add_subdirectory(mkl)
@@ -21,7 +31,7 @@ if(CERES_FOUND)
     add_subdirectory(ceres)
 endif()
 
-if(EIGENRECURSIVE_FOUND)
+if(SAIGA_USE_EIGENRECURSIVE)
     add_subdirectory(recursive)
 endif()
 
@@ -49,12 +59,10 @@ target_include_directories(
     PUBLIC
     $<INSTALL_INTERFACE:include>
     $<INSTALL_INTERFACE:include/saiga/opengl/glbinding/include>
-    $<INSTALL_INTERFACE:include/saiga/opengl/glbinding-aux/include>
     $<INSTALL_INTERFACE:share/saiga/shader/include>
     "$<INSTALL_INTERFACE:${VISION_INCLUDES}>"
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/>
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/saiga/opengl/glbinding/include>
-    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/saiga/opengl/glbinding-aux/include>
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/shader/include>
     "$<BUILD_INTERFACE:${VISION_INCLUDES}>"
     #PRIVATE

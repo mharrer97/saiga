@@ -6,10 +6,10 @@
 
 #include "RGBDCamera.h"
 
-#include "saiga/core/util/ini/ini.h"
 #include "saiga/core/util/Thread/threadName.h"
+#include "saiga/core/util/ini/ini.h"
 #include "saiga/core/util/tostring.h"
-#include "saiga/vision/Ini.h"
+#include "saiga/vision/util/Ini.h"
 namespace Saiga
 {
 void RGBDIntrinsics::fromConfigFile(const std::string& file)
@@ -21,6 +21,7 @@ void RGBDIntrinsics::fromConfigFile(const std::string& file)
     INI_GETADD_LONG(ini, "Sensor", fps);
     INI_GETADD_DOUBLE(ini, "Sensor", depthFactor);
     INI_GETADD_LONG(ini, "Sensor", maxFrames);
+    INI_GETADD_LONG(ini, "Sensor", startFrame);
 
     rgbo.w = ini.GetAddLong("Color", "width", rgbo.w);
     rgbo.h = ini.GetAddLong("Color", "height", rgbo.h);

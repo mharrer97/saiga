@@ -49,7 +49,7 @@ void main() {
 //    vec3 data = vec3(0,0,0);
 //    setGbufferData(vec3(diffColor),normal,data);
 
-    out_color = vec3(0.5f);
+    out_color = vec3(0.3f);
 
 
 }

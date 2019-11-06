@@ -8,8 +8,8 @@
 
 #include "saiga/config.h"
 #include "saiga/core/image/image.h"
-#include "saiga/vision/DepthmapPreprocessor.h"
-#include "saiga/vision/Distortion.h"
+#include "saiga/vision/cameraModel/Distortion.h"
+#include "saiga/vision/util/DepthmapPreprocessor.h"
 
 #include <chrono>
 #include <optional>
@@ -48,6 +48,8 @@ struct SAIGA_VISION_API RGBDIntrinsics
 
     // The camera disconnects after this amount of frames
     int maxFrames = -1;
+    // start frame for
+    int startFrame = 0;
 
 
 

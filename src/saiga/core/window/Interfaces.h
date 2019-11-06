@@ -7,14 +7,23 @@
 #pragma once
 
 #include "saiga/config.h"
-
-
+#include "saiga/core/camera/camera.h"
 
 namespace Saiga
 {
 class Camera;
 class WindowBase;
 class RenderingInterfaceBase;
+
+/**
+ * This struct is passed to the renderers.
+ */
+struct RenderInfo
+{
+    std::vector<std::pair<Camera*, ViewPort>> cameras;
+    explicit operator bool() const { return !cameras.empty(); }
+};
+
 /**
  * Base class of all render engines.
  * This includes the deferred and forward OpenGL engines
@@ -39,8 +48,7 @@ class SAIGA_CORE_API RendererBase
     virtual float getTotalRenderTime() { return 0; }
 
     virtual void resize(int windowWidth, int windowHeight) {}
-    virtual void render(Camera* cam)     = 0;
-    virtual void bindCamera(Camera* cam) = 0;
+    virtual void render(const RenderInfo& renderInfo) = 0;
 };
 
 /**
@@ -49,12 +57,7 @@ class SAIGA_CORE_API RendererBase
 class SAIGA_CORE_API RenderingInterfaceBase
 {
    public:
-    RenderingInterfaceBase(RendererBase& parent);
     virtual ~RenderingInterfaceBase() {}
-
-
-   protected:
-    RendererBase& parentRenderer;
 };
 
 /**
@@ -64,8 +67,6 @@ class SAIGA_CORE_API RenderingInterfaceBase
 class SAIGA_CORE_API Updating
 {
    public:
-    Updating(WindowBase& parent);
-
     virtual ~Updating() {}
 
     // advances the state of the program by dt. All game logic should happen here
@@ -82,9 +83,6 @@ class SAIGA_CORE_API Updating
     // We don't want to render two times the same image, so the game state should be interpolated either into the future
     // or from the past. Alpha is in the range [0,1] where 1 is equivalent to a timestep of dt
     virtual void interpolate(float dt, float alpha) {}
-
-   protected:
-    WindowBase& parentWindow;
 };
 
 }  // namespace Saiga

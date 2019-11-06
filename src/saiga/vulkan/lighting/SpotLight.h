@@ -107,7 +107,7 @@ class SAIGA_VULKAN_API SpotLightRenderer : public Pipeline
 
     void init(Saiga::Vulkan::VulkanBase& vulkanDevice, VkRenderPass renderPass, std::string fragmentShader);
 
-    void updateUniformBuffers(vk::CommandBuffer, mat4 proj, mat4 view, bool debug);
+    void updateUniformBuffers(vk::CommandBuffer, mat4 proj, mat4 view);
 
     void createAndUpdateDescriptorSet(Saiga::Vulkan::Memory::ImageMemoryLocation* diffuse,
                                       Saiga::Vulkan::Memory::ImageMemoryLocation* specular,
@@ -121,8 +121,6 @@ class SAIGA_VULKAN_API SpotLightRenderer : public Pipeline
     {
         mat4 proj;
         mat4 view;
-        bool debug;
-
     } uboFS;
 
     struct UBOVS
@@ -171,7 +169,7 @@ class SAIGA_VULKAN_API SpotShadowLightRenderer : public Pipeline
 
     void init(Saiga::Vulkan::VulkanBase& vulkanDevice, VkRenderPass renderPass, std::string fragmentShader);
 
-    void updateUniformBuffers(vk::CommandBuffer, mat4 proj, mat4 view, bool debug);
+    void updateUniformBuffers(vk::CommandBuffer, mat4 proj, mat4 view);
 
     void createAndUpdateDescriptorSet(Saiga::Vulkan::Memory::ImageMemoryLocation* diffuse,
                                       Saiga::Vulkan::Memory::ImageMemoryLocation* specular,
@@ -195,8 +193,6 @@ class SAIGA_VULKAN_API SpotShadowLightRenderer : public Pipeline
     {
         mat4 proj;
         mat4 view;
-        bool debug;
-
     } uboFS;
 
     struct UBOVS

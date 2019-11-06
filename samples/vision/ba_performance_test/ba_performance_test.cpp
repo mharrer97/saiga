@@ -4,17 +4,17 @@
  * See LICENSE file for more information.
  */
 #include "saiga/core/framework/framework.h"
+#include "saiga/core/math/Eigen_Compile_Checker.h"
 #include "saiga/core/math/random.h"
 #include "saiga/core/time/all.h"
 #include "saiga/core/util/fileChecker.h"
 #include "saiga/core/util/table.h"
 #include "saiga/core/util/tostring.h"
-#include "saiga/vision/BALDataset.h"
-#include "saiga/vision/Eigen_Compile_Checker.h"
 #include "saiga/vision/ceres/CeresBA.h"
 #include "saiga/vision/g2o/g2oBA2.h"
 #include "saiga/vision/recursive/BAPoseOnly.h"
 #include "saiga/vision/recursive/BARecursive.h"
+#include "saiga/vision/scene/BALDataset.h"
 #include "saiga/vision/scene/SynteticScene.h"
 
 #include <fstream>
@@ -27,7 +27,7 @@ using namespace Saiga;
 void buildScene(Scene& scene)
 {
     SynteticScene sscene;
-    sscene.numCameras     = 2;
+    sscene.numCameras     = 3;
     sscene.numImagePoints = 3;
     sscene.numWorldPoints = 3;
     scene                 = sscene.circleSphere();
@@ -171,9 +171,7 @@ void test_to_file(const OptimizationOptions& baoptions, const std::string& file,
 
 int main(int, char**)
 {
-    Saiga::SaigaParameters saigaParameters;
-    Saiga::initSample(saigaParameters);
-    Saiga::initSaiga(saigaParameters);
+    initSaigaSampleNoWindow();
 
     Saiga::EigenHelper::checkEigenCompabitilty<2765>();
     Saiga::Random::setSeed(93865023985);
@@ -206,9 +204,10 @@ int main(int, char**)
     Scene scene;
     //    scene.load(SearchPathes::data("vision/slam_30_2656.scene"));
     //    scene.load(SearchPathes::data("vision/slam_125_8658.scene"));
-    scene.load(SearchPathes::data("vision/tum_office.scene"));
+    //    scene.load(SearchPathes::data("vision/scene_gba.scene"));
+    scene.load(SearchPathes::data("vision/broken.scene"));
 
-    scene.addExtrinsicNoise(0.01);
+//    scene.addExtrinsicNoise(0.01);
 #if 0
     std::cout << scene << std::endl;
 
@@ -232,8 +231,9 @@ int main(int, char**)
     }
     scene.compress();
 
-    buildScene(scene);
 #endif
+    //    buildScene(scene);
+    //    scene.addExtrinsicNoise(0.01);
 
     //        buildSceneBAL(scene, balPrefix + "problem-21-11315-pre.txt");
     // buildSceneBAL(scene, balPrefix + "trafalgar-00201-54427.txt");
@@ -244,26 +244,31 @@ int main(int, char**)
     std::cout << scene << std::endl;
 
     OptimizationOptions baoptions;
-    baoptions.debugOutput            = true;
+    baoptions.debugOutput            = false;
     baoptions.debug                  = false;
-    baoptions.maxIterations          = 5;
-    baoptions.maxIterativeIterations = 15;
+    baoptions.maxIterations          = 3;
+    baoptions.maxIterativeIterations = 20;
     baoptions.iterativeTolerance     = 1e-50;
-    baoptions.initialLambda          = 1;
-    baoptions.numThreads             = 4;
+    baoptions.numThreads             = 1;
+    baoptions.buildExplizitSchur     = true;
+
+
 
     baoptions.solverType = OptimizationOptions::SolverType::Iterative;
     std::cout << baoptions << std::endl;
 
+    for (int i = 0; i < scene.extrinsics.size() / 2; ++i)
+    {
+        scene.extrinsics[i].constant = true;
+    }
 
     std::vector<std::shared_ptr<BABase>> solvers;
 
     solvers.push_back(std::make_shared<BARec>());
-    //    solvers.push_back(std::make_shared<CeresBA>());
+    solvers.push_back(std::make_shared<CeresBA>());
     //    solvers.push_back(std::make_shared<BAPoseOnly>());
-    //    solvers.push_back(std::make_shared<g2oBA2>());
+    solvers.push_back(std::make_shared<g2oBA2>());
 
-    std::cout << std::setprecision(30) << std::endl;
     scene.globalScale = 1;
     for (auto& s : solvers)
     {
@@ -277,7 +282,7 @@ int main(int, char**)
 
         OptimizationResults result;
         auto lmopt = dynamic_cast<LMOptimizer*>(opt);
-        if (lmopt)
+        if (false && lmopt)
         {
             lmopt->initOMP();
             result = lmopt->solveOMP();
@@ -286,6 +291,8 @@ int main(int, char**)
         {
             result = opt->initAndSolve();
         }
+
+        std::cout << scene.chi2() << " -> " << cpy.chi2() << std::endl;
         //        auto result = opt->initAndSolve();
 
         std::cout << "Error " << result.cost_initial << " -> " << result.cost_final << std::endl;

@@ -1,9 +1,18 @@
 add_subdirectory(bow)
-add_subdirectory(featureMatching_benchmark)
+add_subdirectory(featureMatching)
+add_subdirectory(eightPoint)
+add_subdirectory(homography)
+add_subdirectory(fivePoint)
 add_subdirectory(robust_pose_optimization)
 add_subdirectory(derive)
+add_subdirectory(pnp)
+add_subdirectory(registration)
 
-if(EIGENRECURSIVE_FOUND)
+if(OPENCV_FOUND)
+add_subdirectory(orb)
+endif()
+
+if(SAIGA_USE_EIGENRECURSIVE)
     #    add_subdirectory(block_matrices)
 
     if(SAIGA_USE_CHOLMOD)
@@ -22,7 +31,8 @@ if(EIGENRECURSIVE_FOUND)
         add_subdirectory(arap)
     endif()
 
-    if (SDL2_FOUND AND SAIGA_USE_VULKAN)
+
+    if (SDL2_FOUND AND SAIGA_USE_OPENGL)
         if(G2O_FOUND)
             add_subdirectory(ba)
             add_subdirectory(posegraph_viewer)

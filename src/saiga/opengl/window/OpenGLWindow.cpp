@@ -16,7 +16,7 @@
 #include "saiga/opengl/rendering/program.h"
 #include "saiga/opengl/rendering/renderer.h"
 #include "saiga/opengl/shader/shaderLoader.h"
-#include "saiga/opengl/texture/textureLoader.h"
+#include "saiga/opengl/texture/TextureLoader.h"
 
 #include <cstring>
 #include <ctime>
@@ -29,11 +29,12 @@ namespace Saiga
 OpenGLWindow::OpenGLWindow(WindowParameters _windowParameters, OpenGLParameters openglParameters)
     : WindowBase(_windowParameters), openglParameters(openglParameters)
 {
-    initSaigaGL();
+    initSaigaGL(openglParameters);
 }
 
 OpenGLWindow::~OpenGLWindow()
 {
+    cleanupSaigaGL();
     //    delete renderer;
 }
 
@@ -53,18 +54,18 @@ void OpenGLWindow::renderImGui(bool* p_open)
     mainLoop.renderImGuiInline();
 
 
-    ImGui::Text("Camera Position: %s", to_string(currentCamera->getPosition()).c_str());
-    ImGui::Text("Camera Direction: %s", to_string(-make_vec3(currentCamera->getDirection())).c_str());
+    ImGui::Text("Camera Position: %s", to_string(getCamera()->getPosition()).c_str());
+    ImGui::Text("Camera Direction: %s", to_string(-make_vec3(getCamera()->getDirection())).c_str());
     if (ImGui::Button("Printf camera"))
     {
-        std::cout << "camera.position = vec4" << currentCamera->position << ";" << std::endl;
-        std::cout << "camera.rot = quat" << currentCamera->rot << ";" << std::endl;
+        std::cout << "camera.position = vec4" << getCamera()->position << ";" << std::endl;
+        std::cout << "camera.rot = quat" << getCamera()->rot << ";" << std::endl;
         //        createTRSmatrix()
     }
 
     if (ImGui::Button("Reload Shaders"))
     {
-        ShaderLoader::instance()->reload();
+        shaderLoader.reload();
     }
 
     if (ImGui::Button("Screenshot"))

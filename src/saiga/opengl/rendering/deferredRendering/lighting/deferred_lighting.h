@@ -104,6 +104,7 @@ class SAIGA_OPENGL_API DeferredLighting
     vec4 clearColor = make_vec4(0);
     int totalLights;
     int visibleLights;
+    int visibleVolumetricLights;
     int renderedDepthmaps;
     int currentStencilId = 0;
 
@@ -114,7 +115,7 @@ class SAIGA_OPENGL_API DeferredLighting
     bool useTimers = true;
 
     bool backFaceShadows     = false;
-    float shadowOffsetFactor = 4;
+    float shadowOffsetFactor = 2;
     float shadowOffsetUnits  = 10;
     bool renderVolumetric    = false;
 
@@ -148,7 +149,7 @@ class SAIGA_OPENGL_API DeferredLighting
 
 
     void initRender();
-    void render(Camera* cam);
+    void render(Camera* cam, const ViewPort& viewPort);
     void postprocessVolumetric();
     void renderDepthMaps(DeferredRenderingInterface* renderer);
     void renderDebug(Camera* cam);
@@ -181,17 +182,17 @@ class SAIGA_OPENGL_API DeferredLighting
     void setupLightPass(bool isVolumetric);
 
     template <typename T, typename shader_t>
-    void renderLightVolume(lightMesh_t& mesh, T obj, Camera* cam, shader_t shader, shader_t shaderShadow,
-                           shader_t shaderVolumetric);
+    void renderLightVolume(lightMesh_t& mesh, T obj, Camera* cam, const ViewPort& vp, shader_t shader,
+                           shader_t shaderShadow, shader_t shaderVolumetric);
 
 
-    void renderDirectionalLights(Camera* cam, bool shadow);
+    void renderDirectionalLights(Camera* cam, const ViewPort& vp, bool shadow);
 };
 
 
 template <typename T, typename shader_t>
-inline void DeferredLighting::renderLightVolume(lightMesh_t& mesh, T obj, Camera* cam, shader_t shaderNormal,
-                                                shader_t shaderShadow, shader_t shaderVolumetric)
+inline void DeferredLighting::renderLightVolume(lightMesh_t& mesh, T obj, Camera* cam, const ViewPort& vp,
+                                                shader_t shaderNormal, shader_t shaderShadow, shader_t shaderVolumetric)
 {
     if (!obj->shouldRender()) return;
 
@@ -209,7 +210,7 @@ inline void DeferredLighting::renderLightVolume(lightMesh_t& mesh, T obj, Camera
     shader_t shader = (obj->hasShadows() ? (obj->isVolumetric() ? shaderVolumetric : shaderShadow) : shaderNormal);
     shader->bind();
     shader->DeferredShader::uploadFramebuffer(&gbuffer);
-    shader->uploadScreenSize(vec2(width, height));
+    shader->uploadScreenSize(vp.getVec4());
 
     obj->bindUniforms(shader, cam);
     mesh.bindAndDraw();

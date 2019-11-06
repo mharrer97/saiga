@@ -6,10 +6,10 @@
 
 
 #pragma once
-
 #include "saiga/vision/ba/BABase.h"
+#include "saiga/vision/scene/Scene.h"
 
-#include "EigenRecursive/All.h"
+#include "Recursive.h"
 
 namespace Saiga
 {
@@ -61,6 +61,8 @@ class SAIGA_VISION_API BARec : public BABase, public LMOptimizer
 
    private:
     int n, m;
+    int totalN;     // with constant images
+    int constantN;  // only constant images  n + constantN == totalN
 
 
     BAMatrix A;
@@ -82,7 +84,24 @@ class SAIGA_VISION_API BARec : public BABase, public LMOptimizer
     std::vector<int> pointCameraCounts, pointCameraCountsScan;
 
 
-    std::vector<int> validImages;
+    struct ImageInfo
+    {
+        // id in the saiga.scene.image array
+        int sceneImageId = -1;
+
+        // compacted valid id. index into validImages array
+        int validId = -1;
+
+        // index into delta_x, A matrices.
+        // this is -1 for constant cameras
+        int variableId = -1;
+
+        bool isConstant() { return variableId == -1; }
+        bool isValid() { return validId >= 0; }
+        explicit operator bool() { return isValid(); }
+    };
+
+    std::vector<ImageInfo> validImages;  // compact images + bool=constant
     std::vector<int> validPoints;
     std::vector<int> pointToValidMap;
 
@@ -95,8 +114,8 @@ class SAIGA_VISION_API BARec : public BABase, public LMOptimizer
     // ============= Multi Threading Stuff ===========
     int threads = 1;
     // each thread gets one vector
-    std::vector<std::vector<BDiag>> pointDiagTemp;
-    std::vector<std::vector<BRes>> pointResTemp;
+    std::vector<AlignedVector<BDiag>> pointDiagTemp;
+    std::vector<AlignedVector<BRes>> pointResTemp;
     std::vector<double> localChi2;
 
 

@@ -2,8 +2,9 @@
 
 
 #include "saiga/vision/ba/BABase.h"
+#include "saiga/vision/scene/Scene.h"
 
-#include "EigenRecursive/All.h"
+#include "Recursive.h"
 
 namespace Saiga
 {
@@ -31,15 +32,15 @@ class SAIGA_VISION_API BAPoseOnly : public BABase, public LMOptimizer
     int n;
     Scene* _scene;
 
-    std::vector<DiagType> diagBlocks;
-    std::vector<ResType> resBlocks;
+    AlignedVector<DiagType> diagBlocks;
+    AlignedVector<ResType> resBlocks;
     AlignedVector<Vec3> x_v, oldx_v;
     AlignedVector<Vec3> delta_x;
 
     // ============= Multi Threading Stuff ===========
     int threads = 1;
-    std::vector<std::vector<DiagType>> diagTemp;
-    std::vector<std::vector<ResType>> resTemp;
+    std::vector<AlignedVector<DiagType>> diagTemp;
+    std::vector<AlignedVector<ResType>> resTemp;
     std::vector<double> localChi2;
     // ============== LM Functions ==============
 

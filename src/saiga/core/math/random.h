@@ -7,8 +7,8 @@
 #pragma once
 
 #include "saiga/config.h"
-#include "saiga/core/util/assert.h"
 #include "saiga/core/math/math.h"
+#include "saiga/core/util/assert.h"
 
 #include <vector>
 
@@ -29,6 +29,9 @@ namespace Random
  * Therefore every thread has to call this method.
  */
 SAIGA_CORE_API void setSeed(uint64_t seed);
+
+SAIGA_CORE_API uint64_t getSeed();
+
 
 /**
  * Returns true with a probability of 's'.
@@ -95,16 +98,22 @@ inline float linearRand(float low, float high)
     return Saiga::Random::sampleDouble(low, high);
 }
 
-inline vec2 linearRand(vec2 low, vec2 high)
+inline vec2 linearRand(const vec2& low, const vec2& high)
 {
     return vec2(Saiga::Random::sampleDouble(low[0], high[0]), Saiga::Random::sampleDouble(low[1], high[1]));
 }
 
 
-inline vec3 linearRand(vec3 low, vec3 high)
+inline vec3 linearRand(const vec3& low, const vec3& high)
 {
     return vec3(Saiga::Random::sampleDouble(low[0], high[0]), Saiga::Random::sampleDouble(low[1], high[1]),
                 Saiga::Random::sampleDouble(low[2], high[2]));
+}
+
+inline vec4 linearRand(const vec4& low, const vec4& high)
+{
+    return vec4(Saiga::Random::sampleDouble(low[0], high[0]), Saiga::Random::sampleDouble(low[1], high[1]),
+                Saiga::Random::sampleDouble(low[2], high[2]), Saiga::Random::sampleDouble(low[3], high[3]));
 }
 
 

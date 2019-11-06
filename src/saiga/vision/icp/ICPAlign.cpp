@@ -53,40 +53,55 @@ SE3 pointToPointIterative(const AlignedVector<Correspondence>& corrs, const SE3&
     return T;
 }
 
-inline Quat orientationFromMixedMatrixUQ(const Mat3& M)
+Quat orientationFromMixedMatrixUQ(const Mat3& M)
 {
     // Closed-form solution of absolute orientation using unit quaternions
     // https://pdfs.semanticscholar.org/3120/a0e44d325c477397afcf94ea7f285a29684a.pdf
 
-    // Upper triangle
+    // Lower triangle
     Mat4 N;
     N(0, 0) = M(0, 0) + M(1, 1) + M(2, 2);
-    N(0, 1) = M(1, 2) - M(2, 1);
-    N(0, 2) = M(2, 0) - M(0, 2);
-    N(0, 3) = M(0, 1) - M(1, 0);
+    N(1, 0) = M(1, 2) - M(2, 1);
+    N(2, 0) = M(2, 0) - M(0, 2);
+    N(3, 0) = M(0, 1) - M(1, 0);
+
     N(1, 1) = M(0, 0) - M(1, 1) - M(2, 2);
-    N(1, 2) = M(0, 1) + M(1, 0);
-    N(1, 3) = M(2, 0) + M(0, 2);
+    N(2, 1) = M(0, 1) + M(1, 0);
+    N(3, 1) = M(2, 0) + M(0, 2);
+
     N(2, 2) = -M(0, 0) + M(1, 1) - M(2, 2);
-    N(2, 3) = M(1, 2) + M(2, 1);
+    N(3, 2) = M(1, 2) + M(2, 1);
+
     N(3, 3) = -M(0, 0) - M(1, 1) + M(2, 2);
-    N       = N.selfadjointView<Eigen::Upper>();
+    //    N       = N.selfadjointView<Eigen::Upper>();
 
-    Eigen::EigenSolver<Mat4> eigenSolver(N, true);
+    //    Eigen::EigenSolver<Mat4> eigenSolver(N, true);
 
-    Vec4 E             = eigenSolver.eigenvectors().col(0).real();
-    auto largestRealEv = eigenSolver.eigenvalues()(0).real();
+    // Only the lower triangular part of the input matrix is referenced.
+    Eigen::SelfAdjointEigenSolver<Mat4> eigenSolver(N);
+
+    int largestEV = 0;
     for (auto i = 1; i < 4; ++i)
     {
-        auto ev = eigenSolver.eigenvalues()(i).real();
-        if (ev > largestRealEv)
+        if (eigenSolver.eigenvalues()(i) > eigenSolver.eigenvalues()(largestEV))
         {
-            E             = eigenSolver.eigenvectors().col(i).real();
-            largestRealEv = ev;
+            largestEV = i;
         }
     }
+
+    int largestEV2 = 0;
+    eigenSolver.eigenvalues().maxCoeff(&largestEV2);
+    SAIGA_ASSERT(largestEV == largestEV2);
+
+    Vec4 E = eigenSolver.eigenvectors().col(largestEV);
+
+
     Quat R(E(0), E(1), E(2), E(3));
-    return R.conjugate();
+    R = R.conjugate();
+    R.normalize();
+    if (R.w() < 0) R.coeffs() *= -1;
+    return R;
+    //    return R;
 }
 
 inline Quat orientationFromMixedMatrixSVD(const Mat3& M)
@@ -95,46 +110,67 @@ inline Quat orientationFromMixedMatrixSVD(const Mat3& M)
     // M = USV^T
     // R = UV^T
     Eigen::JacobiSVD svd(M, Eigen::ComputeFullU | Eigen::ComputeFullV);
-    Mat3 R = svd.matrixU() * svd.matrixV().transpose();
-    return Quat(R);
+
+    Vec3 S = Vec3::Ones(3);
+    if (svd.matrixU().determinant() * svd.matrixV().determinant() < 0) S(2) = -1;
+
+    Mat3 R = svd.matrixU() * S.asDiagonal() * svd.matrixV().transpose();
+
+    Quat q = Quat(R).normalized();
+    return q;
 }
 
-SE3 pointToPointDirect(const AlignedVector<Correspondence>& corrs, const SE3& guess, int innerIterations)
+SE3 pointToPointDirect(const AlignedVector<Correspondence>& corrs, double* scale)
 {
-    SE3 T = guess;
-    for (int i = 0; i < innerIterations; ++i)
+    auto cpy = corrs;
+
+    // Compute center
+    Vec3 meanRef(0, 0, 0);
+    Vec3 meanSrc(0, 0, 0);
+    for (auto c : corrs)
     {
-        Vec3 meanRef(0, 0, 0);
-        Vec3 meanSrc(0, 0, 0);
-
-        for (auto c : corrs)
-        {
-            meanRef += c.refPoint;
-            meanSrc += T * c.srcPoint;
-        }
-        meanRef /= corrs.size();
-        meanSrc /= corrs.size();
-        Vec3 t = meanRef - meanSrc;
-
-        Mat3 M;
-        M.setZero();
-        for (auto c : corrs)
-        {
-            M += (c.refPoint - meanRef) * (T * c.srcPoint - meanSrc).transpose();
-        }
-
-
-        Quat R;
-
-        if (1)
-            R = orientationFromMixedMatrixUQ(M);
-        else
-            R = orientationFromMixedMatrixSVD(M);
-
-        t = meanRef - R.conjugate() * meanSrc;
-        T = SE3(Quat(R), t) * T;
+        meanRef += c.refPoint;
+        meanSrc += c.srcPoint;
     }
-    return T;
+    meanRef /= corrs.size();
+    meanSrc /= corrs.size();
+
+    // Translate src to target and computed squared distance sum
+    double refSumSq = 0;
+    double srcSumSq = 0;
+    for (auto& c : cpy)
+    {
+        c.refPoint -= meanRef;
+        c.srcPoint -= meanSrc;
+        refSumSq += c.refPoint.squaredNorm();
+        srcSumSq += c.srcPoint.squaredNorm();
+    }
+
+    double S = 1;
+
+    if (scale)
+    {
+        S      = sqrt(refSumSq / srcSumSq);
+        *scale = S;
+    }
+
+    Vec3 t = meanRef - meanSrc;
+    Mat3 M;
+    M.setZero();
+    for (auto c : cpy)
+    {
+        M += (c.refPoint) * (c.srcPoint).transpose();
+    }
+
+    Quat R;
+
+    if (0)
+        R = orientationFromMixedMatrixUQ(M);
+    else
+        R = orientationFromMixedMatrixSVD(M);
+
+    t = meanRef - S * (R * meanSrc);
+    return SE3(Quat(R), t);
 }
 
 SE3 pointToPlane(const AlignedVector<Correspondence>& corrs, const SE3& ref, const SE3& _src, int innerIterations)
@@ -256,6 +292,30 @@ SE3 planeToPlane(const AlignedVector<Correspondence>& corrs, const SE3& guess, d
     return T;
 }
 
+SE3 alignMinimal(const Mat3& src, const Mat3& dst)
+{
+    const int n = src.cols();  // number of measurements
+
+    // required for demeaning ...
+    const double one_over_n = 1.0 / n;
+
+    // computation of mean
+    const Vec3 src_mean = src.rowwise().sum() * one_over_n;
+    const Vec3 dst_mean = dst.rowwise().sum() * one_over_n;
+
+
+
+    // demeaning of src and dst points
+    const Mat3 src_demean = src.colwise() - src_mean;
+    const Mat3 dst_demean = dst.colwise() - dst_mean;
+
+
+    const Mat3 sigma = one_over_n * dst_demean * src_demean.transpose();
+
+    Quat q = ICP::orientationFromMixedMatrixSVD(sigma);
+    Vec3 t = dst_mean - (q * src_mean);
+    return SE3(q, t);
+}
 
 
 }  // namespace ICP

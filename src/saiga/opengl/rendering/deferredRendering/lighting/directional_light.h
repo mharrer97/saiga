@@ -29,10 +29,10 @@ class SAIGA_OPENGL_API DirectionalLightShader : public LightShader
     virtual void checkUniforms();
     void uploadDirection(vec3& direction);
     void uploadAmbientIntensity(float i);
-    void uploadSsaoTexture(std::shared_ptr<raw_Texture> texture);
+    void uploadSsaoTexture(std::shared_ptr<TextureBase> texture);
 
-    void uploadDepthTextures(std::vector<std::shared_ptr<raw_Texture>>& textures);
-    void uploadViewToLightTransforms(std::vector<mat4>& transforms);
+    void uploadDepthTextures(std::vector<std::shared_ptr<TextureBase>>& textures);
+    void uploadViewToLightTransforms(AlignedVector<mat4>& transforms);
     void uploadDepthCuts(std::vector<float>& depthCuts);
     void uploadNumCascades(int n);
     void uploadCascadeInterpolateRange(float r);
