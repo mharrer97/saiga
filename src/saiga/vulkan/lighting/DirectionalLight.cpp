@@ -389,7 +389,7 @@ void DirectionalLightRenderer::updateUniformBuffers(vk::CommandBuffer cmd, mat4 
 {
     uboFS.proj  = proj;
     uboFS.view  = view;
-    uboFS.debug = debug;
+    uboFS.debug = debug ? 1 : 0;
     uniformBufferFS.update(cmd, sizeof(uboFS), &uboFS);
 }
 void DirectionalLightRenderer::createAndUpdateDescriptorSet(Saiga::Vulkan::Memory::ImageMemoryLocation* diffuse,
@@ -512,7 +512,7 @@ void DirectionalShadowLightRenderer::updateUniformBuffers(vk::CommandBuffer cmd,
 {
     uboFS.proj  = proj;
     uboFS.view  = view;
-    uboFS.debug = debug;
+    uboFS.debug = debug ? 1 : 0;
     uniformBufferFS.update(cmd, sizeof(uboFS), &uboFS);
 }
 void DirectionalShadowLightRenderer::createAndUpdateDescriptorSet(

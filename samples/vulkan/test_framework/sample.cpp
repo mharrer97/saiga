@@ -146,7 +146,7 @@ VulkanExample::VulkanExample()
 
 
     std::shared_ptr<Saiga::Vulkan::Lighting::PointLight> pointTestLight;
-    int count = 0;
+    int count = 5;
     for (int i = 0; i < count; ++i)
     {
         vec3 pos = vec3(sin((float(i) / float(count)) * 6.28f), 1.f, cos((float(i) / float(count)) * 6.28f));

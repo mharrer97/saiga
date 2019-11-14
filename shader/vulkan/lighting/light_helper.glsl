@@ -45,13 +45,13 @@ float textureProj(vec4 shadowCoord, vec2 off, sampler2D shadowMap, float ambient
 float filterPCF(vec4 sc, sampler2D shadowMap, float ambientIntensity)
 {
         ivec2 texDim = textureSize(shadowMap, 0);
-        float scale = 1.0;
+        float scale = 0.75;
         float dx = scale * 1.0 / float(texDim.x);
         float dy = scale * 1.0 / float(texDim.y);
 
         float shadowFactor = 0.0;
         int count = 0;
-        int range = 1;
+        int range = 8;
 
         for (int x = -range; x <= range; x++)
         {
@@ -63,4 +63,10 @@ float filterPCF(vec4 sc, sampler2D shadowMap, float ambientIntensity)
 
         }
         return shadowFactor / count;
+}
+
+float linearDepth(float depth, float zNear, float zFar)
+{
+        float z = depth * 2.0f - 1.0f;
+        return (2.0f * zNear* zFar) / (zFar + zNear - z * (zFar - zNear));
 }

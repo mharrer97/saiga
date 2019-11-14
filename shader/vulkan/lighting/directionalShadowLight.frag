@@ -26,7 +26,7 @@ layout (binding = 17) uniform UBO2
 {
 	mat4 proj;
 	mat4 view;
-	bool debug;
+        int debug;
 } ubo;
 
 layout (push_constant) uniform PushConstants {
@@ -45,6 +45,7 @@ layout(location=0) in VertexData
 {
     vec2 tc;
 } inData;
+
 
 
 void main() 
@@ -92,18 +93,13 @@ void main()
     }
     //float shadowTex = texture(shadowmap, tc).r;
     //outColor = vec4(vec3(shadowTex),1.f);
-    if(!ubo.debug) {
+    if(ubo.debug == 1) {
             vec2 tc2 = inData.tc * 2.f;
             if (inData.tc.x < 0.5 && inData.tc.y >= 0.5){ //linker unterer bereich der anzeige
-                            //outColor = vec4(vec3(depth), 1);
-                            outColor = vec4(texture(specularTexture, tc2 -vec2(0,1)).rgb, 1);
-                            //outColor = vec4(vec3(dot(v, V)),1.f);
-                            float depth2 = texture(depthTexture, tc2 - vec2(0,1)).r;
-                            float z_n = 2.0 * depth2 - 1.0;
-                            float zNear = 0.1f;
-                            float zFar = 100.f;
-                            float z_e = 2.0 * zNear * zFar / (zFar + zNear - z_n * (zFar - zNear));
-                            outColor = vec4(vec3(z_e),1.f);
+                float depth2 = texture(depthTexture, tc2 - vec2(0,1)).r;
+                float zNear = 0.1f;
+                float zFar = 150.f;
+                outColor = vec4(vec3(linearDepth(depth2, zNear, zFar))/(zFar-zNear),1.f);
             }
             else if (inData.tc.x >= 0.5 && inData.tc.y >= 0.5){ //rechter unterer bereich der anzeige
                             outColor = vec4(texture(additionalTexture, tc2 - vec2(1,1)).rgb, 1);
@@ -116,6 +112,7 @@ void main()
                             outColor = vec4(texture(normalTexture, tc2 - vec2(1,0)).rgb, 1);
 
     }
+
 	
 
 }

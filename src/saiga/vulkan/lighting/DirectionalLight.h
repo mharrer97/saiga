@@ -147,7 +147,7 @@ class SAIGA_VULKAN_API DirectionalLightRenderer : public Pipeline
     {
         mat4 proj;
         mat4 view;
-        bool debug;
+        int debug;
 
     } uboFS;
 
@@ -209,7 +209,7 @@ class SAIGA_VULKAN_API DirectionalShadowLightRenderer : public Pipeline
     {
         mat4 proj;
         mat4 view;
-        bool debug;
+        int debug;
 
     } uboFS;
 
