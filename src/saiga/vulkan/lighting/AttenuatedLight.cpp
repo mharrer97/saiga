@@ -226,7 +226,7 @@ void AttenuatedLightRenderer::createAndUpdateDescriptorSet(Saiga::Vulkan::Memory
 void AttenuatedLightRenderer::pushPosition(vk::CommandBuffer cmd, vec4 pos)
 {
     pushConstant(cmd, vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, sizeof(pushConstantObject),
-                 data(pos), 0);
+                 pos.data(), 0);
     // pushConstant(cmd, vk::ShaderStageFlagBits::eVertex, sizeof(mat4), data(model));
 }
 }  // namespace Lighting

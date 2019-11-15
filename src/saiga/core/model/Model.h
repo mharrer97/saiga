@@ -43,7 +43,7 @@ class SAIGA_TEMPLATE TriangleModel
 template <typename vertex_t, typename index_t>
 void TriangleModel<vertex_t, index_t>::normalizePosition()
 {
-    mat4 t = identityMat4();
+    mat4 t = mat4::Identity();
     mesh.transform(t);
     boundingBox.setPosition(make_vec3(0));
 }
@@ -54,6 +54,7 @@ template <typename vertex_t, typename index_t>
 void TriangleModel<vertex_t, index_t>::ZUPtoYUP()
 {
     const mat4 m = make_mat4(1, 0, 0, 0, 0, 0, -1, 0, 0, 1, 0, 0, 0, 0, 0, 1);
+
     mesh.transform(m);
     mesh.transformNormal(m);
 }

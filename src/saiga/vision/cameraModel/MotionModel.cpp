@@ -106,6 +106,12 @@ void MotionModel::renderVelocityGraph()
     grapha.renderImGui();
 }
 
+void MotionModel::clear()
+{
+    data.clear();
+    validVelocity = false;
+}
+
 void MotionModel::recomputeVelocity()
 {
     currentVelocity = computeVelocity();
@@ -168,6 +174,8 @@ SE3 MotionModel::computeVelocity()
 
         result = slerp(result, data[dataId].v, params.alpha);
     }
+    result.translation() *= params.damping;
+    //    result = scale(result, params.damping);
     return result;
 
 

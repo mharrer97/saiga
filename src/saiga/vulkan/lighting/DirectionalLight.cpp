@@ -69,7 +69,7 @@ void DirectionalLight::calculateCamera()
     // trs matrix without scale
     //(scale is applied through projection matrix
     // TODO adjust to current pos
-    mat4 T = translate(identityMat4(), make_vec3(10));
+    mat4 T = translate(make_vec3(10));
     mat4 R = make_mat4(rot);
     mat4 m = T * R;
     shadowCamera.setView(inverse(m));
@@ -86,9 +86,9 @@ void DirectionalLight::setDirection(const vec3& dir)
 
 
     mat3 m;
-    col(m, 0) = right;
-    col(m, 1) = up;
-    col(m, 2) = d;
+    m.col(0) = right;
+    m.col(1) = up;
+    m.col(2) = d;
 
     vec3 cp = make_vec3(0);
 
@@ -165,9 +165,9 @@ void DirectionalLight::fitShadowToCamera(Camera* cam)
             // compute bounding sphere for cascade
 
             //        vec3 d = -vec3(cam->model[2]);
-            vec3 right = make_vec3(col(cam->model, 0));
-            vec3 up    = make_vec3(col(cam->model, 1));
-            vec3 dir   = -make_vec3(col(cam->model, 2));
+            vec3 right = make_vec3(cam->model.col(0));
+            vec3 up    = make_vec3(cam->model.col(1));
+            vec3 dir   = -make_vec3(cam->model.col(2));
 
 
             float zNear = depthCuts[c] - cascadeInterpolateRange;
@@ -213,7 +213,7 @@ void DirectionalLight::fitShadowToCamera(Camera* cam)
         //    texelSize[0] = 2.0f * r / shadowmap.w;
         //    texelSize[1] = 2.0f * r / shadowmap.h;
         //    texelSize[2] = 0.0001f;
-        texelSize = 2.0f * r / smsize;
+        texelSize = 2.0f * r / smsize.array();
 
         // project the position of the actual camera to light space
         vec3 p = boundingSphere.pos;
@@ -229,14 +229,15 @@ void DirectionalLight::fitShadowToCamera(Camera* cam)
 #    if 1
         {
             // move camera in texel size increments
-            orthoBox.min = ele_div(orthoBox.min, texelSize);
-            orthoBox.min = floor(orthoBox.min);
-            orthoBox.min = ele_mult(orthoBox.min, texelSize);
+            // move camera in texel size increments
+            orthoBox.min = (orthoBox.min.array() / texelSize.array());
+            orthoBox.min = (orthoBox.min).array().floor();
+            orthoBox.min = orthoBox.min.array() * texelSize.array();
 
             //            orthoBox.max /= texelSize;
-            orthoBox.max = ele_div(orthoBox.max, texelSize);
-            orthoBox.max = floor(orthoBox.max);
-            orthoBox.max = ele_mult(orthoBox.max, texelSize);
+            orthoBox.max = (orthoBox.max.array() / texelSize.array());
+            orthoBox.max = (orthoBox.max).array().floor();
+            orthoBox.max = orthoBox.max.array() * texelSize.array();
         }
 #    endif
     }

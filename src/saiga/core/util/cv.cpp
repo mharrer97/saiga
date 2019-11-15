@@ -32,12 +32,15 @@ mat4 cvCameraToGLCamera(const mat3& K, int viewportW, int viewportH, float znear
 #endif
     auto test = removeViewPortTransform * K;
 
-    mat4 proj       = make_mat4(test);
-    col(proj, 2)[3] = -1;
-    col(proj, 3)[3] = 0;
-
-    col(proj, 2)[2] = -(zfar + znear) / (zfar - znear);
-    col(proj, 3)[2] = -2.0f * zfar * znear / (zfar - znear);
+    mat4 proj = make_mat4(test);
+    //    col(proj, 2)[3] = -1;
+    //    col(proj, 3)[3] = 0;
+    //    col(proj, 2)[2] = -(zfar + znear) / (zfar - znear);
+    //    col(proj, 3)[2] = -2.0f * zfar * znear / (zfar - znear);
+    proj(3, 2) = -1;
+    proj(3, 3) = 0;
+    proj(2, 2) = -(zfar + znear) / (zfar - znear);
+    proj(2, 3) = -2.0f * zfar * znear / (zfar - znear);
     return proj;
 }
 
@@ -49,6 +52,8 @@ mat4 cvViewToGLView(const mat4& view)
      * Both systems are right-handed.
      */
     mat4 viewTransform = make_mat4(1, 0, 0, 0, 0, -1, 0, 0, 0, 0, -1, 0, 0, 0, 0, 1);
+
+
     return viewTransform * view;
 }
 

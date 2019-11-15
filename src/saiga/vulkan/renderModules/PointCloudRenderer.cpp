@@ -31,7 +31,7 @@ bool PointCloudRenderer::bind(vk::CommandBuffer cmd)
 
 void PointCloudRenderer::pushModel(VkCommandBuffer cmd, mat4 model)
 {
-    pushConstant(cmd, vk::ShaderStageFlagBits::eVertex, sizeof(mat4), data(model));
+    pushConstant(cmd, vk::ShaderStageFlagBits::eVertex, sizeof(mat4), model.data());
 }
 
 
@@ -85,7 +85,7 @@ bool DeferredPointCloudRenderer::bind(vk::CommandBuffer cmd)
 
 void DeferredPointCloudRenderer::pushModel(VkCommandBuffer cmd, mat4 model)
 {
-    pushConstant(cmd, vk::ShaderStageFlagBits::eVertex, sizeof(mat4), data(model));
+    pushConstant(cmd, vk::ShaderStageFlagBits::eVertex, sizeof(mat4), model.data());
 }
 
 
@@ -140,7 +140,7 @@ bool ShadowPointCloudRenderer::bind(vk::CommandBuffer cmd)
 
 void ShadowPointCloudRenderer::pushModel(VkCommandBuffer cmd, mat4 model)
 {
-    pushConstant(cmd, vk::ShaderStageFlagBits::eVertex, sizeof(mat4), data(model));
+    pushConstant(cmd, vk::ShaderStageFlagBits::eVertex, sizeof(mat4), model.data());
 }
 
 

@@ -272,8 +272,8 @@ void ORBextractor::ComputeDescriptors(std::vector<std::vector<kpt_t>>& allkpts, 
 
     //    int current = 0;
 
-    std::vector<int> scan;
-    scan.push_back(0);
+    std::vector<int> scan(nlevels);
+    scan[0] = 0;
 
     for (int i = 1; i < nlevels; ++i)
     {
@@ -335,7 +335,7 @@ void ORBextractor::ComputeDescriptors(std::vector<std::vector<kpt_t>>& allkpts, 
  * @param allkpts KeyPoint vector in which the result will be stored
  * @param mode decides which method to call for keypoint distribution over image, see Distribution.h
  * @param divideImage  true-->divide image into cellSize x cellSize cells, run FAST per cell
- * @param cellSize must be greater than 16 and lesser than min(rows, cols) of smallest image in pyramid
+ * @param cellSize must be greater than 16 and lesser than std::min(rows, cols) of smallest image in pyramid
  */
 void ORBextractor::DivideAndFAST(std::vector<std::vector<kpt_t>>& allkpts, FeatureDistribution& distribution,
                                  int cellSize, bool distributePerLevel)
@@ -467,7 +467,7 @@ void ORBextractor::ComputeScalePyramid(img_t& image, std::vector<cv::Mat>& tmpPy
 
         if (lvl)
         {
-            cv::resize(tmpPyramid[lvl - 1], tmpPyramid[lvl], cv::Size(width, height), 0, 0, CV_INTER_LINEAR);
+            cv::resize(tmpPyramid[lvl - 1], tmpPyramid[lvl], cv::Size(width, height), 0, 0, cv::INTER_LINEAR);
 
             cv::copyMakeBorder(tmpPyramid[lvl], borderedImg, EDGE_THRESHOLD, EDGE_THRESHOLD, EDGE_THRESHOLD,
                                EDGE_THRESHOLD, cv::BORDER_REFLECT_101 + cv::BORDER_ISOLATED);

@@ -40,7 +40,7 @@ bool QuadRenderer2::bind(vk::CommandBuffer cmd)
 
 void QuadRenderer2::pushModel(VkCommandBuffer cmd, mat4 model)
 {
-    pushConstant(cmd, vk::ShaderStageFlagBits::eVertex, sizeof(mat4), data(model));
+    pushConstant(cmd, vk::ShaderStageFlagBits::eVertex, sizeof(mat4), model.data());
 }
 
 
@@ -185,7 +185,7 @@ void QuadRenderer::setupColorAttachmentSampler()
 void QuadRenderer2::render(vk::CommandBuffer cmd)
 {
     bindDescriptorSet(cmd, descriptorSet);
-    pushModel(cmd, identityMat4());
+    pushModel(cmd, mat4::Identity());
     vk::Viewport vp(20.f, 20.f, 200.f, 100.f);
     cmd.setViewport(0, vp);
     quad.render(cmd);

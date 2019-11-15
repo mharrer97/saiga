@@ -35,13 +35,13 @@ if(SAIGA_USE_EIGENRECURSIVE)
     add_subdirectory(recursive)
 endif()
 
-FILE(GLOB VULKAN_SRC  "*.cpp" "*.cu" "*.cc")
-FILE(GLOB VULKAN_HEADER  "*.h" "*.hpp" "*.inl")
+FILE(GLOB VISION_SRC  "*.cpp" "*.cu" "*.cc")
+FILE(GLOB VISION_HEADER  "*.h" "*.hpp" "*.inl")
 
 SET(SAIGA_ALL_FILES
     ${SAIGA_ALL_FILES}
-    ${VULKAN_SRC}
-    ${VULKAN_HEADER}
+    ${VISION_SRC}
+    ${VISION_HEADER}
     )
 
 
@@ -78,15 +78,11 @@ install(
     ARCHIVE DESTINATION ${INSTALL_LIB}
     )
 
-#install(
-#    EXPORT ${LIB_EXPORT}
-#    FILE SaigaTargets.cmake
-#    DESTINATION ${INSTALL_SHARE}
-#    )
 
-##### Precompiled Headers #####
 if(SAIGA_PCH)
-    set_target_properties(${MODULE_NAME} PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT "${PROJECT_SOURCE_DIR}/src/internal/pch_vision.h")
-    set_target_properties(${MODULE_NAME} PROPERTIES COTIRE_ADD_UNITY_BUILD false)
-    cotire(${MODULE_NAME})
+    target_precompile_headers(
+        ${MODULE_NAME}
+      PRIVATE
+        "${PROJECT_SOURCE_DIR}/src/internal/pch_vision.h"
+    )
 endif()

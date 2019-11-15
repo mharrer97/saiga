@@ -11,24 +11,6 @@
 #include <algorithm>
 namespace Saiga
 {
-Color::Color() : r(255), g(255), b(255), a(255) {}
-
-Color::Color(int r, int g, int b, int a) : r(r), g(g), b(b), a(a) {}
-
-
-Color::Color(float r, float g, float b, float a) : Color(vec4(r, g, b, a)) {}
-
-Color::Color(const vec3& c) : Color(make_vec4(c, 1)) {}
-
-Color::Color(const vec4& c)
-{
-    vec4 tmp = round(c * 255.0f);
-    r        = tmp[0];
-    g        = tmp[1];
-    b        = tmp[2];
-    a        = tmp[3];
-}
-
 Color::operator vec3() const
 {
     return toVec3();
@@ -38,6 +20,19 @@ Color::operator vec3() const
 Color::operator vec4() const
 {
     return toVec4();
+}
+
+Color::Color(float r, float g, float b, float a) : Color(vec4(r, g, b, a)) {}
+
+Color::Color(const vec3& c) : Color(make_vec4(c, 1)) {}
+
+Color::Color(const ucvec4& c) : r(c(0)), g(c(1)), b(c(2)), a(c(3)) {}
+
+Color::Color(const vec4& c) : Color(ucvec4((c * 255.0f).array().round().cast<unsigned char>())) {}
+
+Saiga::Color::operator ucvec4() const
+{
+    return ucvec4(r, g, b, a);
 }
 
 vec3 Color::toVec3() const
@@ -119,8 +114,11 @@ vec3 Color::rgb2hsv(vec3 c)
 vec3 Color::hsv2rgb(vec3 c)
 {
     vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
-    vec3 p = abs(vec3(fract(make_vec3(c[0]) + make_vec3(K)) * 6.0f - make_vec3(K[3])));
-    return c[2] * mix(make_vec3(K[0]), clamp(p - make_vec3(K[0]), make_vec3(0.0), make_vec3(1.0)), c[1]);
+    //    vec3 fra = fract(make_vec3(c[0]) + make_vec3(K));
+    vec3 fra = (make_vec3(c[0]) + make_vec3(K));
+    fra      = fra.array() - fra.array().floor();
+    vec3 p   = vec3(fra * 6.0f - make_vec3(K[3])).array().abs();
+    return c[2] * mix(make_vec3(K[0]), clamp((p - make_vec3(K[0])).eval(), make_vec3(0.0), make_vec3(1.0)), c[1]);
 }
 
 }  // namespace Saiga

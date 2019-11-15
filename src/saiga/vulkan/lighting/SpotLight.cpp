@@ -122,7 +122,7 @@ void SpotLight::calculateCamera()
     vec3 pos = vec3(getPosition());
     vec3 up  = make_vec3(getRightVector());
     shadowCamera.setView(pos, pos - dir, up);
-    shadowCamera.setProj(min(135.f, openingAngle), 1, shadowNearPlane, cutoffRadius, true);
+    shadowCamera.setProj(std::min(135.f, openingAngle), 1, shadowNearPlane, cutoffRadius, true);
 }
 
 /*void PointLight::bindUniforms(std::shared_ptr<PointLightShader> shader, Camera* cam)

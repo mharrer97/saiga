@@ -344,13 +344,13 @@ void VulkanExample::render(vk::CommandBuffer cmd, Camera* cam)
     {
         if (assetRenderer.deferred.bind(cmd))
         {
-            assetRenderer.deferred.pushModel(cmd, identityMat4());
+            assetRenderer.deferred.pushModel(cmd, mat4::Identity());
             plane.render(cmd);
 
             assetRenderer.deferred.pushModel(cmd, teapotTrans.model);
             teapot.render(cmd);
 
-            assetRenderer.deferred.pushModel(cmd, scale(translate(vec3(-5.f, 0.5f, -5.f)), vec3(0.2f, 0.5f, 0.2f)));
+            assetRenderer.deferred.pushModel(cmd, translate(vec3(-5.f, 0.5f, -5.f)) * scale(vec3(0.2f, 0.5f, 0.2f)));
             candle.render(cmd);
 
             assetRenderer.deferred.pushModel(cmd, translate(vec3(10.f, 3.f, 10.f)) * scale(vec3(3.f, 3.f, 3.f)));
@@ -394,13 +394,13 @@ void VulkanExample::renderDepth(vk::CommandBuffer cmd, Camera* cam)
     {
         if (assetRenderer.shadow.bind(cmd))
         {
-            assetRenderer.shadow.pushModel(cmd, identityMat4());
+            assetRenderer.shadow.pushModel(cmd, mat4::Identity());
             plane.render(cmd);
 
             assetRenderer.shadow.pushModel(cmd, teapotTrans.model);
             teapot.render(cmd);
 
-            assetRenderer.shadow.pushModel(cmd, scale(translate(vec3(-5.f, 0.5f, -5.f)), vec3(0.2f, 0.5f, 0.2f)));
+            assetRenderer.shadow.pushModel(cmd, translate(vec3(-5.f, 0.5f, -5.f)) * scale(vec3(0.2f, 0.5f, 0.2f)));
             candle.render(cmd);
 
             assetRenderer.deferred.pushModel(cmd, translate(vec3(10.f, 3.f, 10.f)) * scale(vec3(3.f, 3.f, 3.f)));
@@ -412,7 +412,7 @@ void VulkanExample::renderDepth(vk::CommandBuffer cmd, Camera* cam)
             teapot.render(cmd);
 
             auto gridMatrix = rotate(0.5f * pi<float>(), vec3(1, 0, 0));
-            gridMatrix      = translate(gridMatrix, vec3(0, -10, 0));
+            gridMatrix      = gridMatrix * translate(vec3(0, -10, 0));
             lineAssetRenderer.shadow.pushModel(cmd, gridMatrix);
             grid.render(cmd);
         }
@@ -446,13 +446,13 @@ void VulkanExample::renderForward(vk::CommandBuffer cmd, Camera* cam)
 
             for (auto& l : pointLights)
             {
-                assetRenderer.forward.pushModel(cmd, scale(translate(l->getPosition()), vec3(0.1f, 0.1f, 0.1f)));
+                assetRenderer.forward.pushModel(cmd, translate(l->getPosition()) * scale(vec3(0.1f, 0.1f, 0.1f)));
                 sphere.render(cmd);
             }
-            assetRenderer.forward.pushModel(cmd, scale(translate(spotLight->getPosition()), vec3(0.1f, 0.1f, 0.1f)));
+            assetRenderer.forward.pushModel(cmd, translate(spotLight->getPosition()) * scale(vec3(0.1f, 0.1f, 0.1f)));
             sphere.render(cmd);
 
-            assetRenderer.forward.pushModel(cmd, scale(translate(candleLight->getPosition()), vec3(0.1f, 0.1f, 0.1f)));
+            assetRenderer.forward.pushModel(cmd, translate(candleLight->getPosition()) * scale(vec3(0.1f, 0.1f, 0.1f)));
             sphere.render(cmd);
         }
         if (pointCloudRenderer.forward.bind(cmd))
@@ -466,7 +466,7 @@ void VulkanExample::renderForward(vk::CommandBuffer cmd, Camera* cam)
             teapot.render(cmd);
 
             auto gridMatrix = rotate(0.5f * pi<float>(), vec3(1, 0, 0));
-            gridMatrix      = translate(gridMatrix, vec3(0, -10, 0));
+            gridMatrix      = gridMatrix * translate(vec3(0, -10, 0));
             lineAssetRenderer.forward.pushModel(cmd, gridMatrix);
             grid.render(cmd);
         }

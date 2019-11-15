@@ -26,6 +26,8 @@ struct Sim3Plus
         Vec7 delta2 = delta;
         if (FIX_SCALE) delta2[6] = T(0);
 
+
+        //        x_plus_delta = x * Sophus::Sim3<T>::exp(delta2);
         x_plus_delta = Sophus::Sim3<T>::exp(delta2) * x;
 
         return true;

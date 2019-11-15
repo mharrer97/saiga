@@ -129,9 +129,9 @@ void Sample::renderFinal(Camera* cam)
     ImGui::InputInt("fps", &fps);
 
     Saiga::RGBDIntrinsics intr;
-    intr.deptho.w = depthWidth;
-    intr.deptho.h = depthHeight;
-    intr.fps      = fps;
+    intr.depthImageSize.w = depthWidth;
+    intr.depthImageSize.h = depthHeight;
+    intr.fps              = fps;
 
 
 
@@ -151,7 +151,10 @@ void Sample::renderFinal(Camera* cam)
     if (ImGui::Button("Load From File"))
     {
         intr.fromConfigFile(std::string(dir) + "config.ini");
-        rgbdcamera  = std::make_unique<Saiga::FileRGBDCamera>(dir, intr);
+
+        DatasetParameters dparams;
+        dparams.dir = dir;
+        rgbdcamera  = std::make_unique<Saiga::FileRGBDCamera>(dparams, intr);
         initTexture = true;
     }
 
