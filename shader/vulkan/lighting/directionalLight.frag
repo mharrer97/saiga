@@ -95,7 +95,7 @@ void main()
         {  // rechter unterer bereich der anzeige
             outColor = vec4(texture(additionalTexture, tc2 - vec2(1, 1)).rgb, 1);
             outColor = vec4(-reconstructPosition(depth, tc2 - vec2(1, 1), ubo.proj), 1.f);
-            ;
+            if (texture(additionalTexture, tc2 - vec2(1, 1)).a > 0.99f) outColor = vec4(0, 0, 0, 1);
         }
         else if (inData.tc.x < 0.5 && inData.tc.y < 0.5)  // linker oberer
             outColor = vec4(texture(diffuseTexture, tc2).rgb, 1);

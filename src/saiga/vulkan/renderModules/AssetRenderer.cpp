@@ -102,6 +102,7 @@ void DeferredAssetRenderer::init(VulkanBase& vulkanDevice, VkRenderPass renderPa
     shaderPipeline.load(device, {vertexShader, fragmentShader});
 
     PipelineInfo info;
+    // info.rasterizationState.cullMode = vk::CullModeFlagBits::eNone;
     info.addVertexInfo<VertexNC>();
     create(renderPass, info, 4);
 
@@ -154,6 +155,7 @@ void ShadowAssetRenderer::init(VulkanBase& vulkanDevice, VkRenderPass renderPass
     PipelineInfo info;
     info.addVertexInfo<VertexNC>();
     // info.rasterizationState.cullMode = vk::CullModeFlagBits::eBack;
+
     create(renderPass, info, 0);
 
 
