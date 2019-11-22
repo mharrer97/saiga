@@ -162,6 +162,7 @@ VulkanExample::VulkanExample()
         pointTestLight->setColorDiffuse(lightColor);
         pointTestLight->setColorSpecular(lightColor);
         pointLights.push_back(pointTestLight);
+        pointTestLight->setActive(false);
     }
 
     spotLight = renderer->lighting.createSpotLight();
@@ -172,11 +173,11 @@ VulkanExample::VulkanExample()
     boxLight = renderer->lighting.createBoxLight();
     boxLight->setColorDiffuse(Saiga::Vulkan::Lighting::LightColorPresets::MuzzleFlash);
     boxLight->setColorSpecular(Saiga::Vulkan::Lighting::LightColorPresets::MuzzleFlash);
-    boxLight->setActive(true);
+    boxLight->setActive(false);
 
     directionalLight = renderer->lighting.createDirectionalLight();
-    directionalLight->setColorDiffuse(Saiga::Vulkan::Lighting::LightColorPresets::MoonlightBlue);
-    directionalLight->setColorSpecular(Saiga::Vulkan::Lighting::LightColorPresets::MoonlightBlue);
+    // directionalLight->setColorDiffuse(Saiga::Vulkan::Lighting::LightColorPresets::MoonlightBlue);
+    // directionalLight->setColorSpecular(Saiga::Vulkan::Lighting::LightColorPresets::MoonlightBlue);
 
     directionalLight->setView(vec3(450.f, 450.f, 450.f), vec3(0.f, 0.f, 0.f), vec3(0.f, 1.f, 0.f));
     // directionalLight->setDirection(vec3(-1.f, -1.f, -1.f));
@@ -195,7 +196,7 @@ VulkanExample::VulkanExample()
     candleLight->setColorDiffuse(Saiga::Vulkan::Lighting::LightColorPresets::Candle);
     candleLight->setColorSpecular(Saiga::Vulkan::Lighting::LightColorPresets::Candle);
 
-    candleLight->setActive(true);
+    candleLight->setActive(false);
 }
 
 

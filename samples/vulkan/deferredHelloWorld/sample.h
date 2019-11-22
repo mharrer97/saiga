@@ -48,7 +48,7 @@ class VulkanExample : public VulkanDeferredSDLExampleBase
     bool uploadChanges = true;
 
     float lightRadius           = 45.f;
-    float spotLightOpeningAngle = 134.75f;
+    float spotLightOpeningAngle = 90.f;
     float lightHeight           = 18.f;
     float ambientIntensity      = 0.1f;
 
@@ -61,7 +61,7 @@ class VulkanExample : public VulkanDeferredSDLExampleBase
     Saiga::Vulkan::VulkanVertexColoredAsset sphere;
 
     // std::vector<std::shared_ptr<Saiga::Vulkan::Lighting::PointLight>> pointLights;
-    std::shared_ptr<Saiga::Vulkan::Lighting::SpotLight> spotLight;
+    std::vector<std::shared_ptr<Saiga::Vulkan::Lighting::SpotLight>> spotLights;
     // std::shared_ptr<Saiga::Vulkan::Lighting::BoxLight> boxLight;
     std::shared_ptr<Saiga::Vulkan::Lighting::DirectionalLight> directionalLight;
 

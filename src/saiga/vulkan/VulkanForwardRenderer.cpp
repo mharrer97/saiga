@@ -22,7 +22,8 @@ namespace Saiga
 {
 namespace Vulkan
 {
-VulkanForwardRenderer::VulkanForwardRenderer(VulkanWindow& window, VulkanParameters vulkanParameters)
+VulkanForwardRenderer::VulkanForwardRenderer(VulkanWindow& window, VulkanParameters vulkanParameters,
+                                             ParameterType rendererParameters)
     : VulkanRenderer(window, vulkanParameters)
 {
     setupRenderPass();

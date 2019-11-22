@@ -23,7 +23,7 @@
 
 #include <vector>
 using namespace Saiga;
-class VulkanExample : public VulkanDeferredSDLExampleBase
+class VulkanExample : public VulkanDeferredRTXSDLExampleBase
 {
    public:
     // VulkanExample(Saiga::Vulkan::VulkanWindow& window, Saiga::Vulkan::VulkanDeferredRenderer& renderer);

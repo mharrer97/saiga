@@ -65,4 +65,27 @@ class SAIGA_VULKAN_API VulkanDeferredSDLExampleBase
     void keyReleased(SDL_Keysym key) override;
 };
 
+/**
+ * The base class for the saiga vulkan samples.
+ * Includes basic input handling and a controllable camera.
+ */
+class SAIGA_VULKAN_API VulkanDeferredRTXSDLExampleBase
+    : public Saiga::Vulkan::StandaloneWindow<Saiga::Vulkan::WindowManagement::SDL,
+                                             Saiga::Vulkan::VulkanDeferredRenderer>,
+      public SDL_KeyListener
+{
+   public:
+    VulkanDeferredRTXSDLExampleBase();
+    ~VulkanDeferredRTXSDLExampleBase() override;
+
+    void update(float dt) override;
+    void renderGUI() override;
+
+   protected:
+    SDLCamera<PerspectiveCamera> camera;
+
+
+    void keyPressed(SDL_Keysym key) override;
+    void keyReleased(SDL_Keysym key) override;
+};
 }  // namespace Saiga

@@ -140,6 +140,9 @@ void VulkanBase::createLogicalDevice(VulkanParameters& parameters, bool useSwapC
         deviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
     }
 
+    std::cout << "enabled Device Extensions: " << deviceExtensions.size() << std::endl;
+    for (auto& e : deviceExtensions) std::cout << e << std::endl;
+
     auto featuresToEnable = parameters.physicalDeviceFeatures;
 
     auto availableFeatures = physicalDevice.getFeatures();

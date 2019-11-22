@@ -7,6 +7,7 @@
 #pragma once
 
 #include "saiga/core/window/Interfaces.h"
+#include "saiga/vulkan/VulkanDeferredRenderer.h"
 
 #include "Window.h"
 
@@ -104,6 +105,26 @@ struct SAIGA_TEMPLATE StandaloneWindow : public Renderer::InterfaceType, public 
     {
         window   = std::make_unique<WindowManagment>(windowParameters);
         renderer = std::make_unique<Renderer>(*window, vulkanParams);
+
+        window->setUpdateObject(*this);
+        renderer->setRenderObject(*this);
+    }
+
+    void init(const WindowParameters& windowParameters, VulkanParameters& vulkanParams,
+              const VulkanDeferredRenderer::ParameterType& rendererParams)
+    {
+        window = std::make_unique<WindowManagment>(windowParameters);
+
+        std::vector<std::string> additionalInstanceExtensions = {};
+
+        if (rendererParams.enableRTX)
+        {
+            vulkanParams.deviceExtensions.push_back(VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME);
+            vulkanParams.deviceExtensions.push_back(VK_NV_RAY_TRACING_EXTENSION_NAME);
+            additionalInstanceExtensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
+        }
+
+        renderer = std::make_unique<Renderer>(*window, vulkanParams, additionalInstanceExtensions, rendererParams);
 
         window->setUpdateObject(*this);
         renderer->setRenderObject(*this);

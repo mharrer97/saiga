@@ -8,9 +8,11 @@
 
 #include "VulkanDeferredRenderer.h"
 
+#include "saiga/core/util/ini/ini.h"
 #include "saiga/vulkan/Shader/all.h"
 
 #include "VulkanInitializers.hpp"
+
 
 #if defined(SAIGA_OPENGL_INCLUDED)
 #    error OpenGL was included somewhere.
@@ -21,8 +23,18 @@ namespace Saiga
 {
 namespace Vulkan
 {
-VulkanDeferredRenderer::VulkanDeferredRenderer(VulkanWindow& window, VulkanParameters vulkanParameters)
-    : VulkanRenderer(window, vulkanParameters), lighting()
+void DeferredRenderingParameters::fromConfigFile(const std::string& file)
+{
+    Saiga::SimpleIni ini;
+    ini.LoadFile(file.c_str());
+
+    enableRTX = ini.GetAddBool("Renderer", "enableRTX", false);
+    if (ini.changed()) ini.SaveFile(file.c_str());
+}
+VulkanDeferredRenderer::VulkanDeferredRenderer(VulkanWindow& window, VulkanParameters vulkanParameters,
+                                               std::vector<std::string> additionalInstanceExtensions,
+                                               ParameterType rendererParameters)
+    : VulkanRenderer(window, vulkanParameters, additionalInstanceExtensions), lighting(), params(rendererParameters)
 {
     std::cout << "VulkanDeferredRenderer Creation -- START" << std::endl;
 

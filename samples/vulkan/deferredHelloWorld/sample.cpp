@@ -51,19 +51,71 @@ VulkanExample::VulkanExample()
 
     sphere.loadObj("icosphere.obj");
     sphere.init(renderer->base());
+    {
+        auto spotLight = renderer->lighting.createSpotLight();
+        spotLight->setAttenuation(Saiga::Vulkan::Lighting::AttenuationPresets::Quadratic);
+        spotLight->setIntensity(1);
+        spotLight->setRadius(3);
+        spotLight->setPosition(vec3(0, 18.f - 10.f, 0));
+        // spotLight->setDirection(vec3(-1.f, -1.f, -1.f));
+        spotLight->setDirection(vec3(0.f, -1.f, 0.f));
+        // spotLight->setColorDiffuse(make_vec3(1));
+        // spotLight->setColorSpecular(make_vec3(1));
+        // spotLight->setColorDiffuse(Saiga::Vulkan::Lighting::LightColorPresets::Candle);
+        // spotLight->setColorSpecular(Saiga::Vulkan::Lighting::LightColorPresets::Candle);
+        spotLight->setColorDiffuse(vec3(1, 0.1, 1));
+        spotLight->setColorSpecular(vec3(1, 0.1, 1));
+        spotLight->calculateModel();
+        renderer->lighting.enableShadowMapping(spotLight, 1000);
+        spotLights.push_back(spotLight);
+    }
+    {
+        auto spotLight = renderer->lighting.createSpotLight();
+        spotLight->setAttenuation(Saiga::Vulkan::Lighting::AttenuationPresets::Quadratic);
+        spotLight->setIntensity(1);
+        spotLight->setRadius(3);
+        spotLight->setPosition(vec3(0, 18.f - 10.f, 0));
+        // spotLight->setDirection(vec3(1.f, -1.f, -1.f));
+        spotLight->setDirection(vec3(0.f, -1.f, 0.f));
+        // spotLight->setColorDiffuse(make_vec3(1));
+        // spotLight->setColorSpecular(make_vec3(1));
+        spotLight->setColorDiffuse(vec3(0.1, 1, 1));
+        spotLight->setColorSpecular(vec3(0.1, 1, 1));
+        spotLight->calculateModel();
+        renderer->lighting.enableShadowMapping(spotLight, 1000);
+        spotLights.push_back(spotLight);
+    }
+    {
+        auto spotLight = renderer->lighting.createSpotLight();
+        spotLight->setAttenuation(Saiga::Vulkan::Lighting::AttenuationPresets::Quadratic);
+        spotLight->setIntensity(1);
+        spotLight->setRadius(3);
+        spotLight->setPosition(vec3(0, 18.f - 10.f, 0));
+        // spotLight->setDirection(vec3(1.f, -1.f, 1.f));
+        spotLight->setDirection(vec3(0.f, -1.f, 0.f));
+        spotLight->setColorDiffuse(make_vec3(1));
+        spotLight->setColorSpecular(make_vec3(1));
 
-    spotLight = renderer->lighting.createSpotLight();
-    // spotLight->setColorDiffuse(Saiga::Vulkan::Lighting::LightColorPresets::Candle);
-    // spotLight->setColorSpecular(Saiga::Vulkan::Lighting::LightColorPresets::Candle);
-    spotLight->setAttenuation(Saiga::Vulkan::Lighting::AttenuationPresets::Quadratic);
-    spotLight->setIntensity(1);
-    spotLight->setRadius(3);
-    spotLight->setPosition(vec3(0, 18.f - 10.f, 0));
-    spotLight->setDirection(vec3(0.f, -1.f, 0.f));
-    spotLight->setColorDiffuse(make_vec3(1));
-    spotLight->setColorSpecular(make_vec3(1));
-    spotLight->calculateModel();
-    renderer->lighting.enableShadowMapping(spotLight, 4000);
+        spotLight->calculateModel();
+        renderer->lighting.enableShadowMapping(spotLight, 1000);
+        spotLights.push_back(spotLight);
+    }
+    {
+        auto spotLight = renderer->lighting.createSpotLight();
+        spotLight->setAttenuation(Saiga::Vulkan::Lighting::AttenuationPresets::Quadratic);
+        spotLight->setIntensity(1);
+        spotLight->setRadius(3);
+        spotLight->setPosition(vec3(0, 18.f - 10.f, 0));
+        // spotLight->setDirection(vec3(-1.f, -1.f, 1.f));
+        spotLight->setDirection(vec3(0.f, -1.f, 0.f));
+        //        spotLight->setColorDiffuse(make_vec3(1));
+        //        spotLight->setColorSpecular(make_vec3(1));
+        spotLight->setColorDiffuse(vec3(1, 1, 0.1));
+        spotLight->setColorSpecular(vec3(1, 1, 0.1));
+        spotLight->calculateModel();
+        renderer->lighting.enableShadowMapping(spotLight, 1000);
+        spotLights.push_back(spotLight);
+    }
 
     directionalLight = renderer->lighting.createDirectionalLight();
     directionalLight->setColorDiffuse(make_vec3(1));
@@ -88,12 +140,35 @@ void VulkanExample::update(float dt)
     {
         camera.interpolate(dt, 0);
     }
+    for (auto& spotLight : spotLights)
+    {
+        spotLight->setRadius(lightRadius);
+        spotLight->setAngle(spotLightOpeningAngle);
+    }
 
-    spotLight->setPosition(vec3(0, lightHeight - 10.f, 0));
-    spotLight->setRadius(lightRadius);
-    spotLight->setAngle(spotLightOpeningAngle);
-    spotLight->calculateModel();
-
+    {
+        auto spotLight = spotLights.at(0);
+        spotLight->setPosition(vec3(lightHeight - 10.f, lightHeight - 10.f, lightHeight - 10.f));
+        spotLight->calculateModel();
+    }
+    {
+        // vorne links -- funzt
+        auto spotLight = spotLights.at(1);
+        spotLight->setPosition(vec3(-(lightHeight - 10.f), lightHeight - 10.f, (lightHeight - 10.f)));
+        spotLight->calculateModel();
+    }
+    {
+        // hinten links -- funzt
+        auto spotLight = spotLights.at(2);
+        spotLight->setPosition(vec3(-(lightHeight - 10.f), lightHeight - 10.f, -(lightHeight - 10.f)));
+        spotLight->calculateModel();
+    }
+    {
+        // hinten rechts -- funzt
+        auto spotLight = spotLights.at(3);
+        spotLight->setPosition(vec3((lightHeight - 10.f), lightHeight - 10.f, -(lightHeight - 10.f)));
+        spotLight->calculateModel();
+    }
     directionalLight->setAmbientIntensity(ambientIntensity);
 }
 
@@ -151,8 +226,11 @@ void VulkanExample::renderForward(vk::CommandBuffer cmd, Camera* cam)
     {
         if (assetRenderer.forward.bind(cmd))
         {
-            assetRenderer.shadow.pushModel(cmd, translate(spotLight->getPosition()) * scale(make_vec3(0.1f)));
-            sphere.render(cmd);
+            for (auto& spotLight : spotLights)
+            {
+                assetRenderer.shadow.pushModel(cmd, translate(spotLight->getPosition()) * scale(make_vec3(0.1f)));
+                sphere.render(cmd);
+            }
         }
     }
 }

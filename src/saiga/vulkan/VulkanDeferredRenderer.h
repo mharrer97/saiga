@@ -21,6 +21,7 @@
 #include "saiga/vulkan/buffer/Framebuffer.h"
 #include "saiga/vulkan/lighting/DeferredLighting.h"
 #include "saiga/vulkan/lighting/PointLight.h"
+#include "saiga/vulkan/raytracing/Raytracer.h"
 #include "saiga/vulkan/renderModules/QuadRenderer.h"
 #include "saiga/vulkan/window/Window.h"
 
@@ -56,7 +57,9 @@ class SAIGA_VULKAN_API VulkanDeferredRenderingInterface : public RenderingInterf
 
 struct SAIGA_VULKAN_API DeferredRenderingParameters
 {
-    void fromConfigFile(const std::string& file) {}
+    bool enableRTX = false;
+
+    void fromConfigFile(const std::string& file);
 };
 
 class SAIGA_VULKAN_API VulkanDeferredRenderer : public VulkanRenderer
@@ -66,6 +69,7 @@ class SAIGA_VULKAN_API VulkanDeferredRenderer : public VulkanRenderer
     using ParameterType = DeferredRenderingParameters;
 
     Saiga::Vulkan::Lighting::DeferredLighting lighting;
+    Saiga::Vulkan::RTX::Raytracer raytracer;
 
 
     CommandPool renderCommandPool;
@@ -73,7 +77,9 @@ class SAIGA_VULKAN_API VulkanDeferredRenderer : public VulkanRenderer
     vk::RenderPass lightingPass;
     vk::RenderPass forwardPass;
 
-    VulkanDeferredRenderer(VulkanWindow& window, VulkanParameters vulkanParameters);
+    VulkanDeferredRenderer(VulkanWindow& window, VulkanParameters vulkanParameters,
+                           std::vector<std::string> additionalInstanceExtensions = {},
+                           ParameterType rendererParameters                      = ParameterType());
     virtual ~VulkanDeferredRenderer() override;
 
     virtual void render(FrameSync& sync, int currentImage, Camera* cam) override;
@@ -97,6 +103,7 @@ class SAIGA_VULKAN_API VulkanDeferredRenderer : public VulkanRenderer
    protected:
     // std::shared_ptr<Lighting::DirectionalLight> directionalLight;
 
+    ParameterType params;
     DepthBuffer depthBuffer;
     std::vector<vk::CommandBuffer> drawCmdBuffers;
     std::vector<vk::CommandBuffer> geometryCmdBuffers;

@@ -103,5 +103,50 @@ void VulkanDeferredSDLExampleBase::keyPressed(SDL_Keysym key)
 }
 
 void VulkanDeferredSDLExampleBase::keyReleased(SDL_Keysym key) {}
+
+
+// RTX Example Base
+VulkanDeferredRTXSDLExampleBase::VulkanDeferredRTXSDLExampleBase() : StandaloneWindow("config.ini")
+{
+    float aspect = window->getAspectRatio();
+    camera.setProj(60.0f, aspect, 0.1f, 50.0f, true);
+    camera.setView(vec3(0, 1, 3), vec3(0, 0, 0), vec3(0, 1, 0));
+    camera.rotationPoint = make_vec3(0);
+    window->setCamera(&camera);
+}
+
+VulkanDeferredRTXSDLExampleBase::~VulkanDeferredRTXSDLExampleBase() {}
+
+void VulkanDeferredRTXSDLExampleBase::update(float dt)
+{
+    if (!ImGui::captureMouse()) camera.interpolate(dt, 0);
+    if (!ImGui::captureKeyboard()) camera.update(dt);
+}
+
+
+void VulkanDeferredRTXSDLExampleBase::renderGUI()
+{
+    window->renderImGui();
+}
+
+
+void VulkanDeferredRTXSDLExampleBase::keyPressed(SDL_Keysym key)
+{
+    if (ImGui::captureKeyboard()) return;
+
+    switch (key.scancode)
+    {
+        case SDL_SCANCODE_ESCAPE:
+            window->close();
+            break;
+        case SDL_SCANCODE_G:
+            renderer->setRenderImgui(!renderer->getRenderImgui());
+            break;
+        default:
+            break;
+    }
+}
+
+void VulkanDeferredRTXSDLExampleBase::keyReleased(SDL_Keysym key) {}
 }  // namespace Saiga
 #endif

@@ -13,15 +13,19 @@ namespace Saiga
 {
 namespace Vulkan
 {
-VulkanRenderer::VulkanRenderer(VulkanWindow& window, VulkanParameters vulkanParameters)
+VulkanRenderer::VulkanRenderer(VulkanWindow& window, VulkanParameters vulkanParameters,
+                               std::vector<std::string> additionalInstanceExtensions)
     : window(window), vulkanParameters(vulkanParameters)
 {
     window.setRenderer(this);
 
 
-    auto instanceExtensions = window.getRequiredInstanceExtensions();
+    std::vector<std::string> instanceExtensions = window.getRequiredInstanceExtensions();
+    for (auto e : additionalInstanceExtensions) instanceExtensions.push_back(e);
     instance.create(instanceExtensions, vulkanParameters.enableValidationLayer);
 
+    std::cout << "enabled Device Extensions: " << instanceExtensions.size() << std::endl;
+    for (auto& e : instanceExtensions) std::cout << e << std::endl;
 
     window.createSurface(instance, &surface);
 

@@ -38,7 +38,8 @@ class SAIGA_VULKAN_API VulkanRenderer : public RendererBase
      * - Create Device
      * - Create Surface
      */
-    VulkanRenderer(VulkanWindow& window, VulkanParameters vulkanParameters);
+    VulkanRenderer(VulkanWindow& window, VulkanParameters vulkanParameters,
+                   std::vector<std::string> additionalInstanceExtensions = {});
     virtual ~VulkanRenderer() override;
 
     /**
