@@ -34,7 +34,10 @@ void DeferredRenderingParameters::fromConfigFile(const std::string& file)
 VulkanDeferredRenderer::VulkanDeferredRenderer(VulkanWindow& window, VulkanParameters vulkanParameters,
                                                std::vector<std::string> additionalInstanceExtensions,
                                                ParameterType rendererParameters)
-    : VulkanRenderer(window, vulkanParameters, additionalInstanceExtensions), lighting(), params(rendererParameters)
+    : VulkanRenderer(window, vulkanParameters, additionalInstanceExtensions),
+      lighting(),
+      raytracer(),
+      params(rendererParameters)
 {
     std::cout << "VulkanDeferredRenderer Creation -- START" << std::endl;
 
@@ -162,6 +165,14 @@ void VulkanDeferredRenderer::createBuffers(int numImages, int w, int h)
                                            gBufferDepthBuffer.location);
     std::cout << "QuadRenderer DescriptorSet Update/Creation -- CALL RETURN" << std::endl;
 
+    // if RTX is enabled, destroy and create rtx components as well
+    if (params.enableRTX)
+    {
+        std::cout << "Raytracer Creation -- CALL" << std::endl;
+        raytracer.destroy();
+        raytracer.init(base(), vk::Format::eB8G8R8A8Unorm, w, h);
+        std::cout << "Raytracer Creation -- FINISHED" << std::endl;
+    }
     std::cout << "Buffer Creation -- FINISHED" << std::endl;
 }
 
