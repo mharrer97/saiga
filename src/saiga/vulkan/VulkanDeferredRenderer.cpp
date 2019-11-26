@@ -644,116 +644,143 @@ void VulkanDeferredRenderer::setupForwardCommandBuffer(int currentImage, Camera*
 
 void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage, Camera* cam)
 {
-    VulkanDeferredRenderingInterface* renderingInterface = dynamic_cast<VulkanDeferredRenderingInterface*>(rendering);
-    SAIGA_ASSERT(renderingInterface);
-
-    //    cout << "VulkanDeferredRenderer::render" << endl;
-    if (imGui)
+    if (!params.enableRTX)
     {
-        //        std::thread t([&](){
-        imGui->beginFrame();
-        ImGui::SetNextWindowSize(ImVec2(300, 400));
-        ImGui::Begin("Deferred Renderer Settings");
-        ImGui::Checkbox("Debug Mode", &debug);
-        ImGui::Checkbox("Debug Lights", &lightDebug);
-        ImGui::Checkbox("Render Lights", &renderLights);
-        ImGui::End();
+        VulkanDeferredRenderingInterface* renderingInterface =
+            dynamic_cast<VulkanDeferredRenderingInterface*>(rendering);
+        SAIGA_ASSERT(renderingInterface);
+
+        //    cout << "VulkanDeferredRenderer::render" << endl;
+        if (imGui)
+        {
+            //        std::thread t([&](){
+            imGui->beginFrame();
+            ImGui::SetNextWindowSize(ImVec2(300, 400));
+            ImGui::Begin("Deferred Renderer Settings");
+            ImGui::Checkbox("Debug Mode", &debug);
+            ImGui::Checkbox("Debug Lights", &lightDebug);
+            ImGui::Checkbox("Render Lights", &renderLights);
+            ImGui::End();
 
 
-        renderingInterface->renderGUI();
-        imGui->endFrame();
-        //        });
-        //        t.join();
+            renderingInterface->renderGUI();
+            imGui->endFrame();
+            //        });
+            //        t.join();
+        }
+
+        // prepare the command buffers
+        setupGeometryCommandBuffer(currentImage, cam);
+        setupDrawCommandBuffer(currentImage, cam);
+        setupForwardCommandBuffer(currentImage, cam);
+        lighting.renderDepthMaps(shadowCmdBuffers[currentImage], renderingInterface);
+
+        // TODO
+        // think about synchronization ...
+
+        // TODO dummy top of pipe
+        vk::PipelineStageFlags gBufferSubmitPipelineStages =
+            vk::PipelineStageFlagBits::eColorAttachmentOutput;  // TODO not right yet
+
+        // offscreen rendering submitinfo and synchronization
+        // wait for available image to start rendering TODO ??
+        // signal that offscreen rendering is finished (geometrysemaphore)
+        vk::SubmitInfo gBufferPassSubmitinfo       = vks::initializers::submitInfo();
+        gBufferPassSubmitinfo.commandBufferCount   = 1;
+        gBufferPassSubmitinfo.pCommandBuffers      = &geometryCmdBuffers[currentImage];
+        gBufferPassSubmitinfo.pWaitDstStageMask    = &gBufferSubmitPipelineStages;
+        gBufferPassSubmitinfo.pWaitSemaphores      = &sync.imageAvailable;
+        gBufferPassSubmitinfo.waitSemaphoreCount   = 1;
+        gBufferPassSubmitinfo.pSignalSemaphores    = &geometrySemaphore;
+        gBufferPassSubmitinfo.signalSemaphoreCount = 1;
+
+        // submit geometry pass
+        base().mainQueue.submit(gBufferPassSubmitinfo, nullptr);
+
+
+
+        vk::PipelineStageFlags shadowSubmitPipelineStages = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+
+        vk::SubmitInfo shadowSubmitInfo;
+        //    submitInfo = vks::initializers::submitInfo();
+        shadowSubmitInfo.pWaitDstStageMask    = &shadowSubmitPipelineStages;
+        shadowSubmitInfo.waitSemaphoreCount   = 1;
+        shadowSubmitInfo.pWaitSemaphores      = &geometrySemaphore;  // wait for finished geometry pass
+        shadowSubmitInfo.signalSemaphoreCount = 1;
+        shadowSubmitInfo.pSignalSemaphores    = &shadowSemaphore;
+
+        shadowSubmitInfo.commandBufferCount = 1;
+        shadowSubmitInfo.pCommandBuffers    = &shadowCmdBuffers[currentImage];  // use correct cmd buffer
+        //    VK_CHECK_RESULT(vkQueueSubmit(graphicsQueue, 1, &submitInfo, sync.frameFence));
+        base().mainQueue.submit(shadowSubmitInfo, nullptr);
+
+
+
+        vk::PipelineStageFlags submitPipelineStages =
+            vk::PipelineStageFlagBits::eColorAttachmentOutput;  // TODO not right yet
+
+
+
+        vk::SubmitInfo submitInfo;
+        //    submitInfo = vks::initializers::submitInfo();
+        submitInfo.pWaitDstStageMask    = &submitPipelineStages;
+        submitInfo.waitSemaphoreCount   = 1;
+        submitInfo.pWaitSemaphores      = &shadowSemaphore;  // wait for finished shadow pass
+        submitInfo.signalSemaphoreCount = 1;
+        submitInfo.pSignalSemaphores    = &deferredSemaphore;
+
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers    = &drawCmdBuffers[currentImage];  // use correct cmd buffer
+        //    VK_CHECK_RESULT(vkQueueSubmit(graphicsQueue, 1, &submitInfo, sync.frameFence));
+        base().mainQueue.submit(submitInfo, nullptr);
+
+        //    graphicsQueue.queue.submit(submitInfo,vk::Fence());
+
+
+        // signal that rendering is complete etc
+        std::array<vk::Semaphore, 2> signalSemaphores{sync.renderComplete, sync.defragMayStart};
+
+        vk::SubmitInfo fwdSubmitInfo;
+        //    submitInfo = vks::initializers::submitInfo();
+        fwdSubmitInfo.pWaitDstStageMask    = &submitPipelineStages;
+        fwdSubmitInfo.waitSemaphoreCount   = 1;
+        fwdSubmitInfo.pWaitSemaphores      = &deferredSemaphore;  // wait for finished geometry pass
+        fwdSubmitInfo.signalSemaphoreCount = 2;
+        fwdSubmitInfo.pSignalSemaphores    = signalSemaphores.data();
+
+        fwdSubmitInfo.commandBufferCount = 1;
+        fwdSubmitInfo.pCommandBuffers    = &forwardCmdBuffers[currentImage];  // use correct cmd buffer
+        //    VK_CHECK_RESULT(vkQueueSubmit(graphicsQueue, 1, &submitInfo, sync.frameFence));
+        base().mainQueue.submit(fwdSubmitInfo, sync.frameFence);
+
+        timings.finishFrame(sync.defragMayStart);
+
+        //    VK_CHECK_RESULT(swapChain.queuePresent(presentQueue, currentBuffer,  sync.renderComplete));
+        base().finish_frame();
     }
+    else
+    {
+        // RTX
 
-    // prepare the command buffers
-    setupGeometryCommandBuffer(currentImage, cam);
-    setupDrawCommandBuffer(currentImage, cam);
-    setupForwardCommandBuffer(currentImage, cam);
-    lighting.renderDepthMaps(shadowCmdBuffers[currentImage], renderingInterface);
+        // signal that rendering is complete etc
+        std::array<vk::Semaphore, 2> signalSemaphores{sync.renderComplete, sync.defragMayStart};
+        vk::PipelineStageFlags submitPipelineStages = vk::PipelineStageFlagBits::eColorAttachmentOutput;
 
-    // TODO
-    // think about synchronization ...
+        vk::SubmitInfo submitInfo;
+        submitInfo.pWaitDstStageMask    = &submitPipelineStages;
+        submitInfo.waitSemaphoreCount   = 1;
+        submitInfo.pWaitSemaphores      = &sync.imageAvailable;  // wait for finished geometry pass
+        submitInfo.signalSemaphoreCount = 2;
+        submitInfo.pSignalSemaphores    = signalSemaphores.data();
 
-    // TODO dummy top of pipe
-    vk::PipelineStageFlags gBufferSubmitPipelineStages =
-        vk::PipelineStageFlagBits::eColorAttachmentOutput;  // TODO not right yet
+        raytracer.render(submitInfo, cam, drawCmdBuffers[currentImage], swapChain.images[currentImage]);
 
-    // offscreen rendering submitinfo and synchronization
-    // wait for available image to start rendering TODO ??
-    // signal that offscreen rendering is finished (geometrysemaphore)
-    vk::SubmitInfo gBufferPassSubmitinfo       = vks::initializers::submitInfo();
-    gBufferPassSubmitinfo.commandBufferCount   = 1;
-    gBufferPassSubmitinfo.pCommandBuffers      = &geometryCmdBuffers[currentImage];
-    gBufferPassSubmitinfo.pWaitDstStageMask    = &gBufferSubmitPipelineStages;
-    gBufferPassSubmitinfo.pWaitSemaphores      = &sync.imageAvailable;
-    gBufferPassSubmitinfo.waitSemaphoreCount   = 1;
-    gBufferPassSubmitinfo.pSignalSemaphores    = &geometrySemaphore;
-    gBufferPassSubmitinfo.signalSemaphoreCount = 1;
+        base().mainQueue.submit(submitInfo, sync.frameFence);
 
-    // submit geometry pass
-    base().mainQueue.submit(gBufferPassSubmitinfo, nullptr);
+        timings.finishFrame(sync.defragMayStart);
 
-
-
-    vk::PipelineStageFlags shadowSubmitPipelineStages = vk::PipelineStageFlagBits::eColorAttachmentOutput;
-
-    vk::SubmitInfo shadowSubmitInfo;
-    //    submitInfo = vks::initializers::submitInfo();
-    shadowSubmitInfo.pWaitDstStageMask    = &shadowSubmitPipelineStages;
-    shadowSubmitInfo.waitSemaphoreCount   = 1;
-    shadowSubmitInfo.pWaitSemaphores      = &geometrySemaphore;  // wait for finished geometry pass
-    shadowSubmitInfo.signalSemaphoreCount = 1;
-    shadowSubmitInfo.pSignalSemaphores    = &shadowSemaphore;
-
-    shadowSubmitInfo.commandBufferCount = 1;
-    shadowSubmitInfo.pCommandBuffers    = &shadowCmdBuffers[currentImage];  // use correct cmd buffer
-    //    VK_CHECK_RESULT(vkQueueSubmit(graphicsQueue, 1, &submitInfo, sync.frameFence));
-    base().mainQueue.submit(shadowSubmitInfo, nullptr);
-
-
-
-    vk::PipelineStageFlags submitPipelineStages =
-        vk::PipelineStageFlagBits::eColorAttachmentOutput;  // TODO not right yet
-
-
-
-    vk::SubmitInfo submitInfo;
-    //    submitInfo = vks::initializers::submitInfo();
-    submitInfo.pWaitDstStageMask    = &submitPipelineStages;
-    submitInfo.waitSemaphoreCount   = 1;
-    submitInfo.pWaitSemaphores      = &shadowSemaphore;  // wait for finished shadow pass
-    submitInfo.signalSemaphoreCount = 1;
-    submitInfo.pSignalSemaphores    = &deferredSemaphore;
-
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers    = &drawCmdBuffers[currentImage];  // use correct cmd buffer
-    //    VK_CHECK_RESULT(vkQueueSubmit(graphicsQueue, 1, &submitInfo, sync.frameFence));
-    base().mainQueue.submit(submitInfo, nullptr);
-
-    //    graphicsQueue.queue.submit(submitInfo,vk::Fence());
-
-
-    // signal that rendering is complete etc
-    std::array<vk::Semaphore, 2> signalSemaphores{sync.renderComplete, sync.defragMayStart};
-
-    vk::SubmitInfo fwdSubmitInfo;
-    //    submitInfo = vks::initializers::submitInfo();
-    fwdSubmitInfo.pWaitDstStageMask    = &submitPipelineStages;
-    fwdSubmitInfo.waitSemaphoreCount   = 1;
-    fwdSubmitInfo.pWaitSemaphores      = &deferredSemaphore;  // wait for finished geometry pass
-    fwdSubmitInfo.signalSemaphoreCount = 2;
-    fwdSubmitInfo.pSignalSemaphores    = signalSemaphores.data();
-
-    fwdSubmitInfo.commandBufferCount = 1;
-    fwdSubmitInfo.pCommandBuffers    = &forwardCmdBuffers[currentImage];  // use correct cmd buffer
-    //    VK_CHECK_RESULT(vkQueueSubmit(graphicsQueue, 1, &submitInfo, sync.frameFence));
-    base().mainQueue.submit(fwdSubmitInfo, sync.frameFence);
-
-    timings.finishFrame(sync.defragMayStart);
-
-    //    VK_CHECK_RESULT(swapChain.queuePresent(presentQueue, currentBuffer,  sync.renderComplete));
-    base().finish_frame();
+        base().finish_frame();
+    }
 }
 
 

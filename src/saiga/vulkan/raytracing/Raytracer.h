@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "saiga/core/camera/all.h"
 #include "saiga/core/math/math.h"
 #include "saiga/export.h"
 #include "saiga/vulkan/VulkanInitializers.hpp"
@@ -23,7 +24,7 @@ namespace RTX
 // Ray tracing acceleration structure
 struct AccelerationStructure
 {
-    vk::DeviceMemory memory;
+    VkDeviceMemory memory;
     VkAccelerationStructureNV accelerationStructure;
     uint64_t handle;
 };
@@ -53,6 +54,7 @@ class SAIGA_VULKAN_API Raytracer
     vk::Format SwapChainFormat = vk::Format::eB8G8R8A8Unorm;
     uint32_t width             = 1280;
     uint32_t height            = 720;
+    bool prepared              = false;
 
    public:
     // TODO Forward Declarations ? ? ?
@@ -99,6 +101,7 @@ class SAIGA_VULKAN_API Raytracer
 
     VkPipeline pipeline;
     VkPipelineLayout pipelineLayout;
+    VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
     VkDescriptorSet descriptorSet;
     VkDescriptorSetLayout descriptorSetLayout;
 
@@ -131,6 +134,87 @@ class SAIGA_VULKAN_API Raytracer
     //! \brief createTLAS creates the Top Level Accelertion Structure
     //!
     void createTLAS();
+
+    //!
+    //! \brief createBuffer creates a buffer
+    //! \param usageFlags
+    //! \param memoryPropertyFlags
+    //! \param buffer
+    //! \param size
+    //! \param data
+    //! \return VkResult for Success checking
+    //!
+    VkResult createBuffer(VkBufferUsageFlags usageFlags, vk::MemoryPropertyFlags memoryPropertyFlags,
+                          vks::Buffer* buffer, VkDeviceSize size, void* data = nullptr);
+
+    //!
+    //! \brief flushCommandBuffer used for ending and submitting a cmdbuffer instantly
+    //! \param commandBuffer
+    //! \param free
+    //!
+    void flushCommandBuffer(vk::CommandBuffer commandBuffer, bool free = true);
+    //!
+    //! \brief createScene
+    //!
+    void createScene();
+
+    VkDeviceSize copyShaderIdentifier(uint8_t* data, const uint8_t* shaderHandleStorage, uint32_t groupIndex);
+
+    //!
+    //! \brief createShaderBindingTable Create the Shader Binding Table that binds the programs and top-level
+    //! acceleration structure
+    //!
+    void createShaderBindingTable();
+
+    //!
+    //! \brief createDescriptorSets Create the descriptor sets used for the ray tracing dispatch
+    //!
+    void createDescriptorSets();
+
+
+
+    // List of shader modules created (stored for cleanup)
+    std::vector<VkShaderModule> shaderModules;
+    //! TODO adjust to own shader handling
+    //! \brief loadShader
+    //! \param fileName
+    //! \param device
+    //! \return
+    //!
+    VkShaderModule loadShader(const char* fileName, VkDevice device);
+
+    //! TODO adjust to own shader handling
+    //! \brief loadShader
+    //! \param fileName
+    //! \param stage
+    //! \return
+    //!
+    VkPipelineShaderStageCreateInfo loadShader(std::string fileName, VkShaderStageFlagBits stage);
+
+
+
+    //!
+    //! \brief createRayTracingPipeline Create our raytracing pipeline
+    //!
+    void createRayTracingPipeline();
+
+    //! TODO adjust to own ubo handling
+    //! \brief updateUniformBuffers
+    //!
+    void updateUniformBuffers(Camera* cam);
+
+    //! TODO adjust to own ubo handling
+    //! \brief createUniformBuffer Create the uniform buffer used to pass matrices to the ray tracing ray generation
+    //! shader
+    //!
+    void createUniformBuffer();
+
+    //!
+    //! \brief buildCommandBuffers Command Buffer Generation
+    //!
+    void buildCommandBuffer(VkCommandBuffer cmd, VkImage targetImage);
+
+    virtual void render(VkSubmitInfo submitInfo, Camera* cam, VkCommandBuffer cmd, VkImage targetImage);
 };
 }  // namespace RTX
 }  // namespace Vulkan
