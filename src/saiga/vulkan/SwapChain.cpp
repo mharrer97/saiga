@@ -252,6 +252,8 @@ void VulkanSwapChain::create(int* width, int* height, bool vsync)
     createInfo.clipped        = VK_TRUE;
     createInfo.compositeAlpha = compositeAlpha;
 
+    createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
     // Enable transfer source on swap chain images if supported
     if (surfCaps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_SRC_BIT)
     {
@@ -263,7 +265,7 @@ void VulkanSwapChain::create(int* width, int* height, bool vsync)
     {
         createInfo.imageUsage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
     }
-    createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
 
 
 #if 0

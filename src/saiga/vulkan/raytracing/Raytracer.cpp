@@ -679,11 +679,11 @@ void Raytracer::createRayTracingPipeline()
 
     std::array<VkPipelineShaderStageCreateInfo, 3> shaderStages;
     shaderStages[shaderIndexRaygen] =
-        loadShader("./../../../../shader/vulkan/raytracing/raygen.rgen.spv", VK_SHADER_STAGE_RAYGEN_BIT_NV);
+        loadShader(SAIGA_PROJECT_SOURCE_DIR "/shader/vulkan/raytracing/raygen.rgen.spv", VK_SHADER_STAGE_RAYGEN_BIT_NV);
     shaderStages[shaderIndexMiss] =
-        loadShader("./../../../../shader/vulkan/raytracing/miss.rmiss.spv", VK_SHADER_STAGE_MISS_BIT_NV);
-    shaderStages[shaderIndexClosestHit] =
-        loadShader("./../../../../shader/vulkan/raytracing/closesthit.rchit.spv", VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV);
+        loadShader(SAIGA_PROJECT_SOURCE_DIR "/shader/vulkan/raytracing/miss.rmiss.spv", VK_SHADER_STAGE_MISS_BIT_NV);
+    shaderStages[shaderIndexClosestHit] = loadShader(
+        SAIGA_PROJECT_SOURCE_DIR "/shader/vulkan/raytracing/closesthit.rchit.spv", VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV);
 
     /*
             Setup ray tracing shader groups
@@ -772,8 +772,9 @@ void Raytracer::buildCommandBuffer(VkCommandBuffer cmd, VkImage targetImage)
                                subresourceRange);
 
     // Prepare ray tracing output image as transfer source
-    vks::tools::setImageLayout(cmd, storageImageLocation->data.image, VK_IMAGE_LAYOUT_GENERAL,
-                               VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, subresourceRange);
+    // vks::tools::setImageLayout(cmd, storageImageLocation->data.image, VK_IMAGE_LAYOUT_GENERAL,
+    //                           VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, subresourceRange);
+    storageImageLocation->data.transitionImageLayout(cmd, vk::ImageLayout::eTransferSrcOptimal);
 
     VkImageCopy copyRegion{};
     copyRegion.srcSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1};
@@ -789,8 +790,9 @@ void Raytracer::buildCommandBuffer(VkCommandBuffer cmd, VkImage targetImage)
                                subresourceRange);
 
     // Transition ray tracing output image back to general layout
-    vks::tools::setImageLayout(cmd, storageImageLocation->data.image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                               VK_IMAGE_LAYOUT_GENERAL, subresourceRange);
+    // vks::tools::setImageLayout(cmd, storageImageLocation->data.image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+    //                           VK_IMAGE_LAYOUT_GENERAL, subresourceRange);
+    storageImageLocation->data.transitionImageLayout(cmd, vk::ImageLayout::eGeneral);
 
     //@todo: Default render pass setup willl overwrite contents
     // vkCmdBeginRenderPass(drawCmdBuffers[i], &renderPassBeginInfo,

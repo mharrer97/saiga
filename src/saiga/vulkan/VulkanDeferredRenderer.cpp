@@ -169,7 +169,7 @@ void VulkanDeferredRenderer::createBuffers(int numImages, int w, int h)
     if (params.enableRTX)
     {
         std::cout << "Raytracer Creation -- CALL" << std::endl;
-        raytracer.destroy();
+        // raytracer.destroy();
         raytracer.init(base(), vk::Format::eB8G8R8A8Unorm, w, h);
         std::cout << "Raytracer Creation -- FINISHED" << std::endl;
     }
@@ -773,7 +773,7 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage, Camera* c
         submitInfo.signalSemaphoreCount = 2;
         submitInfo.pSignalSemaphores    = signalSemaphores.data();
 
-        raytracer.render(submitInfo, cam, drawCmdBuffers[currentImage], swapChain.images[currentImage]);
+        raytracer.render(submitInfo, cam, drawCmdBuffers[currentImage], swapChain.buffers[currentImage].image);
 
         base().mainQueue.submit(submitInfo, sync.frameFence);
 

@@ -46,6 +46,7 @@ bool findShaders(const SaigaParameters& params)
     // And last the install prefix from cmake
     searchPathes.push_back(SAIGA_INSTALL_PREFIX "/share/saiga/shader");
     searchPathes.push_back(SAIGA_SHADER_PREFIX);
+    searchPathes.push_back(SAIGA_PROJECT_SOURCE_DIR "/shader");
 
 
     for (auto str : searchPathes)
