@@ -799,16 +799,15 @@ void Raytracer::buildCommandBuffer(VkCommandBuffer cmd, VkImage targetImage)
     // VK_SUBPASS_CONTENTS_INLINE); drawUI(drawCmdBuffers[i]);
     // vkCmdEndRenderPass(drawCmdBuffers[i]);
 
+
     VK_CHECK_RESULT(vkEndCommandBuffer(cmd));
 }
 
-void Raytracer::render(VkSubmitInfo submitInfo, Camera* cam, VkCommandBuffer cmd, VkImage targetImage)
+void Raytracer::render(Camera* cam, VkCommandBuffer cmd, VkImage targetImage)
 {
     if (!prepared) return;
     updateUniformBuffers(cam);
     buildCommandBuffer(cmd, targetImage);
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers    = &cmd;
 }
 
 }  // namespace RTX

@@ -214,7 +214,7 @@ class SAIGA_VULKAN_API Raytracer
     //!
     void buildCommandBuffer(VkCommandBuffer cmd, VkImage targetImage);
 
-    virtual void render(VkSubmitInfo submitInfo, Camera* cam, VkCommandBuffer cmd, VkImage targetImage);
+    virtual void render(Camera* cam, VkCommandBuffer cmd, VkImage targetImage);
 };
 }  // namespace RTX
 }  // namespace Vulkan

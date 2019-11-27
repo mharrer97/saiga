@@ -773,8 +773,10 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage, Camera* c
         submitInfo.signalSemaphoreCount = 2;
         submitInfo.pSignalSemaphores    = signalSemaphores.data();
 
-        raytracer.render(submitInfo, cam, drawCmdBuffers[currentImage], swapChain.buffers[currentImage].image);
+        raytracer.render(cam, drawCmdBuffers[currentImage], swapChain.buffers[currentImage].image);
 
+        submitInfo.pCommandBuffers    = &drawCmdBuffers[currentImage];
+        submitInfo.commandBufferCount = 1;
         base().mainQueue.submit(submitInfo, sync.frameFence);
 
         timings.finishFrame(sync.defragMayStart);
