@@ -176,7 +176,7 @@ void VulkanExample::renderGUI()
     ImGui::DragFloat("Light Radius", &lightRadius, 0.05f, 0.f, 55.f);
     ImGui::DragFloat("Opening Angle", &spotLightOpeningAngle, 0.25f, 0.f, 360.f);
     ImGui::DragFloat("Light Height", &lightHeight, 0.05f, 0.f, 20.f);
-    ImGui::DragFloat("Ambient Intensity", &ambientIntensity, 0.05f, 0.f, 1.f);
+    ImGui::DragFloat("Ambient Intensity", &ambientIntensity, 0.005f, 0.f, 1.f);
     ImGui::End();
     //    return;
 

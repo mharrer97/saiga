@@ -32,7 +32,7 @@ struct AccelerationStructure
 // Ray tracing geometry instance
 struct GeometryInstance
 {
-    mat4 transform;
+    Eigen::Matrix<float, 3, 4, Eigen::ColMajor> transform;
     uint32_t instanceId : 24;
     uint32_t mask : 8;
     uint32_t instanceOffset : 24;

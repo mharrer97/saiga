@@ -426,8 +426,8 @@ void Raytracer::createScene()
     // Single instance with a 3x4 transform matrix for the ray traced triangle
     vks::Buffer instanceBuffer;
 
-    mat4 transform =
-        make_mat4(1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f);
+    Eigen::Matrix<float, 3, 4, Eigen::ColMajor> transform;
+    transform << 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f;
 
     GeometryInstance geometryInstance{};
     geometryInstance.transform                   = transform;
