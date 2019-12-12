@@ -371,7 +371,8 @@ void Raytracer::createScene()
     {
         float pos[3];
     };
-    std::vector<Vertex> vertices = {{{1.0f, 1.0f, 0.0f}}, {{-1.0f, 1.0f, 0.0f}}, {{0.0f, -1.0f, 0.0f}}};
+    // std::vector<Vertex> vertices = {{{1.0f, 1.0f, 0.0f}}, {{-1.0f, 1.0f, 0.0f}}, {{0.0f, -1.0f, 0.0f}}};
+    std::vector<Vertex> vertices = {{{0.5f, 0.5f, 0.0f}}, {{-0.5f, 0.5f, 0.0f}}, {{0.0f, -1.0f, 0.0f}}};
 
     // Setup indices
     std::vector<uint32_t> indices = {0, 1, 2};
