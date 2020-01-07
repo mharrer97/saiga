@@ -28,5 +28,6 @@ void main()
 
 	traceNV(topLevelAS, rayFlags, cullMask, 0, 0, 0, origin.xyz, tmin, direction.xyz, tmax, 0);
 
-	imageStore(image, ivec2(gl_LaunchIDNV.xy), vec4(hitValue, 0.0));
+//if(hitValue.x > 0.00 && hitValue.y > 0.00 && hitValue.z > 0.00)
+        imageStore(image, ivec2(gl_LaunchIDNV.xy), vec4(hitValue, 0.0));
 }

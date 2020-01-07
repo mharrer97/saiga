@@ -5,3 +5,4 @@ cmake/SAIGAConfig.cmake
 create.sh
 cmake-build-*/
 .idea/
+debug*/

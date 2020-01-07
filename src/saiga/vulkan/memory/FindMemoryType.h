@@ -21,3 +21,34 @@ inline uint32_t findMemoryType(vk::PhysicalDevice _pDev, uint32_t typeFilter, co
 
     throw std::runtime_error("failed to find suitable memory type!");
 }
+
+inline uint32_t getMemoryType(vk::PhysicalDevice _pDev, uint32_t typeBits, VkMemoryPropertyFlags properties,
+                              VkBool32* memTypeFound = nullptr)
+{
+    VkPhysicalDeviceMemoryProperties memoryProperties = _pDev.getMemoryProperties();
+    for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; i++)
+    {
+        if ((typeBits & 1) == 1)
+        {
+            if ((memoryProperties.memoryTypes[i].propertyFlags & properties) == properties)
+            {
+                if (memTypeFound)
+                {
+                    *memTypeFound = true;
+                }
+                return i;
+            }
+        }
+        typeBits >>= 1;
+    }
+
+    if (memTypeFound)
+    {
+        *memTypeFound = false;
+        return 0;
+    }
+    else
+    {
+        throw std::runtime_error("Could not find a matching memory type");
+    }
+}

@@ -24,15 +24,15 @@ namespace RTX
 // Ray tracing acceleration structure
 struct AccelerationStructure
 {
-    VkDeviceMemory memory;
-    VkAccelerationStructureNV accelerationStructure;
-    uint64_t handle;
+    VkDeviceMemory memory                           = 0;
+    VkAccelerationStructureNV accelerationStructure = 0;
+    uint64_t handle                                 = 0;
 };
 
 // Ray tracing geometry instance
 struct GeometryInstance
 {
-    Eigen::Matrix<float, 3, 4, Eigen::ColMajor> transform;
+    Eigen::Matrix<float, 3, 4, Eigen::RowMajor> transform;
     uint32_t instanceId : 24;
     uint32_t mask : 8;
     uint32_t instanceOffset : 24;

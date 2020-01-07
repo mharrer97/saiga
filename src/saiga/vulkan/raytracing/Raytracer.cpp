@@ -50,10 +50,14 @@ void Raytracer::init(VulkanBase& newBase, vk::Format SCColorFormat, uint32_t SCW
 
     // Query the ray tracing properties of the current implementation, we will
     // need them later on
-    rayTracingProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PROPERTIES_NV;
+    rayTracingProperties.sType                 = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PROPERTIES_NV;
+    rayTracingProperties.pNext                 = nullptr;
+    rayTracingProperties.maxRecursionDepth     = 0;
+    rayTracingProperties.shaderGroupHandleSize = 0;
     VkPhysicalDeviceProperties2 deviceProps2{};
-    deviceProps2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
-    deviceProps2.pNext = &rayTracingProperties;
+    deviceProps2.sType      = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+    deviceProps2.pNext      = &rayTracingProperties;
+    deviceProps2.properties = {};
     vkGetPhysicalDeviceProperties2(base->physicalDevice, &deviceProps2);
 
     // Get VK_NV_ray_tracing related function pointers
@@ -163,11 +167,13 @@ void Raytracer::createBLAS(const VkGeometryNV* geometries)
 
     VkMemoryAllocateInfo memoryAllocateInfo = vks::initializers::memoryAllocateInfo();
     memoryAllocateInfo.allocationSize       = memoryRequirements2.memoryRequirements.size;
-    memoryAllocateInfo.memoryTypeIndex      = findMemoryType(
-        base->physicalDevice, memoryRequirements2.memoryRequirements.memoryTypeBits,
-        vk::MemoryPropertyFlagBits::
-            eDeviceLocal);  // vulkanDevice->getMemoryType(memoryRequirements2.memoryRequirements.memoryTypeBits,
-                                 // VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    memoryAllocateInfo.memoryTypeIndex =
+        getMemoryType(base->physicalDevice, memoryRequirements2.memoryRequirements.memoryTypeBits,
+                      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    // findMemoryType(base->physicalDevice,
+    // memoryRequirements2.memoryRequirements.memoryTypeBits,vk::MemoryPropertyFlagBits::eDeviceLocal);
+    // vulkanDevice->getMemoryType(memoryRequirements2.memoryRequirements.memoryTypeBits,
+    // VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
     VK_CHECK_RESULT(vkAllocateMemory(base->device, &memoryAllocateInfo, nullptr, &bottomLevelAS.memory));
 
     VkBindAccelerationStructureMemoryInfoNV accelerationStructureMemoryInfo{};
@@ -238,8 +244,10 @@ void Raytracer::createTLAS()
     VkMemoryAllocateInfo memoryAllocateInfo = vks::initializers::memoryAllocateInfo();
     memoryAllocateInfo.allocationSize       = memoryRequirements2.memoryRequirements.size;
     memoryAllocateInfo.memoryTypeIndex =
-        findMemoryType(base->physicalDevice, memoryRequirements2.memoryRequirements.memoryTypeBits,
-                       vk::MemoryPropertyFlagBits::eDeviceLocal);
+        getMemoryType(base->physicalDevice, memoryRequirements2.memoryRequirements.memoryTypeBits,
+                      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    // findMemoryType(base->physicalDevice, memoryRequirements2.memoryRequirements.memoryTypeBits,
+    //               vk::MemoryPropertyFlagBits::eDeviceLocal);
     VK_CHECK_RESULT(vkAllocateMemory(base->device, &memoryAllocateInfo, nullptr, &topLevelAS.memory));
 
     VkBindAccelerationStructureMemoryInfoNV accelerationStructureMemoryInfo{};
@@ -371,11 +379,11 @@ void Raytracer::createScene()
     {
         float pos[3];
     };
-    // std::vector<Vertex> vertices = {{{1.0f, 1.0f, 0.0f}}, {{-1.0f, 1.0f, 0.0f}}, {{0.0f, -1.0f, 0.0f}}};
-    std::vector<Vertex> vertices = {{{0.5f, 0.5f, 0.0f}}, {{-0.5f, 0.5f, 0.0f}}, {{0.0f, -1.0f, 0.0f}}};
+    std::vector<Vertex> vertices = {{{1.f, 1.0f, 0.0f}},   {{-1.0f, 1.0f, 0.0f}},  {{0.0f, -1.0f, 0.0f}},
+                                    {{0.0f, -1.f, -3.0f}}, {{-5.5f, 0.5f, -3.0f}}, {{0.5f, 0.5f, -3.0f}}};
 
     // Setup indices
-    std::vector<uint32_t> indices = {0, 1, 2};
+    std::vector<uint32_t> indices = {0, 1, 2, 3, 4, 5};
     indexCount                    = static_cast<uint32_t>(indices.size());
 
     // Create buffers
@@ -427,8 +435,10 @@ void Raytracer::createScene()
     // Single instance with a 3x4 transform matrix for the ray traced triangle
     vks::Buffer instanceBuffer;
 
-    Eigen::Matrix<float, 3, 4, Eigen::ColMajor> transform;
-    transform << 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f;
+    Eigen::Matrix<float, 3, 4, Eigen::RowMajor> transform;
+    // transform << 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f;
+    transform << -1.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f;
+    // transform << -1.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f;
 
     GeometryInstance geometryInstance{};
     geometryInstance.transform                   = transform;
@@ -461,10 +471,12 @@ void Raytracer::createScene()
     memoryRequirementsInfo.accelerationStructure = topLevelAS.accelerationStructure;
     vkGetAccelerationStructureMemoryRequirementsNV(base->device, &memoryRequirementsInfo, &memReqTopLevelAS);
 
-    const VkDeviceSize scratchBufferSize =
+    // TODO scratch buffer size does not function???
+    VkDeviceSize scratchBufferSize =
         std::max(memReqBottomLevelAS.memoryRequirements.size, memReqTopLevelAS.memoryRequirements.size);
 
     vks::Buffer scratchBuffer;
+    //  scratchBufferSize = 65536;
     VK_CHECK_RESULT(createBuffer(VK_BUFFER_USAGE_RAY_TRACING_BIT_NV,
                                  vk::MemoryPropertyFlagBits::eDeviceLocal,  // VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                                  &scratchBuffer, scratchBufferSize));
