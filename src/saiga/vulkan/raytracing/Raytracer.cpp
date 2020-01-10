@@ -39,6 +39,13 @@ void Raytracer::destroy()
     indexBuffer.destroy();
     shaderBindingTable.destroy();
     ubo.destroy();
+
+    vkDestroyDescriptorPool(base->device, descriptorPool, nullptr);
+    for (VkShaderModule sm : shaderModules)
+    {
+        vkDestroyShaderModule(base->device, sm, nullptr);
+    }
+    shaderModules.resize(0);
 }
 
 void Raytracer::init(VulkanBase& newBase, vk::Format SCColorFormat, uint32_t SCWidth, uint32_t SCHeight)
@@ -585,6 +592,9 @@ VkShaderModule Raytracer::loadShader(const char* fileName, VkDevice device)
 
         delete[] shaderCode;
 
+        // TODO saved for deleting later
+        shaderModules.push_back(shaderModule);
+
         return shaderModule;
     }
     else
@@ -603,9 +613,10 @@ VkPipelineShaderStageCreateInfo Raytracer::loadShader(std::string fileName, VkSh
 
     shaderStage.module = loadShader(fileName.c_str(), base->device);
 
+
+
     shaderStage.pName = "main";  // todo : make param
     assert(shaderStage.module != VK_NULL_HANDLE);
-    shaderModules.push_back(shaderStage.module);
     return shaderStage;
 }
 

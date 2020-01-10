@@ -83,6 +83,9 @@ class SAIGA_VULKAN_API Raytracer
     // shader informations
     vks::Buffer shaderBindingTable;
 
+    // TODO: change that up ? shader modules saved for deleting
+    std::vector<VkShaderModule> shaderModues;
+
     //    struct StorageImage
     //    {
     //        VkDeviceMemory memory;
