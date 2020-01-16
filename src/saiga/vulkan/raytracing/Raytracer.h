@@ -45,7 +45,52 @@ struct GeometryInstance
 #define INDEX_MISS 1
 #define INDEX_CLOSEST_HIT 2
 
+#define NUM_SHADER_GRUOPS 3
+typedef enum Component
+{
+    VERTEX_COMPONENT_POSITION    = 0x0,
+    VERTEX_COMPONENT_NORMAL      = 0x1,
+    VERTEX_COMPONENT_COLOR       = 0x2,
+    VERTEX_COMPONENT_UV          = 0x3,
+    VERTEX_COMPONENT_TANGENT     = 0x4,
+    VERTEX_COMPONENT_BITANGENT   = 0x5,
+    VERTEX_COMPONENT_DUMMY_FLOAT = 0x6,
+    VERTEX_COMPONENT_DUMMY_VEC4  = 0x7
+} Component;
 
+/** @brief Stores vertex layout components for model loading and Vulkan vertex input and atribute bindings  */
+struct VertexLayout
+{
+   public:
+    /** @brief Components used to generate vertices from */
+    std::vector<Component> components;
+
+    VertexLayout(std::vector<Component> components) { this->components = std::move(components); }
+
+    uint32_t stride()
+    {
+        uint32_t res = 0;
+        for (auto& component : components)
+        {
+            switch (component)
+            {
+                case VERTEX_COMPONENT_UV:
+                    res += 2 * sizeof(float);
+                    break;
+                case VERTEX_COMPONENT_DUMMY_FLOAT:
+                    res += sizeof(float);
+                    break;
+                case VERTEX_COMPONENT_DUMMY_VEC4:
+                    res += 4 * sizeof(float);
+                    break;
+                default:
+                    // All components except the ones listed above are made up of 3 floats
+                    res += 3 * sizeof(float);
+            }
+        }
+        return res;
+    }
+};
 
 class SAIGA_VULKAN_API Raytracer
 {
@@ -76,9 +121,15 @@ class SAIGA_VULKAN_API Raytracer
     // TLAS can contain multiple BLAS
     AccelerationStructure topLevelAS;
 
-    // TODO putsource triangle handling
+    // define contents of each component per vertex in the buffers
+    VertexLayout vertexLayout =
+        VertexLayout({VERTEX_COMPONENT_POSITION, VERTEX_COMPONENT_NORMAL, VERTEX_COMPONENT_COLOR, VERTEX_COMPONENT_UV,
+                      VERTEX_COMPONENT_DUMMY_FLOAT});
+    // TODO outsource triangle handling
+    // buffers to store the scene
     vks::Buffer vertexBuffer;
     vks::Buffer indexBuffer;
+    uint32_t vertexCount;
     uint32_t indexCount;
     // shader informations
     vks::Buffer shaderBindingTable;
@@ -99,6 +150,7 @@ class SAIGA_VULKAN_API Raytracer
     {
         mat4 viewInverse;
         mat4 projInverse;
+        vec4 lightPos;
     } uniformData;
     vks::Buffer ubo;
 

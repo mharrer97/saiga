@@ -385,31 +385,88 @@ void Raytracer::createScene()
     struct Vertex
     {
         float pos[3];
+        float normal[3];
+        float color[3];
+        float uv[2];
+        float dummy;
     };
-    std::vector<Vertex> vertices = {{{1.f, 1.0f, 0.0f}},   {{-1.0f, 1.0f, 0.0f}},  {{0.0f, -1.0f, 0.0f}},
-                                    {{0.0f, -1.f, -3.0f}}, {{-5.5f, 0.5f, -3.0f}}, {{0.5f, 0.5f, -3.0f}}};
 
+    // TODO outsource model import
+    std::vector<Vertex> vertices2 = {{{1.f, 1.0f, 0.0f}, {0.f, 0.f, 1.f}, {1.f, 0.f, 1.f}, {1.f, 0.f}, 0.f},
+                                     {{-1.0f, 1.0f, 0.0f}, {0.f, 0.f, 1.f}, {0.f, 1.f, 1.f}, {1.f, 1.f}, 0.f},
+                                     {{0.0f, -1.0f, 0.0f}, {0.f, 0.f, 1.f}, {1.f, 1.f, 0.f}, {0.f, 1.f}, 0.f},
+                                     {{0.0f, -1.f, -3.0f}, {0.f, 0.f, -1.f}, {1.f, 0.f, 0.f}, {1.f, 0.f}, 0.f},
+                                     {{-5.5f, 0.5f, -3.0f}, {0.f, 0.f, -1.f}, {0.f, 1.f, 0.f}, {1.f, 1.f}, 0.f},
+                                     {{0.5f, 0.5f, -3.0f}, {0.f, 0.f, -1.f}, {0.f, 0.f, 1.f}, {0.f, 1.f}, 0.f}};
+
+    std::vector<float> vertices = {
+        1.f,  1.0f, 2.0f,  0.f, 0.f, 1.f,  1.f,  0.f,   1.f,   1.f, 0.f, 0.f,  -1.0f, 1.0f, 0.0f,  0.f, 0.f, 1.f,
+        0.f,  1.f,  1.f,   1.f, 1.f, 0.f,  0.0f, -1.0f, 0.0f,  0.f, 0.f, 1.f,  1.f,   1.f,  0.f,   0.f, 1.f, 0.f,
+        0.0f, -1.f, -3.0f, 0.f, 0.f, -1.f, 1.f,  0.f,   0.f,   1.f, 0.f, 0.f,  -5.5f, 0.5f, -3.0f, 0.f, 0.f, -1.f,
+        0.f,  1.f,  0.f,   1.f, 1.f, 0.f,  0.5f, 0.5f,  -3.0f, 0.f, 0.f, -1.f, 0.f,   0.f,  1.f,   0.f, 1.f, 0.f};
     // Setup indices
     std::vector<uint32_t> indices = {0, 1, 2, 3, 4, 5};
     indexCount                    = static_cast<uint32_t>(indices.size());
+    // TODO fix
+    uint32_t vertexCount = 6;
 
-    // Create buffers
-    // For the sake of simplicity we won't stage the vertex data to the gpu memory
-    // Vertex buffer
-    //    VK_CHECK_RESULT(createBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-    //                                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-    //                                 &vertexBuffer, vertices.size() * sizeof(Vertex), vertices.data()));
+    uint32_t vBufferSize = static_cast<uint32_t>(vertices.size()) * sizeof(float);
+    uint32_t iBufferSize = static_cast<uint32_t>(indices.size()) * sizeof(uint32_t);
+
+    //    // Vertex Buffer
+    //    VK_CHECK_RESULT(createBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+    //                                 vk::MemoryPropertyFlagBits::eHostVisible |
+    //                                 vk::MemoryPropertyFlagBits::eHostCoherent, &vertexBuffer, vBufferSize,
+    //                                 vertices.data()));
+
     //    // Index buffer
-    //    VK_CHECK_RESULT(createBuffer(VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-    //                                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-    //                                 &indexBuffer, indices.size() * sizeof(uint32_t), indices.data()));
-    VK_CHECK_RESULT(createBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+    //    VK_CHECK_RESULT(createBuffer(VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+    //                                 vk::MemoryPropertyFlagBits::eHostVisible |
+    //                                 vk::MemoryPropertyFlagBits::eHostCoherent, &indexBuffer, iBufferSize,
+    //                                 indices.data()));
+
+    // Use staging buffer to move vertex and index buffer to device local memory
+    // Create staging buffers
+
+    vks::Buffer vertexStaging, indexStaging;
+
+    // Vertex buffer
+    VK_CHECK_RESULT(createBuffer(VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                                  vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
-                                 &vertexBuffer, vertices.size() * sizeof(Vertex), vertices.data()));
+                                 &vertexStaging, vBufferSize, vertices.data()));
+
     // Index buffer
-    VK_CHECK_RESULT(createBuffer(VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+    VK_CHECK_RESULT(createBuffer(VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                                  vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
-                                 &indexBuffer, indices.size() * sizeof(uint32_t), indices.data()));
+                                 &indexStaging, iBufferSize, indices.data()));
+
+    // Create target buffers
+    VK_CHECK_RESULT(createBuffer(
+        VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+        vk::MemoryPropertyFlagBits::eDeviceLocal, &vertexBuffer, vBufferSize));
+    // Index buffer
+    VK_CHECK_RESULT(createBuffer(
+        VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+        vk::MemoryPropertyFlagBits::eDeviceLocal, &indexBuffer, iBufferSize));
+
+    // copy from staging buffers
+    vk::CommandBuffer copyCmd = base->mainQueue.commandPool.createAndBeginOneTimeBuffer();
+
+    VkBufferCopy copyRegion{};
+
+    copyRegion.size = vertexStaging.size;
+    vkCmdCopyBuffer(copyCmd, vertexStaging.buffer, vertexBuffer.buffer, 1, &copyRegion);
+
+    copyRegion.size = indexStaging.size;
+    vkCmdCopyBuffer(copyCmd, indexStaging.buffer, indexBuffer.buffer, 1, &copyRegion);
+
+    flushCommandBuffer(copyCmd);
+
+    // destroy staging buffers
+    vkDestroyBuffer(base->device, vertexStaging.buffer, nullptr);
+    vkFreeMemory(base->device, vertexStaging.memory, nullptr);
+    vkDestroyBuffer(base->device, indexStaging.buffer, nullptr);
+    vkFreeMemory(base->device, indexStaging.memory, nullptr);
 
     /*
         Create the bottom level acceleration structure containing the actual scene geometry
@@ -420,8 +477,8 @@ void Raytracer::createScene()
     geometry.geometry.triangles.sType           = VK_STRUCTURE_TYPE_GEOMETRY_TRIANGLES_NV;
     geometry.geometry.triangles.vertexData      = vertexBuffer.buffer;
     geometry.geometry.triangles.vertexOffset    = 0;
-    geometry.geometry.triangles.vertexCount     = static_cast<uint32_t>(vertices.size());
-    geometry.geometry.triangles.vertexStride    = sizeof(Vertex);
+    geometry.geometry.triangles.vertexCount     = static_cast<uint32_t>(vertexCount);
+    geometry.geometry.triangles.vertexStride    = vertexLayout.stride();
     geometry.geometry.triangles.vertexFormat    = VK_FORMAT_R32G32B32_SFLOAT;
     geometry.geometry.triangles.indexData       = indexBuffer.buffer;
     geometry.geometry.triangles.indexOffset     = 0;
@@ -546,7 +603,7 @@ VkDeviceSize Raytracer::copyShaderIdentifier(uint8_t* data, const uint8_t* shade
 void Raytracer::createShaderBindingTable()
 {
     // Create buffer for the shader binding table
-    const uint32_t sbtSize = rayTracingProperties.shaderGroupHandleSize * 3;
+    const uint32_t sbtSize = rayTracingProperties.shaderGroupHandleSize * NUM_SHADER_GRUOPS;
     // VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_RAY_TRACING_BIT_NV,
     // VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
     //                                           &shaderBindingTable, sbtSize));
@@ -556,7 +613,8 @@ void Raytracer::createShaderBindingTable()
 
     auto shaderHandleStorage = new uint8_t[sbtSize];
     // Get shader identifiers
-    VK_CHECK_RESULT(vkGetRayTracingShaderGroupHandlesNV(base->device, pipeline, 0, 3, sbtSize, shaderHandleStorage));
+    VK_CHECK_RESULT(vkGetRayTracingShaderGroupHandlesNV(base->device, pipeline, 0, NUM_SHADER_GRUOPS, sbtSize,
+                                                        shaderHandleStorage));
     auto* data = static_cast<uint8_t*>(shaderBindingTable.mapped);
     // Copy the shader identifiers to the shader binding table
     VkDeviceSize offset = 0;
@@ -624,7 +682,8 @@ void Raytracer::createDescriptorSets()
 {
     std::vector<VkDescriptorPoolSize> poolSizes         = {{VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NV, 1},
                                                    {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1},
-                                                   {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1}};
+                                                   {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1},
+                                                   {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 2}};
     VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, 1);
     VK_CHECK_RESULT(vkCreateDescriptorPool(base->device, &descriptorPoolCreateInfo, nullptr, &descriptorPool));
 
@@ -650,13 +709,25 @@ void Raytracer::createDescriptorSets()
     storageImageDescriptor.imageView   = storageImageLocation->data.view;
     storageImageDescriptor.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 
+    VkDescriptorBufferInfo vertexBufferDescriptor{};
+    vertexBufferDescriptor.buffer = vertexBuffer.buffer;
+    vertexBufferDescriptor.range  = VK_WHOLE_SIZE;
+
+    VkDescriptorBufferInfo indexBufferDescriptor{};
+    indexBufferDescriptor.buffer = indexBuffer.buffer;
+    indexBufferDescriptor.range  = VK_WHOLE_SIZE;
+
     VkWriteDescriptorSet resultImageWrite = vks::initializers::writeDescriptorSet(
         descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, &storageImageDescriptor);
     VkWriteDescriptorSet uniformBufferWrite =
         vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2, &ubo.descriptor);
+    VkWriteDescriptorSet vertexBufferWrite = vks::initializers::writeDescriptorSet(
+        descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 3, &vertexBufferDescriptor);
+    VkWriteDescriptorSet indexBufferWrite = vks::initializers::writeDescriptorSet(
+        descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 4, &indexBufferDescriptor);
 
     std::vector<VkWriteDescriptorSet> writeDescriptorSets = {accelerationStructureWrite, resultImageWrite,
-                                                             uniformBufferWrite};
+                                                             uniformBufferWrite, vertexBufferWrite, indexBufferWrite};
     vkUpdateDescriptorSets(base->device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(),
                            0, VK_NULL_HANDLE);
 }
@@ -667,7 +738,7 @@ void Raytracer::createRayTracingPipeline()
     accelerationStructureLayoutBinding.binding         = 0;
     accelerationStructureLayoutBinding.descriptorType  = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NV;
     accelerationStructureLayoutBinding.descriptorCount = 1;
-    accelerationStructureLayoutBinding.stageFlags      = VK_SHADER_STAGE_RAYGEN_BIT_NV;
+    accelerationStructureLayoutBinding.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_NV | VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV;
 
     VkDescriptorSetLayoutBinding resultImageLayoutBinding{};
     resultImageLayoutBinding.binding         = 1;
@@ -679,10 +750,23 @@ void Raytracer::createRayTracingPipeline()
     uniformBufferBinding.binding         = 2;
     uniformBufferBinding.descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     uniformBufferBinding.descriptorCount = 1;
-    uniformBufferBinding.stageFlags      = VK_SHADER_STAGE_RAYGEN_BIT_NV;
+    uniformBufferBinding.stageFlags =
+        VK_SHADER_STAGE_RAYGEN_BIT_NV | VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV | VK_SHADER_STAGE_MISS_BIT_NV;
 
-    std::vector<VkDescriptorSetLayoutBinding> bindings(
-        {accelerationStructureLayoutBinding, resultImageLayoutBinding, uniformBufferBinding});
+    VkDescriptorSetLayoutBinding vertexBufferBinding{};
+    vertexBufferBinding.binding         = 3;
+    vertexBufferBinding.descriptorType  = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    vertexBufferBinding.descriptorCount = 1;
+    vertexBufferBinding.stageFlags      = VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV;
+
+    VkDescriptorSetLayoutBinding indexBufferBinding{};
+    indexBufferBinding.binding         = 4;
+    indexBufferBinding.descriptorType  = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    indexBufferBinding.descriptorCount = 1;
+    indexBufferBinding.stageFlags      = VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV;
+
+    std::vector<VkDescriptorSetLayoutBinding> bindings({accelerationStructureLayoutBinding, resultImageLayoutBinding,
+                                                        uniformBufferBinding, vertexBufferBinding, indexBufferBinding});
 
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -702,12 +786,30 @@ void Raytracer::createRayTracingPipeline()
     const uint32_t shaderIndexClosestHit = 2;
 
     std::array<VkPipelineShaderStageCreateInfo, 3> shaderStages;
-    shaderStages[shaderIndexRaygen] =
-        loadShader(SAIGA_PROJECT_SOURCE_DIR "/shader/vulkan/raytracing/raygen.rgen.spv", VK_SHADER_STAGE_RAYGEN_BIT_NV);
+    //    shaderStages[shaderIndexRaygen] =
+    //        loadShader(SAIGA_PROJECT_SOURCE_DIR "/shader/vulkan/raytracing/raygen.rgen.spv",
+    //        VK_SHADER_STAGE_RAYGEN_BIT_NV);
+    //    shaderStages[shaderIndexMiss] =
+    //        loadShader(SAIGA_PROJECT_SOURCE_DIR "/shader/vulkan/raytracing/miss.rmiss.spv",
+    //        VK_SHADER_STAGE_MISS_BIT_NV);
+    //    shaderStages[shaderIndexClosestHit] = loadShader(
+    //        SAIGA_PROJECT_SOURCE_DIR "/shader/vulkan/raytracing/closesthit.rchit.spv",
+    //        VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV);
+    shaderStages[shaderIndexRaygen] = loadShader(SAIGA_PROJECT_SOURCE_DIR "/shader/vulkan/raytracing/raygen2.rgen.spv",
+                                                 VK_SHADER_STAGE_RAYGEN_BIT_NV);
     shaderStages[shaderIndexMiss] =
-        loadShader(SAIGA_PROJECT_SOURCE_DIR "/shader/vulkan/raytracing/miss.rmiss.spv", VK_SHADER_STAGE_MISS_BIT_NV);
+        loadShader(SAIGA_PROJECT_SOURCE_DIR "/shader/vulkan/raytracing/miss2.rmiss.spv", VK_SHADER_STAGE_MISS_BIT_NV);
     shaderStages[shaderIndexClosestHit] = loadShader(
-        SAIGA_PROJECT_SOURCE_DIR "/shader/vulkan/raytracing/closesthit.rchit.spv", VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV);
+        SAIGA_PROJECT_SOURCE_DIR "/shader/vulkan/raytracing/closesthit2.rchit.spv", VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV);
+
+
+    // Pass recursion depth for reflections to ray generation shader via specialization constant
+    VkSpecializationMapEntry specializationMapEntry = vks::initializers::specializationMapEntry(0, 0, sizeof(uint32_t));
+    uint32_t maxRecursion                           = 4;
+    VkSpecializationInfo specializationInfo =
+        vks::initializers::specializationInfo(1, &specializationMapEntry, sizeof(maxRecursion), &maxRecursion);
+    shaderStages[shaderIndexRaygen].pSpecializationInfo = &specializationInfo;
+
 
     /*
             Setup ray tracing shader groups
@@ -748,6 +850,13 @@ void Raytracer::updateUniformBuffers(Camera* cam)
 {
     uniformData.projInverse = inverse(cam->proj);
     uniformData.viewInverse = inverse(cam->view);
+    //    uniformData.lightPos =
+    //        glm::vec4(cos(glm::radians(timer * 360.0f)) * 40.0f, -20.0f + sin(glm::radians(timer * 360.0f)) * 20.0f,
+    //                  25.0f + sin(glm::radians(timer * 360.0f)) * 5.0f, 0.0f);
+
+    // TODO adjust lightpos handling
+    uniformData.lightPos = vec4(0.0f, -5.0f, 0.0f, 0.0f);
+
     memcpy(ubo.mapped, &uniformData, sizeof(uniformData));
 }
 
@@ -814,7 +923,8 @@ void Raytracer::buildCommandBuffer(VkCommandBuffer cmd, VkImage targetImage)
                                subresourceRange);
 
     // Transition ray tracing output image back to general layout
-    // vks::tools::setImageLayout(cmd, storageImageLocation->data.image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+    // vks::tools::setImageLayout(cmd, storageImageLocation->data.image,
+    // VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
     //                           VK_IMAGE_LAYOUT_GENERAL, subresourceRange);
     storageImageLocation->data.transitionImageLayout(cmd, vk::ImageLayout::eGeneral);
 

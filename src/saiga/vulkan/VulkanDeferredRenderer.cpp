@@ -764,20 +764,44 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage, Camera* c
 
         // signal that rendering is complete etc
         std::array<vk::Semaphore, 2> signalSemaphores{sync.renderComplete, sync.defragMayStart};
-        vk::PipelineStageFlags submitPipelineStages = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+        vk::PipelineStageFlags submitPipelineStages = vk::PipelineStageFlagBits::eBottomOfPipe;
 
         vk::SubmitInfo submitInfo;
         submitInfo.pWaitDstStageMask    = &submitPipelineStages;
         submitInfo.waitSemaphoreCount   = 1;
         submitInfo.pWaitSemaphores      = &sync.imageAvailable;  // wait for finished geometry pass
-        submitInfo.signalSemaphoreCount = 2;
-        submitInfo.pSignalSemaphores    = signalSemaphores.data();
+        submitInfo.signalSemaphoreCount = 1;
+        submitInfo.pSignalSemaphores    = &geometrySemaphore;
 
         raytracer.render(cam, drawCmdBuffers[currentImage], swapChain.buffers[currentImage].image);
 
+        //        VkCommandBufferBeginInfo cmdbegin2 = vks::initializers::commandBufferBeginInfo();
+        //        drawCmdBuffers[currentImage].begin(cmdbegin2);
+        //        drawCmdBuffers[currentImage].end();
+
+
         submitInfo.pCommandBuffers    = &drawCmdBuffers[currentImage];
         submitInfo.commandBufferCount = 1;
-        base().mainQueue.submit(submitInfo, sync.frameFence);
+
+
+        base().mainQueue.submit(submitInfo, nullptr);
+
+
+        VkCommandBufferBeginInfo cmdbegin = vks::initializers::commandBufferBeginInfo();
+        forwardCmdBuffers[currentImage].begin(cmdbegin);
+        forwardCmdBuffers[currentImage].end();
+
+        vk::SubmitInfo dummySubmitInfo;
+        dummySubmitInfo.pWaitDstStageMask    = &submitPipelineStages;
+        dummySubmitInfo.waitSemaphoreCount   = 1;
+        dummySubmitInfo.pWaitSemaphores      = &geometrySemaphore;  // wait for finished geometry pass
+        dummySubmitInfo.signalSemaphoreCount = 2;
+        dummySubmitInfo.pSignalSemaphores    = signalSemaphores.data();
+
+        dummySubmitInfo.pCommandBuffers    = &forwardCmdBuffers[currentImage];
+        dummySubmitInfo.commandBufferCount = 1;
+
+        base().mainQueue.submit(dummySubmitInfo, sync.frameFence);
 
         timings.finishFrame(sync.defragMayStart);
 
