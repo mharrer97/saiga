@@ -121,6 +121,8 @@ class SAIGA_VULKAN_API DeferredLighting
     void removeLight(std::shared_ptr<PointLight> l);
     void removeLight(std::shared_ptr<SpotLight> l);
     void removeLight(std::shared_ptr<BoxLight> l);
+
+    std::shared_ptr<SpotLight> firstSpotLight() { return spotLights.at(0); }
 };
 }  // namespace Lighting
 }  // namespace Vulkan

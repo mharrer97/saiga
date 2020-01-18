@@ -11,8 +11,10 @@
 #include "saiga/core/camera/all.h"
 #include "saiga/core/math/math.h"
 #include "saiga/export.h"
+#include "saiga/vulkan/VulkanAsset.h"
 #include "saiga/vulkan/VulkanInitializers.hpp"
 #include "saiga/vulkan/buffer/Buffer.h"
+#include "saiga/vulkan/lighting/SpotLight.h"
 
 
 namespace Saiga
@@ -100,6 +102,7 @@ class SAIGA_VULKAN_API Raytracer
     uint32_t width             = 1280;
     uint32_t height            = 720;
     bool prepared              = false;
+    bool hasGeometry           = false;
 
    public:
     // TODO Forward Declarations ? ? ?
@@ -127,6 +130,8 @@ class SAIGA_VULKAN_API Raytracer
                       VERTEX_COMPONENT_DUMMY_FLOAT});
     // TODO outsource triangle handling
     // buffers to store the scene
+    VulkanVertexColoredAsset* asset = nullptr;
+    mat4 modelMatrix;
     vks::Buffer vertexBuffer;
     vks::Buffer indexBuffer;
     uint32_t vertexCount;
@@ -175,6 +180,11 @@ class SAIGA_VULKAN_API Raytracer
     void init(Saiga::Vulkan::VulkanBase& newBase, vk::Format SCColorFormat, uint32_t SCWidth, uint32_t SCHeight);
 
     //!
+    //! \brief setGeometry initialize the geometry with the given asset
+    //!
+    void setGeometry(VulkanVertexColoredAsset* asset, mat4 model);
+
+    //!
     //! \brief createStorageImage Set up a storage image that the ray generation shader will be writing to
     //!
     void createStorageImage();
@@ -208,8 +218,20 @@ class SAIGA_VULKAN_API Raytracer
     //! \param free
     //!
     void flushCommandBuffer(vk::CommandBuffer commandBuffer, bool free = true);
+
+    //!
+    //! \brief getVerticesFromAsset fills the vertices and inices vector with the information from the asset
+    //! \param vertices
+    //! \param indices
+    //! \param indexCount
+    //! \param vertexCount
+    //!
+    void getVerticesFromAsset(std::vector<float>& vertices, std::vector<uint32_t>& indices, uint32_t& vertexCount,
+                              uint32_t& indexCount, Eigen::Matrix<float, 3, 4, Eigen::RowMajor>& transform);
+
     //!
     //! \brief createScene
+    //! \param asset
     //!
     void createScene();
 
@@ -256,7 +278,7 @@ class SAIGA_VULKAN_API Raytracer
     //! TODO adjust to own ubo handling
     //! \brief updateUniformBuffers
     //!
-    void updateUniformBuffers(Camera* cam);
+    void updateUniformBuffers(Camera* cam, std::shared_ptr<Lighting::SpotLight> spotLight);
 
     //! TODO adjust to own ubo handling
     //! \brief createUniformBuffer Create the uniform buffer used to pass matrices to the ray tracing ray generation
@@ -269,7 +291,8 @@ class SAIGA_VULKAN_API Raytracer
     //!
     void buildCommandBuffer(VkCommandBuffer cmd, VkImage targetImage);
 
-    virtual void render(Camera* cam, VkCommandBuffer cmd, VkImage targetImage);
+    virtual void render(Camera* cam, std::shared_ptr<Lighting::SpotLight> spotLight, VkCommandBuffer cmd,
+                        VkImage targetImage);
 };
 }  // namespace RTX
 }  // namespace Vulkan

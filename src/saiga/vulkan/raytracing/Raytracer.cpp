@@ -96,6 +96,14 @@ void Raytracer::init(VulkanBase& newBase, vk::Format SCColorFormat, uint32_t SCW
     prepared = true;
 }
 
+void Raytracer::setGeometry(VulkanVertexColoredAsset* asset, mat4 model)
+{
+    this->asset       = asset;
+    this->modelMatrix = model;
+
+    hasGeometry = true;
+}
+
 void Raytracer::createStorageImage()
 {
     vk::ImageCreateInfo image = vks::initializers::imageCreateInfo();
@@ -378,37 +386,67 @@ void Raytracer::flushCommandBuffer(vk::CommandBuffer commandBuffer, bool free)
     }
 }
 
+void Raytracer::getVerticesFromAsset(std::vector<float>& vertices, std::vector<uint32_t>& indices,
+                                     uint32_t& vertexCount, uint32_t& indexCount,
+                                     Eigen::Matrix<float, 3, 4, Eigen::RowMajor>& transform)
+{
+    for (VertexNC v : asset->vertices)
+    {
+        for (Component c : vertexLayout.components)
+        {
+            switch (c)
+            {
+                case VERTEX_COMPONENT_POSITION:
+                    vertices.emplace_back(v.position[0]);
+                    vertices.emplace_back(v.position[1]);
+                    vertices.emplace_back(v.position[2]);
+                    break;
+                case VERTEX_COMPONENT_NORMAL:
+                    vertices.emplace_back(v.normal[0]);
+                    vertices.emplace_back(v.normal[1]);
+                    vertices.emplace_back(v.normal[2]);
+                    break;
+                case VERTEX_COMPONENT_COLOR:
+                    vertices.emplace_back(v.color[0]);
+                    vertices.emplace_back(v.color[1]);
+                    vertices.emplace_back(v.color[2]);
+                    break;
+                case VERTEX_COMPONENT_UV:
+                    vertices.emplace_back(0.f);
+                    vertices.emplace_back(0.f);
+                    break;
+                case VERTEX_COMPONENT_DUMMY_FLOAT:
+                    vertices.emplace_back(0.f);
+                    break;
+                default:
+                    break;
+            }
+        }
+        ++vertexCount;
+    }
+    indices    = asset->getIndexList();
+    indexCount = indices.size();
+
+    // extract the transform matrix out of the mat4 model matrix
+    // clang-format off
+    transform << modelMatrix(0,0), modelMatrix(0,1), modelMatrix(0,2), modelMatrix(0,3),
+                modelMatrix(1,0), modelMatrix(1,1), modelMatrix(1,2), modelMatrix(1,3),
+                modelMatrix(2,0), modelMatrix(2,1), modelMatrix(2,2), modelMatrix(2,3);
+    // clang-format on
+}
 
 void Raytracer::createScene()
 {
-    // Setup vertices for a single triangle
-    struct Vertex
-    {
-        float pos[3];
-        float normal[3];
-        float color[3];
-        float uv[2];
-        float dummy;
-    };
+    std::vector<float> vertices   = {};
+    std::vector<uint32_t> indices = {};
+    uint32_t vertexCount          = 0;
+    uint32_t indexCount           = 0;
 
-    // TODO outsource model import
-    std::vector<Vertex> vertices2 = {{{1.f, 1.0f, 0.0f}, {0.f, 0.f, 1.f}, {1.f, 0.f, 1.f}, {1.f, 0.f}, 0.f},
-                                     {{-1.0f, 1.0f, 0.0f}, {0.f, 0.f, 1.f}, {0.f, 1.f, 1.f}, {1.f, 1.f}, 0.f},
-                                     {{0.0f, -1.0f, 0.0f}, {0.f, 0.f, 1.f}, {1.f, 1.f, 0.f}, {0.f, 1.f}, 0.f},
-                                     {{0.0f, -1.f, -3.0f}, {0.f, 0.f, -1.f}, {1.f, 0.f, 0.f}, {1.f, 0.f}, 0.f},
-                                     {{-5.5f, 0.5f, -3.0f}, {0.f, 0.f, -1.f}, {0.f, 1.f, 0.f}, {1.f, 1.f}, 0.f},
-                                     {{0.5f, 0.5f, -3.0f}, {0.f, 0.f, -1.f}, {0.f, 0.f, 1.f}, {0.f, 1.f}, 0.f}};
-
-    std::vector<float> vertices = {
-        1.f,  1.0f, 2.0f,  0.f, 0.f, 1.f,  1.f,  0.f,   1.f,   1.f, 0.f, 0.f,  -1.0f, 1.0f, 0.0f,  0.f, 0.f, 1.f,
-        0.f,  1.f,  1.f,   1.f, 1.f, 0.f,  0.0f, -1.0f, 0.0f,  0.f, 0.f, 1.f,  1.f,   1.f,  0.f,   0.f, 1.f, 0.f,
-        0.0f, -1.f, -3.0f, 0.f, 0.f, -1.f, 1.f,  0.f,   0.f,   1.f, 0.f, 0.f,  -5.5f, 0.5f, -3.0f, 0.f, 0.f, -1.f,
-        0.f,  1.f,  0.f,   1.f, 1.f, 0.f,  0.5f, 0.5f,  -3.0f, 0.f, 0.f, -1.f, 0.f,   0.f,  1.f,   0.f, 1.f, 0.f};
-    // Setup indices
-    std::vector<uint32_t> indices = {0, 1, 2, 3, 4, 5};
-    indexCount                    = static_cast<uint32_t>(indices.size());
-    // TODO fix
-    uint32_t vertexCount = 6;
+    Eigen::Matrix<float, 3, 4, Eigen::RowMajor> transform;
+    // transform << 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f;
+    transform << 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f;
+    // transform << -1.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f;
+    getVerticesFromAsset(vertices, indices, vertexCount, indexCount, transform);
 
     uint32_t vBufferSize = static_cast<uint32_t>(vertices.size()) * sizeof(float);
     uint32_t iBufferSize = static_cast<uint32_t>(indices.size()) * sizeof(uint32_t);
@@ -499,10 +537,7 @@ void Raytracer::createScene()
     // Single instance with a 3x4 transform matrix for the ray traced triangle
     vks::Buffer instanceBuffer;
 
-    Eigen::Matrix<float, 3, 4, Eigen::RowMajor> transform;
-    // transform << 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f;
-    transform << -1.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f;
-    // transform << -1.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f;
+
 
     GeometryInstance geometryInstance{};
     geometryInstance.transform                   = transform;
@@ -846,16 +881,17 @@ void Raytracer::createRayTracingPipeline()
         vkCreateRayTracingPipelinesNV(base->device, VK_NULL_HANDLE, 1, &rayPipelineInfo, nullptr, &pipeline));
 }
 
-void Raytracer::updateUniformBuffers(Camera* cam)
+void Raytracer::updateUniformBuffers(Camera* cam, std::shared_ptr<Lighting::SpotLight> spotLight)
 {
     uniformData.projInverse = inverse(cam->proj);
     uniformData.viewInverse = inverse(cam->view);
     //    uniformData.lightPos =
-    //        glm::vec4(cos(glm::radians(timer * 360.0f)) * 40.0f, -20.0f + sin(glm::radians(timer * 360.0f)) * 20.0f,
+    //        glm::vec4(cos(glm::radians(timer * 360.0f)) * 40.0f, -20.0f + sin(glm::radians(timer * 360.0f))
+    //        * 20.0f,
     //                  25.0f + sin(glm::radians(timer * 360.0f)) * 5.0f, 0.0f);
 
     // TODO adjust lightpos handling
-    uniformData.lightPos = vec4(0.0f, -5.0f, 0.0f, 0.0f);
+    uniformData.lightPos = make_vec4(spotLight->getPosition(), 0.f);
 
     memcpy(ubo.mapped, &uniformData, sizeof(uniformData));
 }
@@ -919,8 +955,11 @@ void Raytracer::buildCommandBuffer(VkCommandBuffer cmd, VkImage targetImage)
                    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copyRegion);
 
     // Transition swap chain image back for presentation
-    vks::tools::setImageLayout(cmd, targetImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-                               subresourceRange);
+    // vks::tools::setImageLayout(cmd, targetImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+    // VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+    //                           subresourceRange);
+    vks::tools::setImageLayout(cmd, targetImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                               VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, subresourceRange);
 
     // Transition ray tracing output image back to general layout
     // vks::tools::setImageLayout(cmd, storageImageLocation->data.image,
@@ -937,10 +976,11 @@ void Raytracer::buildCommandBuffer(VkCommandBuffer cmd, VkImage targetImage)
     VK_CHECK_RESULT(vkEndCommandBuffer(cmd));
 }
 
-void Raytracer::render(Camera* cam, VkCommandBuffer cmd, VkImage targetImage)
+void Raytracer::render(Camera* cam, std::shared_ptr<Lighting::SpotLight> spotLight, VkCommandBuffer cmd,
+                       VkImage targetImage)
 {
-    if (!prepared) return;
-    updateUniformBuffers(cam);
+    if (!prepared || !hasGeometry) return;
+    updateUniformBuffers(cam, spotLight);
     buildCommandBuffer(cmd, targetImage);
 }
 

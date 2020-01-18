@@ -56,10 +56,12 @@ void main()
 	// Interpolate normal
 	const vec3 barycentricCoords = vec3(1.0f - attribs.x - attribs.y, attribs.x, attribs.y);
 	vec3 normal = normalize(v0.normal * barycentricCoords.x + v1.normal * barycentricCoords.y + v2.normal * barycentricCoords.z);
+        // interpolate position
+        vec3 position = normalize(v0.pos * barycentricCoords.x + v1.pos * barycentricCoords.y + v2.pos * barycentricCoords.z);
 
 	// Basic lighting
-	vec3 lightVector = normalize(cam.lightPos.xyz);
-	float dot_product = max(dot(lightVector, normal), 0.6);
+        vec3 lightVector = normalize(cam.lightPos.xyz-position.xyz);
+        float dot_product = max(dot(lightVector, normal), 0.0);
         rayPayload.color = v0.color * vec3(dot_product);
 	rayPayload.distance = gl_RayTmaxNV;
 	rayPayload.normal = normal;

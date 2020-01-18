@@ -52,6 +52,8 @@ VulkanExample::VulkanExample()
     sphere.loadObj("icosphere.obj");
     sphere.init(renderer->base());
 
+    renderer->raytracer.setGeometry(&cornell, translate(vec3(0.f, -10.f, 0.f)) * scale(make_vec3(10.f)));
+
     spotLight = renderer->lighting.createSpotLight();
     // spotLight->setColorDiffuse(Saiga::Vulkan::Lighting::LightColorPresets::Candle);
     // spotLight->setColorSpecular(Saiga::Vulkan::Lighting::LightColorPresets::Candle);

@@ -109,10 +109,13 @@ class SAIGA_VULKAN_API VulkanDeferredRenderer : public VulkanRenderer
     std::vector<vk::CommandBuffer> geometryCmdBuffers;
     std::vector<vk::CommandBuffer> forwardCmdBuffers;
     std::vector<vk::CommandBuffer> shadowCmdBuffers;
+    std::vector<vk::CommandBuffer> RTXCmdBuffers;
+
 
     vk::Semaphore geometrySemaphore;
     vk::Semaphore shadowSemaphore;
     vk::Semaphore deferredSemaphore;
+    vk::Semaphore RTXSemaphore;
 
     std::vector<Framebuffer> frameBuffers;
     Framebuffer gBuffer;
