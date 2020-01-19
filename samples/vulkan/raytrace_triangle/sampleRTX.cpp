@@ -73,14 +73,14 @@ VulkanExample::VulkanExample()
     directionalLight->setIntensity(0.f);
 
     float aspect = window->getAspectRatio();
-    // camera.setProj(60.0f, aspect, 0.1f, 150.0f, true);
-    // camera.setView(vec3(0, 0, 27.5), vec3(0, 0, 0), vec3(0, 1, 0));
-    // camera.rotationPoint = make_vec3(0);
+    camera.setProj(60.0f, aspect, 0.1f, 150.0f, true);
+    camera.setView(vec3(0, 0, 27.5), vec3(0, 0, 0), vec3(0, 1, 0));
+    camera.rotationPoint = make_vec3(0);
 
     // camera.type = Camera::CameraType::lookat;
-    camera.setProj(60.0f, aspect, 0.1f, 512.0f, true);
-    camera.rotationPoint = make_vec3(0);
-    camera.setView(vec3(0.0f, 0.0f, -2.5f), vec3(0, 0, 0), vec3(0, 1, 0));
+    // camera.setProj(60.0f, aspect, 0.1f, 512.0f, true);
+    // camera.rotationPoint = make_vec3(0);
+    // camera.setView(vec3(0.0f, 0.0f, -2.5f), vec3(0, 0, 0), vec3(0, 1, 0));
 }
 
 

@@ -665,6 +665,7 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage, Camera* c
         ImGui::Checkbox("Debug Mode", &debug);
         ImGui::Checkbox("Debug Lights", &lightDebug);
         ImGui::Checkbox("Render Lights", &renderLights);
+        ImGui::Checkbox("show RTX", &showRTX);
         ImGui::End();
 
 
@@ -673,7 +674,7 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage, Camera* c
         //        });
         //        t.join();
     }
-    if (!params.enableRTX)
+    if (!params.enableRTX || !showRTX)
     {
         // prepare the command buffers
         setupGeometryCommandBuffer(currentImage, cam);

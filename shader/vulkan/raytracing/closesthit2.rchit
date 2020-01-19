@@ -2,6 +2,7 @@
 #extension GL_NV_ray_tracing : require
 #extension GL_EXT_nonuniform_qualifier : enable
 
+
 struct RayPayload {
 	vec3 color;
 	float distance;
@@ -58,6 +59,8 @@ void main()
 	vec3 normal = normalize(v0.normal * barycentricCoords.x + v1.normal * barycentricCoords.y + v2.normal * barycentricCoords.z);
         // interpolate position
         vec3 position = normalize(v0.pos * barycentricCoords.x + v1.pos * barycentricCoords.y + v2.pos * barycentricCoords.z);
+        position = gl_ObjectToWorldNV * vec4(position.xyz, 1);
+        //position = pos4.xyz/pos4.w;
 
 	// Basic lighting
         vec3 lightVector = normalize(cam.lightPos.xyz-position.xyz);
