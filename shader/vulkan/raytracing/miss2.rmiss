@@ -20,8 +20,10 @@ void main()
         // rayPayload.color = (1.0-t) * gradientStart + t * gradientEnd;
 
         // to get consistency with the diffuse part of the application: use one color
-        rayPayload.color = vec3(57.f/255.f);
-	rayPayload.distance = -1.0f;
+        //rayPayload.color = vec3(57.f/255.f);
+        rayPayload.color = vec3(0.f);
+
+        rayPayload.distance = -1.0f;
 	rayPayload.normal = vec3(0.0f);
 	rayPayload.reflector = 0.0f;
 }

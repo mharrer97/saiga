@@ -77,41 +77,44 @@ void main()
 	Vertex v2 = unpack(index.z);
 
 	// Interpolate normal
-        vec3 normal = normalize( gl_ObjectToWorldNV * vec4(normalize(interpolateVec3(v0.normal, v1.normal,v2.normal)), 0.f));
+	vec3 normal = normalize( gl_ObjectToWorldNV * vec4(normalize(interpolateVec3(v0.normal, v1.normal,v2.normal)), 0.f));
 
-        // interpolate position
-        vec3 position = gl_ObjectToWorldNV * vec4(interpolateVec3(v0.pos,v1.pos,v2.pos), 1.f);
+	// interpolate position
+	vec3 position = gl_ObjectToWorldNV * vec4(interpolateVec3(v0.pos,v1.pos,v2.pos), 1.f);
 
-        //interpolate color
-        vec3 color = interpolateVec3(v0.color, v1.color,v2.color);
+	//interpolate color
+	vec3 color = interpolateVec3(v0.color, v1.color,v2.color);
 
-        // Basic lighting
-        vec3 lightVector = (cam.lightPos.xyz-position.xyz);
+	// Basic lighting
+	vec3 lightVector = (cam.lightPos.xyz-position.xyz);
 
-        float intensity = getAttenuation(cam.attenuation, length(lightVector)) * cam.diffuseCol.w;
+	float intensity = getAttenuation(cam.attenuation, length(lightVector)) * cam.diffuseCol.w;
 
-        //normalize now -> was used for intensity
-        lightVector = normalize(lightVector);
-        //reflect
-        vec3 reflected = reflect(lightVector, normal);
+	//normalize now -> was used for intensity
+	lightVector = normalize(lightVector);
+	//reflect
+	vec3 viewVec = normalize(position - vec3(cam.viewInverse[3][0], cam.viewInverse[3][1], cam.viewInverse[3][2]));
+	vec3 reflected = reflect(lightVector, normal);
+	
+	vec3 diffuse = max(dot(normal, lightVector) * intensity, 0.f) * color * cam.diffuseCol.xyz;
 
-        vec3 diffuse = max(dot(normal, lightVector) * intensity, 0.f) * color * cam.diffuseCol.xyz;
+	//specular still broken
+	float roughness = 16.f;
+	vec3 specular = pow(max(dot(reflected,viewVec), 0.f), roughness) * vec3(0.75f) * intensity * cam.specularCol.xyz;
 
-        //specular still broken
-        float roughness = 16.f;
-        vec3 specular = pow(max(dot(reflected,lightVector), 0.f), roughness) * vec3(0.75f) * intensity * cam.specularCol.xyz;
+	//vec3 ambient = color * 0.1f; // TODO delete: currently the ambient term
 
-        vec3 ambient = color * 0.1f; // TODO delete: currently the ambient term
-        rayPayload.color = diffuse; // + specular; // currently with ambient term to compare to deferred renderer
+	rayPayload.color = specular+diffuse;
 
-        float angle = acos(dot(lightVector, normalize(-cam.dir.xyz)));
-        float alpha = (clamp((angle/6.26) * 180.f, (cam.openingAngle/4.f) - 5.f, (cam.openingAngle/4.f))- ((cam.openingAngle/4.f) - 5.f)) / 5.f;
-        rayPayload.color = mix(vec3(0.f), rayPayload.color,1.f- alpha);
+	float angle = acos(dot(lightVector, normalize(-cam.dir.xyz)));
+	float alpha = (clamp((angle/6.26) * 180.f, (cam.openingAngle/4.f) - 5.f, (cam.openingAngle/4.f))- ((cam.openingAngle/4.f) - 5.f)) / 5.f;
+	rayPayload.color = mix(vec3(0.f), rayPayload.color,1.f- alpha);
 
-        //TODO delete: ambient term
-        rayPayload.color += ambient;
+	//TODO delete: ambient term
+	//rayPayload.color += ambient;
+	//rayPayload.color = specular;
 
-        rayPayload.distance = gl_RayTmaxNV;
+	rayPayload.distance = gl_RayTmaxNV;
 	rayPayload.normal = normal;
 
 	// Objects with full white vertex color are treated as reflectors

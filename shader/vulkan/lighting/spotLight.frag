@@ -64,7 +64,9 @@ void main()
 	float alpha = (clamp((angle/6.26) * 180.f, (pushConstants.openingAngle/4.f) - 5.f, (pushConstants.openingAngle/4.f))- ((pushConstants.openingAngle/4.f) - 5.f)) / 5.f;
 	outColor = mix(vec4(vec3(0.f), 1.f), outColor ,1.f- alpha);
 	
-	
+	//vec3 worldTest = mat3(inverse(ubo.view)) * R;
+	//outColor = vec4(worldTest, 1.f);
+	//outColor = vec4(specular, 1.f);
 	
 	if(additional.w > 0.99f) {
 		outColor = vec4(0.f);
