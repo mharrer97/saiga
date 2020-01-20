@@ -891,8 +891,12 @@ void Raytracer::updateUniformBuffers(Camera* cam, std::shared_ptr<Lighting::Spot
     //                  25.0f + sin(glm::radians(timer * 360.0f)) * 5.0f, 0.0f);
 
     // TODO adjust lightpos handling
-    uniformData.lightPos = make_vec4(spotLight->getPosition(), 0.f);
-
+    uniformData.lightPos     = make_vec4(spotLight->getPosition(), 0.f);
+    uniformData.attenuation  = make_vec4(spotLight->getAttenuation(), spotLight->getRadius());
+    uniformData.dir          = make_vec4(spotLight->getDirection(), 0.f);
+    uniformData.openingAngle = spotLight->getAngle();
+    uniformData.specularCol  = make_vec4(spotLight->getColorSpecular(), 1.f);
+    uniformData.diffuseCol   = make_vec4(spotLight->getColorDiffuse(), spotLight->getIntensity());
     memcpy(ubo.mapped, &uniformData, sizeof(uniformData));
 }
 

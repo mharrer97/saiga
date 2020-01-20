@@ -156,6 +156,11 @@ class SAIGA_VULKAN_API Raytracer
         mat4 viewInverse;
         mat4 projInverse;
         vec4 lightPos;
+        vec4 attenuation;
+        vec4 dir;
+        vec4 specularCol;
+        vec4 diffuseCol;
+        float openingAngle;
     } uniformData;
     vks::Buffer ubo;
 

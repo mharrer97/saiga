@@ -8,6 +8,11 @@ layout(binding = 2, set = 0) uniform CameraProperties
 	mat4 viewInverse;
 	mat4 projInverse;
 	vec4 lightPos;
+        vec4 attenuation;
+        vec4 dir;
+        vec4 specularCol;
+        vec4 diffuseCol;
+        float openingAngle;
 } cam;
 
 
@@ -40,7 +45,7 @@ void main()
 
 	vec3 color = vec3(0.0);
 
-        for (int i = 0; i < MAX_RECURSION; i++) {
+        for (int i = 0; i < 1; i++) { // MAX_RECURSION
 		traceNV(topLevelAS, rayFlags, cullMask, 0, 0, 0, origin.xyz, tmin, direction.xyz, tmax, 0);
 		vec3 hitColor = rayPayload.color;
 

@@ -127,7 +127,7 @@ class SAIGA_VULKAN_API VulkanDeferredRenderer : public VulkanRenderer
     bool debug        = false;
     bool lightDebug   = false;
     bool renderLights = true;
-    bool showRTX      = false;
+    bool showRTX      = true;
 };
 
 

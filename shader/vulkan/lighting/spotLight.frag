@@ -59,10 +59,10 @@ void main()
 	vec3 specular = pow(max(dot(R,V), 0.f), specularAndRoughness.a * 256.f) * specularAndRoughness.rgb * intensity * pushConstants.lightSpecularCol.xyz;
 	outColor = vec4(diffuse + specular, 1.f);
 	
-	if(acos(dot(normalize(L), normalize(viewLightDir))) > ((pushConstants.openingAngle/4.f)/180.f)*6.26f) outColor = vec4(0.f);
+	//if(acos(dot(normalize(L), normalize(viewLightDir))) > ((pushConstants.openingAngle/4.f)/180.f)*6.26f) outColor = vec4(0.f);
 	float angle = acos(dot(normalize(L), normalize(viewLightDir)));
 	float alpha = (clamp((angle/6.26) * 180.f, (pushConstants.openingAngle/4.f) - 5.f, (pushConstants.openingAngle/4.f))- ((pushConstants.openingAngle/4.f) - 5.f)) / 5.f;
-	outColor = mix(vec4(vec3(0.f), 1.f), vec4(diffuse + specular, 1.f) ,1.f- alpha);
+	outColor = mix(vec4(vec3(0.f), 1.f), outColor ,1.f- alpha);
 	
 	
 	
