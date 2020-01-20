@@ -102,7 +102,7 @@ void main()
 	float roughness = 16.f;
 	vec3 specular = pow(max(dot(reflected,viewVec), 0.f), roughness) * vec3(0.75f) * intensity * cam.specularCol.xyz;
 
-	//vec3 ambient = color * 0.1f; // TODO delete: currently the ambient term
+	vec3 ambient = color * 0.1f; // TODO delete: currently the ambient term
 
 	rayPayload.color = specular+diffuse;
 
@@ -111,8 +111,8 @@ void main()
 	rayPayload.color = mix(vec3(0.f), rayPayload.color,1.f- alpha);
 
 	//TODO delete: ambient term
-	//rayPayload.color += ambient;
-	//rayPayload.color = specular;
+	rayPayload.color += ambient;
+	//rayPayload.color = normal;
 
 	rayPayload.distance = gl_RayTmaxNV;
 	rayPayload.normal = normal;

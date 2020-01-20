@@ -67,10 +67,10 @@ VulkanExample::VulkanExample()
     spotLight->calculateModel();
     // renderer->lighting.enableShadowMapping(spotLight, 4000);
 
-    //    directionalLight = renderer->lighting.createDirectionalLight();
-    //    directionalLight->setColorDiffuse(make_vec3(1));
-    //    directionalLight->setAmbientIntensity(0.1f);
-    //    directionalLight->setIntensity(0.f);
+    directionalLight = renderer->lighting.createDirectionalLight();
+    directionalLight->setColorDiffuse(make_vec3(1));
+    directionalLight->setAmbientIntensity(0.1f);
+    directionalLight->setIntensity(0.f);
 
     float aspect = window->getAspectRatio();
     camera.setProj(60.0f, aspect, 0.1f, 150.0f, true);

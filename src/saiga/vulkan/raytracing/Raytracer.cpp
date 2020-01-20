@@ -424,11 +424,25 @@ void Raytracer::getVerticesFromAsset(std::vector<float>& vertices, std::vector<u
         }
         ++vertexCount;
     }
-    indices    = asset->getIndexList();
+    indices = asset->getIndexList();
+
+    // add a reflector to the side
+    // pos,norm,col,uv,dummy
+    // clang-format off
+    std::vector<float> reflectionV    = {0.95f,  0.05f, -0.5f,   -1.f, 0.f, 0.f,   1.f, 1.f, 1.f,   0.f, 0.f,   0.f,
+                                         0.95f,  1.95f, -0.5f,   -1.f, 0.f, 0.f,   1.f, 1.f, 1.f,   0.f, 0.f,   0.f,
+                                         0.95f,  0.05f,  0.5f,   -1.f, 0.f, 0.f,   1.f, 1.f, 1.f,   0.f, 0.f,   0.f,
+                                         0.95f,  1.95f,  0.5f,   -1.f, 0.f, 0.f,   1.f, 1.f, 1.f,   0.f, 0.f,   0.f};
+    std::vector<uint32_t> reflectionI = {vertexCount,     vertexCount + 1, vertexCount + 2,
+                                         vertexCount + 3, vertexCount + 1, vertexCount + 2};
+
+    vertices.insert(vertices.end(), reflectionV.begin(), reflectionV.end());
+    indices.insert(indices.end(), reflectionI.begin(), reflectionI.end());
     indexCount = indices.size();
+    vertexCount += 4;
 
     // extract the transform matrix out of the mat4 model matrix
-    // clang-format off
+
     transform << modelMatrix(0,0), modelMatrix(0,1), modelMatrix(0,2), modelMatrix(0,3),
                 modelMatrix(1,0), modelMatrix(1,1), modelMatrix(1,2), modelMatrix(1,3),
                 modelMatrix(2,0), modelMatrix(2,1), modelMatrix(2,2), modelMatrix(2,3);
