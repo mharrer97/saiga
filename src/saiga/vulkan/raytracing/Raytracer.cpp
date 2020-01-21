@@ -203,39 +203,6 @@ void Raytracer::createBLAS(const VkGeometryNV* geometries)
 
     VK_CHECK_RESULT(vkGetAccelerationStructureHandleNV(base->device, bottomLevelAS.accelerationStructure,
                                                        sizeof(uint64_t), &bottomLevelAS.handle));
-    /*vk::AccelerationStructureInfoNV ASInfo{};
-    ASInfo.type          = vk::AccelerationStructureTypeNV::eBottomLevel;
-    ASInfo.instanceCount = 0;
-    ASInfo.geometryCount = 1;
-    ASInfo.pGeometries   = geometries;
-
-    vk::AccelerationStructureCreateInfoNV ASCreateInfo{};
-    ASCreateInfo.info = ASInfo;
-    base->device.createAccelerationStructureNV(&ASCreateInfo, nullptr, &bottomLevelAS.accelerationStructure);
-    SAIGA_ASSERT(bottomLevelAS.accelerationStructure);
-
-        vk::AccelerationStructureMemoryRequirementsInfoNV memReqInfo{};
-        memReqInfo.type                  = vk::AccelerationStructureMemoryRequirementsTypeNV::eObject;
-        memReqInfo.accelerationStructure = bottomLevelAS.accelerationStructure;
-
-        vk::MemoryRequirements2 memReq2{};
-        base->device.getAccelerationStructureMemoryRequirementsNV(&memReqInfo, &memReq2);
-
-        vk::MemoryAllocateInfo memAllocateInfo = vks::initializers::memoryAllocateInfo();
-        memAllocateInfo.allocationSize         = memReq2.memoryRequirements.size;
-        memAllocateInfo.memoryTypeIndex = findMemoryType(base->physicalDevice,
-       memReq2.memoryRequirements.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal);
-        base->device.allocateMemory(&memAllocateInfo, nullptr, &bottomLevelAS.memory);
-        SAIGA_ASSERT(bottomLevelAS.memory);
-
-        vk::BindAccelerationStructureMemoryInfoNV accStructMemInfo{};
-        accStructMemInfo.accelerationStructure = bottomLevelAS.accelerationStructure;
-        accStructMemInfo.memory                = bottomLevelAS.memory;
-        base->device.bindAccelerationStructureMemoryNV(1, &accStructMemInfo);
-
-        base->device.getAccelerationStructureHandleNV(bottomLevelAS.accelerationStructure, sizeof(uint64_t),
-                                                      &bottomLevelAS.handle);
-        SAIGA_ASSERT(bottomLevelAS.handle);*/
 }
 
 void Raytracer::createTLAS()
@@ -277,38 +244,6 @@ void Raytracer::createTLAS()
 
     VK_CHECK_RESULT(vkGetAccelerationStructureHandleNV(base->device, topLevelAS.accelerationStructure, sizeof(uint64_t),
                                                        &topLevelAS.handle));
-    /*  vk::AccelerationStructureInfoNV ASInfo{};
-      ASInfo.type          = vk::AccelerationStructureTypeNV::eTopLevel;
-      ASInfo.instanceCount = 1;
-      ASInfo.geometryCount = 0;
-
-      vk::AccelerationStructureCreateInfoNV ASCreateInfo{};
-      ASCreateInfo.info = ASInfo;
-      base->device.createAccelerationStructureNV(&ASCreateInfo, nullptr, &topLevelAS.accelerationStructure);
-
-      vk::AccelerationStructureMemoryRequirementsInfoNV memReqInfo{};
-      memReqInfo.type                  = vk::AccelerationStructureMemoryRequirementsTypeNV::eObject;
-      memReqInfo.accelerationStructure = topLevelAS.accelerationStructure;
-
-      vk::MemoryRequirements2 memReq2{};
-      base->device.getAccelerationStructureMemoryRequirementsNV(&memReqInfo, &memReq2);
-
-      vk::MemoryAllocateInfo memAllocateInfo = vks::initializers::memoryAllocateInfo();
-      memAllocateInfo.allocationSize         = memReq2.memoryRequirements.size;
-      memAllocateInfo.memoryTypeIndex = findMemoryType(base->physicalDevice, memReq2.memoryRequirements.memoryTypeBits,
-                                                       vk::MemoryPropertyFlagBits::eDeviceLocal);
-      base->device.allocateMemory(&memAllocateInfo, nullptr, &topLevelAS.memory);
-      SAIGA_ASSERT(topLevelAS.memory);
-
-      vk::BindAccelerationStructureMemoryInfoNV ASMemInfo{};
-      ASMemInfo.accelerationStructure = topLevelAS.accelerationStructure;
-      ASMemInfo.memory                = topLevelAS.memory;
-      base->device.bindAccelerationStructureMemoryNV(1, &ASMemInfo);
-
-      base->device.getAccelerationStructureHandleNV(topLevelAS.accelerationStructure, sizeof(uint64_t),
-                                                    &topLevelAS.handle);
-      SAIGA_ASSERT(topLevelAS.handle);
-  */
 }
 VkResult Raytracer::createBuffer(VkBufferUsageFlags usageFlags, vk::MemoryPropertyFlags memoryPropertyFlags,
                                  vks::Buffer* buffer, VkDeviceSize size, void* data)
@@ -574,17 +509,25 @@ void Raytracer::createScene()
 
 
 
-    GeometryInstance geometryInstance{};
-    geometryInstance.transform                   = transform;
-    geometryInstance.instanceId                  = 0;
-    geometryInstance.mask                        = 0xff;
-    geometryInstance.instanceOffset              = 0;
-    geometryInstance.flags                       = VK_GEOMETRY_INSTANCE_TRIANGLE_CULL_DISABLE_BIT_NV;
-    geometryInstance.accelerationStructureHandle = bottomLevelAS.handle;
+    std::array<GeometryInstance, 2> geometryInstances{};
+    // two geometry instances. one for general hit and miss shader, one for shadow hit and miss shader
+    geometryInstances[0].transform                   = transform;
+    geometryInstances[0].instanceId                  = 0;
+    geometryInstances[0].mask                        = 0xff;
+    geometryInstances[0].instanceOffset              = 0;
+    geometryInstances[0].flags                       = VK_GEOMETRY_INSTANCE_TRIANGLE_CULL_DISABLE_BIT_NV;
+    geometryInstances[0].accelerationStructureHandle = bottomLevelAS.handle;
+    geometryInstances[1].transform                   = transform;
+    geometryInstances[1].instanceId                  = 1;
+    geometryInstances[1].mask                        = 0xff;
+    geometryInstances[1].instanceOffset              = 2;
+    geometryInstances[1].flags                       = VK_GEOMETRY_INSTANCE_TRIANGLE_CULL_DISABLE_BIT_NV;
+    geometryInstances[1].accelerationStructureHandle = bottomLevelAS.handle;
 
     VK_CHECK_RESULT(createBuffer(VK_BUFFER_USAGE_RAY_TRACING_BIT_NV,
                                  vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
-                                 &instanceBuffer, sizeof(GeometryInstance), &geometryInstance));
+                                 &instanceBuffer, sizeof(GeometryInstance) * geometryInstances.size(),
+                                 geometryInstances.data()));
 
     createTLAS();
 
@@ -605,7 +548,6 @@ void Raytracer::createScene()
     memoryRequirementsInfo.accelerationStructure = topLevelAS.accelerationStructure;
     vkGetAccelerationStructureMemoryRequirementsNV(base->device, &memoryRequirementsInfo, &memReqTopLevelAS);
 
-    // TODO scratch buffer size does not function???
     VkDeviceSize scratchBufferSize =
         std::max(memReqBottomLevelAS.memoryRequirements.size, memReqTopLevelAS.memoryRequirements.size);
 
@@ -673,7 +615,7 @@ VkDeviceSize Raytracer::copyShaderIdentifier(uint8_t* data, const uint8_t* shade
 void Raytracer::createShaderBindingTable()
 {
     // Create buffer for the shader binding table
-    const uint32_t sbtSize = rayTracingProperties.shaderGroupHandleSize * NUM_SHADER_GRUOPS;
+    const uint32_t sbtSize = rayTracingProperties.shaderGroupHandleSize * NUM_SHADER_GROUPS;
     // VK_CHECK_RESULT(vulkanDevice->createBuffer(VK_BUFFER_USAGE_RAY_TRACING_BIT_NV,
     // VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
     //                                           &shaderBindingTable, sbtSize));
@@ -683,14 +625,16 @@ void Raytracer::createShaderBindingTable()
 
     auto shaderHandleStorage = new uint8_t[sbtSize];
     // Get shader identifiers
-    VK_CHECK_RESULT(vkGetRayTracingShaderGroupHandlesNV(base->device, pipeline, 0, NUM_SHADER_GRUOPS, sbtSize,
+    VK_CHECK_RESULT(vkGetRayTracingShaderGroupHandlesNV(base->device, pipeline, 0, NUM_SHADER_GROUPS, sbtSize,
                                                         shaderHandleStorage));
     auto* data = static_cast<uint8_t*>(shaderBindingTable.mapped);
     // Copy the shader identifiers to the shader binding table
     VkDeviceSize offset = 0;
     data += copyShaderIdentifier(data, shaderHandleStorage, INDEX_RAYGEN);
     data += copyShaderIdentifier(data, shaderHandleStorage, INDEX_MISS);
+    data += copyShaderIdentifier(data, shaderHandleStorage, INDEX_SHADOW_MISS);
     data += copyShaderIdentifier(data, shaderHandleStorage, INDEX_CLOSEST_HIT);
+    data += copyShaderIdentifier(data, shaderHandleStorage, INDEX_SHADOW_HIT);
     shaderBindingTable.unmap();
 }
 
@@ -851,11 +795,13 @@ void Raytracer::createRayTracingPipeline()
 
     VK_CHECK_RESULT(vkCreatePipelineLayout(base->device, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout));
 
-    const uint32_t shaderIndexRaygen     = 0;
-    const uint32_t shaderIndexMiss       = 1;
-    const uint32_t shaderIndexClosestHit = 2;
+    const uint32_t shaderIndexRaygen           = 0;
+    const uint32_t shaderIndexMiss             = 1;
+    const uint32_t shaderIndexShadowMiss       = 2;
+    const uint32_t shaderIndexClosestHit       = 3;
+    const uint32_t shaderIndexShadowClosestHit = 4;
 
-    std::array<VkPipelineShaderStageCreateInfo, 3> shaderStages;
+    std::array<VkPipelineShaderStageCreateInfo, 5> shaderStages;
     //    shaderStages[shaderIndexRaygen] =
     //        loadShader(SAIGA_PROJECT_SOURCE_DIR "/shader/vulkan/raytracing/raygen.rgen.spv",
     //        VK_SHADER_STAGE_RAYGEN_BIT_NV);
@@ -865,13 +811,16 @@ void Raytracer::createRayTracingPipeline()
     //    shaderStages[shaderIndexClosestHit] = loadShader(
     //        SAIGA_PROJECT_SOURCE_DIR "/shader/vulkan/raytracing/closesthit.rchit.spv",
     //        VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV);
-    shaderStages[shaderIndexRaygen] = loadShader(SAIGA_PROJECT_SOURCE_DIR "/shader/vulkan/raytracing/raygen2.rgen.spv",
-                                                 VK_SHADER_STAGE_RAYGEN_BIT_NV);
+    shaderStages[shaderIndexRaygen] =
+        loadShader(SAIGA_PROJECT_SOURCE_DIR "/shader/vulkan/raytracing/raygen.rgen.spv", VK_SHADER_STAGE_RAYGEN_BIT_NV);
     shaderStages[shaderIndexMiss] =
-        loadShader(SAIGA_PROJECT_SOURCE_DIR "/shader/vulkan/raytracing/miss2.rmiss.spv", VK_SHADER_STAGE_MISS_BIT_NV);
+        loadShader(SAIGA_PROJECT_SOURCE_DIR "/shader/vulkan/raytracing/miss.rmiss.spv", VK_SHADER_STAGE_MISS_BIT_NV);
+    shaderStages[shaderIndexShadowMiss] =
+        loadShader(SAIGA_PROJECT_SOURCE_DIR "/shader/vulkan/raytracing/shadow.rmiss.spv", VK_SHADER_STAGE_MISS_BIT_NV);
     shaderStages[shaderIndexClosestHit] = loadShader(
-        SAIGA_PROJECT_SOURCE_DIR "/shader/vulkan/raytracing/closesthit2.rchit.spv", VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV);
-
+        SAIGA_PROJECT_SOURCE_DIR "/shader/vulkan/raytracing/closesthit.rchit.spv", VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV);
+    shaderStages[shaderIndexShadowClosestHit] = loadShader(
+        SAIGA_PROJECT_SOURCE_DIR "/shader/vulkan/raytracing/shadow.rchit.spv", VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV);
 
     // Pass recursion depth for reflections to ray generation shader via specialization constant
     VkSpecializationMapEntry specializationMapEntry = vks::initializers::specializationMapEntry(0, 0, sizeof(uint32_t));
@@ -884,7 +833,7 @@ void Raytracer::createRayTracingPipeline()
     /*
             Setup ray tracing shader groups
     */
-    std::array<VkRayTracingShaderGroupCreateInfoNV, 3> groups{};
+    std::array<VkRayTracingShaderGroupCreateInfoNV, NUM_SHADER_GROUPS> groups{};
     for (auto& group : groups)
     {
         // Init all groups with some default values
@@ -896,13 +845,22 @@ void Raytracer::createRayTracingPipeline()
     }
 
     // Links shaders and types to ray tracing shader groups
-    groups[INDEX_RAYGEN].type                  = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_NV;
-    groups[INDEX_RAYGEN].generalShader         = shaderIndexRaygen;
-    groups[INDEX_MISS].type                    = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_NV;
-    groups[INDEX_MISS].generalShader           = shaderIndexMiss;
+    groups[INDEX_RAYGEN].type          = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_NV;
+    groups[INDEX_RAYGEN].generalShader = shaderIndexRaygen;
+
+    groups[INDEX_MISS].type          = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_NV;
+    groups[INDEX_MISS].generalShader = shaderIndexMiss;
+
+    groups[INDEX_SHADOW_MISS].type          = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_NV;
+    groups[INDEX_SHADOW_MISS].generalShader = shaderIndexShadowMiss;
+
     groups[INDEX_CLOSEST_HIT].type             = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_NV;
     groups[INDEX_CLOSEST_HIT].generalShader    = VK_SHADER_UNUSED_NV;
     groups[INDEX_CLOSEST_HIT].closestHitShader = shaderIndexClosestHit;
+
+    groups[INDEX_SHADOW_HIT].type             = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_NV;
+    groups[INDEX_SHADOW_HIT].generalShader    = VK_SHADER_UNUSED_NV;
+    groups[INDEX_SHADOW_HIT].closestHitShader = shaderIndexShadowClosestHit;
 
     VkRayTracingPipelineCreateInfoNV rayPipelineInfo{};
     rayPipelineInfo.sType             = VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_NV;
@@ -910,7 +868,7 @@ void Raytracer::createRayTracingPipeline()
     rayPipelineInfo.pStages           = shaderStages.data();
     rayPipelineInfo.groupCount        = static_cast<uint32_t>(groups.size());
     rayPipelineInfo.pGroups           = groups.data();
-    rayPipelineInfo.maxRecursionDepth = 1;
+    rayPipelineInfo.maxRecursionDepth = 2;  // says, there are swcondary rays (shadow rays)
     rayPipelineInfo.layout            = pipelineLayout;
     VK_CHECK_RESULT(
         vkCreateRayTracingPipelinesNV(base->device, VK_NULL_HANDLE, 1, &rayPipelineInfo, nullptr, &pipeline));

@@ -45,9 +45,12 @@ struct GeometryInstance
 // Indices for the different ray tracing shader types used in this example
 #define INDEX_RAYGEN 0
 #define INDEX_MISS 1
-#define INDEX_CLOSEST_HIT 2
+#define INDEX_SHADOW_MISS 2
+#define INDEX_CLOSEST_HIT 3
+#define INDEX_SHADOW_HIT 4
 
-#define NUM_SHADER_GRUOPS 3
+#define NUM_SHADER_GROUPS 5
+
 typedef enum Component
 {
     VERTEX_COMPONENT_POSITION    = 0x0,
