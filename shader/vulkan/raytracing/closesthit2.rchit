@@ -34,8 +34,8 @@ struct Vertex
   vec3 pos;
   vec3 normal;
   vec3 color;
-  vec2 uv;
-  float _pad0;
+  float ior;
+  vec2 data;
 };
 
 Vertex unpack(uint index)
@@ -48,6 +48,7 @@ Vertex unpack(uint index)
 	v.pos = d0.xyz;
 	v.normal = vec3(d0.w, d1.x, d1.y);
 	v.color = vec3(d1.z, d1.w, d2.x);
+	v.ior = d2.y;
 	return v;
 }
 
@@ -55,6 +56,9 @@ vec3 interpolateVec3(vec3 p0, vec3 p1, vec3 p2){
     return (1.f - attribs.x - attribs.y) * p0 + attribs.x * p1 + attribs.y * p2;
 }
 
+float interpolateFloat(float p0, float p1, float p2){
+    return (1.f - attribs.x - attribs.y) * p0 + attribs.x * p1 + attribs.y * p2;
+}
 //Intensity Attenuation based on the distance to the light source.
 //Used by point and spot light.
 float getAttenuation(vec4 attenuation, float distance){
@@ -111,12 +115,12 @@ void main()
 	rayPayload.color = mix(vec3(0.f), rayPayload.color,1.f- alpha);
 
 	//TODO delete: ambient term
-	rayPayload.color += ambient;
+	//rayPayload.color += ambient;
 	//rayPayload.color = normal;
 
 	rayPayload.distance = gl_RayTmaxNV;
 	rayPayload.normal = normal;
 
 	// Objects with full white vertex color are treated as reflectors
-	rayPayload.reflector = ((v0.color.r == 1.0f) && (v0.color.g == 1.0f) && (v0.color.b == 1.0f)) ? 1.0f : 0.0f; 
+	rayPayload.reflector = interpolateFloat(v0.ior,v1.ior,v2.ior);//((v0.color.r == 1.0f) && (v0.color.g == 1.0f) && (v0.color.b == 1.0f)) ? 1.0f : 0.0f; 
 }

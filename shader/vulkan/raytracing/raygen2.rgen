@@ -44,20 +44,40 @@ void main()
 	float tmax = 10000.0;
 
 	vec3 color = vec3(0.0);
-
-        for (int i = 0; i < MAX_RECURSION; i++) { // MAX_RECURSION
+	
+	//throughput -- reduce after every bounce with respect to the index of reflection
+	float throughput = 1.f;
+		
+    for (int i = 0; i < 4; i++) { // MAX_RECURSION
 		traceNV(topLevelAS, rayFlags, cullMask, 0, 0, 0, origin.xyz, tmin, direction.xyz, tmax, 0);
 		vec3 hitColor = rayPayload.color;
 
 		if (rayPayload.distance < 0.0f) {
-                        color += hitColor;
+			color += (1-rayPayload.reflector) * throughput * hitColor;
 			break;
-		} else if (rayPayload.reflector == 1.0f) {
+		/*} else if (rayPayload.reflector == 1.0f) {
 			const vec4 hitPos = origin + direction * rayPayload.distance;
 			origin.xyz = hitPos.xyz + rayPayload.normal * 0.001f;
 			direction.xyz = reflect(direction.xyz, rayPayload.normal);
+		*/
+		} else if(throughput > 0.005f){
+			
+			// throuput 1 am anfang
+			// 1. hit soll 1-ior beitragen
+			// throughput muss sinken: ior = 1 -> throughput bleibt gleich
+			//						   ior klein -> throughput wird deutlich kleiner (-> throughput *= ior)
+			const vec4 hitPos = origin + direction * rayPayload.distance;
+			origin.xyz = hitPos.xyz + rayPayload.normal * 0.001f;
+			direction.xyz = reflect(direction.xyz, rayPayload.normal);
+			color += (1-rayPayload.reflector) * throughput * hitColor;
+			
+
+			throughput *= rayPayload.reflector;
+
+			//color = vec3(rayPayload.reflector);break;
+
 		} else {
-			color += hitColor;
+			color += (1-rayPayload.reflector) * throughput * hitColor;
 			break;
 		}
 
