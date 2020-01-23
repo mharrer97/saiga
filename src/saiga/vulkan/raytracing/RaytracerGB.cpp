@@ -6,7 +6,7 @@
  * Created by Mathias Harrer: mathias.mh.harrer@fau.de
  */
 
-#include "Raytracer.h"
+#include "RaytracerGB.h"
 
 #include "saiga/vulkan/Shader/all.h"
 #include "saiga/vulkan/memory/FindMemoryType.h"
@@ -21,7 +21,7 @@ static const Memory::ImageType color_buffer_type{
 
 
 
-void Raytracer::destroy()
+void RaytracerGB::destroy()
 {
     vkDestroyPipeline(base->device, pipeline, nullptr);
     vkDestroyPipelineLayout(base->device, pipelineLayout, nullptr);
@@ -52,7 +52,7 @@ void Raytracer::destroy()
     prepared = false;
 }
 
-void Raytracer::init(VulkanBase& newBase, vk::Format SCColorFormat, uint32_t SCWidth, uint32_t SCHeight,
+void RaytracerGB::init(VulkanBase& newBase, vk::Format SCColorFormat, uint32_t SCWidth, uint32_t SCHeight,
                      RTXrenderMode renderMode)
 {
     if (prepared) destroy();
@@ -103,7 +103,7 @@ void Raytracer::init(VulkanBase& newBase, vk::Format SCColorFormat, uint32_t SCW
     prepared = true;
 }
 
-void Raytracer::setGeometry(VulkanVertexColoredAsset* asset, mat4 model)
+void RaytracerGB::setGeometry(VulkanVertexColoredAsset* asset, mat4 model)
 {
     this->asset       = asset;
     this->modelMatrix = model;
@@ -111,7 +111,7 @@ void Raytracer::setGeometry(VulkanVertexColoredAsset* asset, mat4 model)
     hasGeometry = true;
 }
 
-void Raytracer::createStorageImage()
+void RaytracerGB::createStorageImage()
 {
     vk::ImageCreateInfo image = vks::initializers::imageCreateInfo();
     image.imageType           = vk::ImageType::e2D;
@@ -164,7 +164,7 @@ void Raytracer::createStorageImage()
     storageImageLocation = base->memory.allocate(color_buffer_type, img_data);
 }
 
-void Raytracer::createBLAS(const VkGeometryNV* geometries)
+void RaytracerGB::createBLAS(const VkGeometryNV* geometries)
 {
     VkAccelerationStructureInfoNV accelerationStructureInfo{};
     accelerationStructureInfo.sType         = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_INFO_NV;
@@ -208,7 +208,7 @@ void Raytracer::createBLAS(const VkGeometryNV* geometries)
                                                        sizeof(uint64_t), &bottomLevelAS.handle));
 }
 
-void Raytracer::createTLAS()
+void RaytracerGB::createTLAS()
 {
     VkAccelerationStructureInfoNV accelerationStructureInfo{};
     accelerationStructureInfo.sType         = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_INFO_NV;
@@ -248,7 +248,7 @@ void Raytracer::createTLAS()
     VK_CHECK_RESULT(vkGetAccelerationStructureHandleNV(base->device, topLevelAS.accelerationStructure, sizeof(uint64_t),
                                                        &topLevelAS.handle));
 }
-VkResult Raytracer::createBuffer(VkBufferUsageFlags usageFlags, vk::MemoryPropertyFlags memoryPropertyFlags,
+VkResult RaytracerGB::createBuffer(VkBufferUsageFlags usageFlags, vk::MemoryPropertyFlags memoryPropertyFlags,
                                  vks::Buffer* buffer, VkDeviceSize size, void* data)
 {
     buffer->device = base->device;
@@ -290,7 +290,7 @@ VkResult Raytracer::createBuffer(VkBufferUsageFlags usageFlags, vk::MemoryProper
     return buffer->bind();
 }
 
-void Raytracer::flushCommandBuffer(vk::CommandBuffer commandBuffer, bool free)
+void RaytracerGB::flushCommandBuffer(vk::CommandBuffer commandBuffer, bool free)
 {
     /*if (commandBuffer == VK_NULL_HANDLE)
     {
@@ -328,7 +328,7 @@ void Raytracer::flushCommandBuffer(vk::CommandBuffer commandBuffer, bool free)
     }
 }
 
-void Raytracer::getVerticesFromAsset(std::vector<float>& vertices, std::vector<uint32_t>& indices,
+void RaytracerGB::getVerticesFromAsset(std::vector<float>& vertices, std::vector<uint32_t>& indices,
                                      uint32_t& vertexCount, uint32_t& indexCount,
                                      Eigen::Matrix<float, 3, 4, Eigen::RowMajor>& transform)
 {
@@ -410,7 +410,7 @@ void Raytracer::getVerticesFromAsset(std::vector<float>& vertices, std::vector<u
     // clang-format on
 }
 
-void Raytracer::createScene()
+void RaytracerGB::createScene()
 {
     std::vector<float> vertices   = {};
     std::vector<uint32_t> indices = {};
@@ -609,7 +609,7 @@ void Raytracer::createScene()
     instanceBuffer.destroy();
 }
 
-VkDeviceSize Raytracer::copyShaderIdentifier(uint8_t* data, const uint8_t* shaderHandleStorage, uint32_t groupIndex)
+VkDeviceSize RaytracerGB::copyShaderIdentifier(uint8_t* data, const uint8_t* shaderHandleStorage, uint32_t groupIndex)
 {
     const uint32_t shaderGroupHandleSize = rayTracingProperties.shaderGroupHandleSize;
     memcpy(data, shaderHandleStorage + groupIndex * shaderGroupHandleSize, shaderGroupHandleSize);
@@ -617,7 +617,7 @@ VkDeviceSize Raytracer::copyShaderIdentifier(uint8_t* data, const uint8_t* shade
     return shaderGroupHandleSize;
 }
 
-void Raytracer::createShaderBindingTable()
+void RaytracerGB::createShaderBindingTable()
 {
     // Create buffer for the shader binding table
     const uint32_t sbtSize = rayTracingProperties.shaderGroupHandleSize * NUM_SHADER_GROUPS;
@@ -645,7 +645,7 @@ void Raytracer::createShaderBindingTable()
 
 
 // TODO adjust to own shader handling
-VkShaderModule Raytracer::loadShader(const char* fileName, VkDevice device)
+VkShaderModule RaytracerGB::loadShader(const char* fileName, VkDevice device)
 {
     std::ifstream is(fileName, std::ios::binary | std::ios::in | std::ios::ate);
 
@@ -682,7 +682,7 @@ VkShaderModule Raytracer::loadShader(const char* fileName, VkDevice device)
 }
 
 // TODO adjust to own shader handling
-VkPipelineShaderStageCreateInfo Raytracer::loadShader(std::string fileName, VkShaderStageFlagBits stage)
+VkPipelineShaderStageCreateInfo RaytracerGB::loadShader(std::string fileName, VkShaderStageFlagBits stage)
 {
     VkPipelineShaderStageCreateInfo shaderStage = {};
     shaderStage.sType                           = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -697,7 +697,7 @@ VkPipelineShaderStageCreateInfo Raytracer::loadShader(std::string fileName, VkSh
     return shaderStage;
 }
 
-void Raytracer::createDescriptorSets()
+void RaytracerGB::createDescriptorSets()
 {
     std::vector<VkDescriptorPoolSize> poolSizes         = {{VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NV, 1},
                                                    {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1},
@@ -751,7 +751,7 @@ void Raytracer::createDescriptorSets()
                            0, VK_NULL_HANDLE);
 }
 
-void Raytracer::createRayTracingPipeline()
+void RaytracerGB::createRayTracingPipeline()
 {
     VkDescriptorSetLayoutBinding accelerationStructureLayoutBinding{};
     accelerationStructureLayoutBinding.binding         = 0;
@@ -889,7 +889,7 @@ void Raytracer::createRayTracingPipeline()
         vkCreateRayTracingPipelinesNV(base->device, VK_NULL_HANDLE, 1, &rayPipelineInfo, nullptr, &pipeline));
 }
 
-void Raytracer::updateUniformBuffers(Camera* cam, std::shared_ptr<Lighting::SpotLight> spotLight)
+void RaytracerGB::updateUniformBuffers(Camera* cam, std::shared_ptr<Lighting::SpotLight> spotLight)
 {
     uniformData.projInverse = inverse(cam->proj);
     uniformData.viewInverse = inverse(cam->view);
@@ -913,7 +913,7 @@ void Raytracer::updateUniformBuffers(Camera* cam, std::shared_ptr<Lighting::Spot
     memcpy(ubo.mapped, &uniformData, sizeof(uniformData));
 }
 
-void Raytracer::createUniformBuffer()
+void RaytracerGB::createUniformBuffer()
 {
     VK_CHECK_RESULT(createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                                  vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
@@ -923,7 +923,7 @@ void Raytracer::createUniformBuffer()
     // updateUniformBuffers(cam);
 }
 
-void Raytracer::buildCommandBuffer(VkCommandBuffer cmd, VkImage targetImage)
+void RaytracerGB::buildCommandBuffer(VkCommandBuffer cmd, VkImage targetImage)
 {
     VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
 
@@ -993,7 +993,7 @@ void Raytracer::buildCommandBuffer(VkCommandBuffer cmd, VkImage targetImage)
     VK_CHECK_RESULT(vkEndCommandBuffer(cmd));
 }
 
-void Raytracer::render(Camera* cam, std::shared_ptr<Lighting::SpotLight> spotLight, VkCommandBuffer cmd,
+void RaytracerGB::render(Camera* cam, std::shared_ptr<Lighting::SpotLight> spotLight, VkCommandBuffer cmd,
                        VkImage targetImage)
 {
     if (!prepared || !hasGeometry) return;

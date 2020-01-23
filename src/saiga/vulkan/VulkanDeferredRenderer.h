@@ -70,6 +70,7 @@ class SAIGA_VULKAN_API VulkanDeferredRenderer : public VulkanRenderer
 
     Saiga::Vulkan::Lighting::DeferredLighting lighting;
     Saiga::Vulkan::RTX::Raytracer raytracer;
+    Saiga::Vulkan::RTX::Raytracer raytracerReflections;
 
 
     CommandPool renderCommandPool;
@@ -124,10 +125,11 @@ class SAIGA_VULKAN_API VulkanDeferredRenderer : public VulkanRenderer
     ColorBuffer diffuseAttachment, specularAttachment, normalAttachment, additionalAttachment;
     DepthBuffer gBufferDepthBuffer;
 
-    bool debug        = false;
-    bool lightDebug   = false;
-    bool renderLights = true;
-    bool showRTX      = true;
+    bool debug                    = false;
+    bool lightDebug               = false;
+    bool renderLights             = true;
+    bool showRTX                  = true;
+    bool rtxRenderModeReflections = false;
 };
 
 

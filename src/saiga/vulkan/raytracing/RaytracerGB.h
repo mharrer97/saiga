@@ -104,7 +104,7 @@ typedef enum RTXrenderMode
     REFLECTIONS,
     DIFFUSE
 } RTXrenderMode;
-class SAIGA_VULKAN_API Raytracer
+class SAIGA_VULKAN_API RaytracerGB
 {
    private:
     VulkanBase* base;
@@ -185,8 +185,8 @@ class SAIGA_VULKAN_API Raytracer
     VkDescriptorSet descriptorSet;
     VkDescriptorSetLayout descriptorSetLayout;
 
-    Raytracer() {}
-    ~Raytracer() { destroy(); }
+    RaytracerGB() {}
+    ~RaytracerGB() { destroy(); }
 
     void destroy();
 

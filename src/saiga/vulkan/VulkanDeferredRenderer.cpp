@@ -37,6 +37,7 @@ VulkanDeferredRenderer::VulkanDeferredRenderer(VulkanWindow& window, VulkanParam
     : VulkanRenderer(window, vulkanParameters, additionalInstanceExtensions),
       lighting(),
       raytracer(),
+      raytracerReflections(),
       params(rendererParameters)
 {
     std::cout << "VulkanDeferredRenderer Creation -- START" << std::endl;
@@ -178,7 +179,8 @@ void VulkanDeferredRenderer::createBuffers(int numImages, int w, int h)
     {
         std::cout << "Raytracer Creation -- CALL" << std::endl;
         // raytracer.destroy();
-        raytracer.init(base(), vk::Format::eB8G8R8A8Unorm, w, h);
+        raytracer.init(base(), vk::Format::eB8G8R8A8Unorm, w, h, RTX::RTXrenderMode::DIFFUSE);
+        raytracerReflections.init(base(), vk::Format::eB8G8R8A8Unorm, w, h, RTX::RTXrenderMode::REFLECTIONS);
         std::cout << "Raytracer Creation -- FINISHED" << std::endl;
     }
     std::cout << "Buffer Creation -- FINISHED" << std::endl;
@@ -666,6 +668,8 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage, Camera* c
         ImGui::Checkbox("Debug Lights", &lightDebug);
         ImGui::Checkbox("Render Lights", &renderLights);
         ImGui::Checkbox("show RTX", &showRTX);
+        ImGui::Checkbox("RTX Reflections Mode", &rtxRenderModeReflections);
+
         ImGui::End();
 
 
@@ -845,10 +849,14 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage, Camera* c
         RTXsubmitInfo.signalSemaphoreCount = 1;
         RTXsubmitInfo.pSignalSemaphores    = &RTXSemaphore;
 
-
-        raytracer.render(cam, lighting.firstSpotLight(), RTXCmdBuffers[currentImage],
-                         swapChain.buffers[currentImage].image);
-
+        if (rtxRenderModeReflections)
+            raytracerReflections.render(cam, lighting.firstSpotLight(), RTXCmdBuffers[currentImage],
+                                        swapChain.buffers[currentImage].image);
+        else
+        {
+            raytracer.render(cam, lighting.firstSpotLight(), RTXCmdBuffers[currentImage],
+                             swapChain.buffers[currentImage].image);
+        }
         //        VkCommandBufferBeginInfo cmdbegin2 = vks::initializers::commandBufferBeginInfo();
         //        drawCmdBuffers[currentImage].begin(cmdbegin2);
         //        drawCmdBuffers[currentImage].end();
@@ -875,7 +883,6 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage, Camera* c
 
 
         timings.finishFrame(sync.defragMayStart);
-
         base().finish_frame();
     }
 }
