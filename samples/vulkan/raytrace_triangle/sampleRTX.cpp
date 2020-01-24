@@ -54,6 +54,7 @@ VulkanExample::VulkanExample()
 
     renderer->raytracer.setGeometry(&cornell, translate(vec3(0.f, -10.f, 0.f)) * scale(make_vec3(10.f)));
     renderer->raytracerReflections.setGeometry(&cornell, translate(vec3(0.f, -10.f, 0.f)) * scale(make_vec3(10.f)));
+    renderer->raytracerGB.setGeometry(&cornell, translate(vec3(0.f, -10.f, 0.f)) * scale(make_vec3(10.f)));
 
     spotLight = renderer->lighting.createSpotLight();
     // spotLight->setColorDiffuse(Saiga::Vulkan::Lighting::LightColorPresets::Candle);
@@ -66,12 +67,12 @@ VulkanExample::VulkanExample()
     spotLight->setColorDiffuse(make_vec3(1));
     spotLight->setColorSpecular(make_vec3(1));
     spotLight->calculateModel();
-    // renderer->lighting.enableShadowMapping(spotLight, 4000);
+    renderer->lighting.enableShadowMapping(spotLight, 4000);
 
-    directionalLight = renderer->lighting.createDirectionalLight();
-    directionalLight->setColorDiffuse(make_vec3(1));
-    directionalLight->setAmbientIntensity(0.1f);
-    directionalLight->setIntensity(0.f);
+    // directionalLight = renderer->lighting.createDirectionalLight();
+    // directionalLight->setColorDiffuse(make_vec3(1));
+    // directionalLight->setAmbientIntensity(0.1f);
+    // directionalLight->setIntensity(0.f);
 
     float aspect = window->getAspectRatio();
     camera.setProj(60.0f, aspect, 0.1f, 150.0f, true);

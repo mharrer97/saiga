@@ -38,6 +38,7 @@ VulkanDeferredRenderer::VulkanDeferredRenderer(VulkanWindow& window, VulkanParam
       lighting(),
       raytracer(),
       raytracerReflections(),
+      raytracerGB(),
       params(rendererParameters)
 {
     std::cout << "VulkanDeferredRenderer Creation -- START" << std::endl;
@@ -117,11 +118,16 @@ void VulkanDeferredRenderer::createBuffers(int numImages, int w, int h)
     specularAttachment.destroy();
     normalAttachment.destroy();
     additionalAttachment.destroy();
+    RTXAttachment.destroy();
+    rasterAttachment.destroy();
 
     diffuseAttachment.init(base(), w, h, vk::ImageUsageFlagBits::eSampled);
     specularAttachment.init(base(), w, h, vk::ImageUsageFlagBits::eSampled);
     normalAttachment.init(base(), w, h, vk::ImageUsageFlagBits::eSampled);
     additionalAttachment.init(base(), w, h, vk::ImageUsageFlagBits::eSampled);
+    RTXAttachment.init(base(), w, h, vk::ImageUsageFlagBits::eSampled);
+    rasterAttachment.init(base(), w, h, vk::ImageUsageFlagBits::eSampled, vk::Format::eB8G8R8A8Unorm);
+
 
     std::cout << "  Attachment Creation -- FINISHED" << std::endl;
 
@@ -140,7 +146,16 @@ void VulkanDeferredRenderer::createBuffers(int numImages, int w, int h)
                           normalAttachment.location->data.view, additionalAttachment.location->data.view,
                           gBufferDepthBuffer.location->data.view, renderPass, base().device);
 
+
+
     std::cout << "  GBuffer Creation -- FINISHED" << std::endl;
+
+
+    rasterFramebuffer.destroy();
+    rasterFramebuffer.createColorDepthStencil(w, h, rasterAttachment.location->data.view,
+                                              depthBuffer.location->data.view, lightingPass, base().device);
+
+    std::cout << "  RasterFramebuffer Creation -- FINISHED" << std::endl;
 
     renderCommandPool.freeCommandBuffers(drawCmdBuffers);
     drawCmdBuffers.clear();
@@ -181,6 +196,9 @@ void VulkanDeferredRenderer::createBuffers(int numImages, int w, int h)
         // raytracer.destroy();
         raytracer.init(base(), vk::Format::eB8G8R8A8Unorm, w, h, RTX::RTXrenderMode::DIFFUSE);
         raytracerReflections.init(base(), vk::Format::eB8G8R8A8Unorm, w, h, RTX::RTXrenderMode::REFLECTIONS);
+        raytracerGB.init(base(), vk::Format::eB8G8R8A8Unorm, w, h, RTX::RTXrenderMode::REFLECTIONS,
+                         rasterAttachment.location, normalAttachment.location, additionalAttachment.location,
+                         gBufferDepthBuffer.location);
         std::cout << "Raytracer Creation -- FINISHED" << std::endl;
     }
     std::cout << "Buffer Creation -- FINISHED" << std::endl;
@@ -394,11 +412,11 @@ void VulkanDeferredRenderer::setupRenderPass()
     // Depth attachment
     forwardAttachments[1].format         = (vk::Format)depthBuffer.format;
     forwardAttachments[1].samples        = vk::SampleCountFlagBits::e1;
-    forwardAttachments[1].loadOp         = vk::AttachmentLoadOp::eLoad;
+    forwardAttachments[1].loadOp         = vk::AttachmentLoadOp::eDontCare;
     forwardAttachments[1].storeOp        = vk::AttachmentStoreOp::eStore;
     forwardAttachments[1].stencilLoadOp  = vk::AttachmentLoadOp::eLoad;
     forwardAttachments[1].stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
-    forwardAttachments[1].initialLayout  = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+    forwardAttachments[1].initialLayout  = vk::ImageLayout::eUndefined;
     forwardAttachments[1].finalLayout    = vk::ImageLayout::eDepthStencilAttachmentOptimal;
 
     vk::AttachmentReference forwardColorReference = {};
@@ -554,7 +572,10 @@ void VulkanDeferredRenderer::setupDrawCommandBuffer(int currentImage, Camera* ca
 
 
     // set target framebuffer
-    renderPassBeginInfo.framebuffer = frameBuffers[currentImage].framebuffer;
+    if (params.enableRTX && showRTX && hybridRendering)  // if hybrid rendering is active, render to rasterbuffer
+        renderPassBeginInfo.framebuffer = rasterFramebuffer.framebuffer;
+    else
+        renderPassBeginInfo.framebuffer = frameBuffers[currentImage].framebuffer;  // else render to swapchain
 
 
     // begin recording cmdBuffer
@@ -669,7 +690,7 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage, Camera* c
         ImGui::Checkbox("Render Lights", &renderLights);
         ImGui::Checkbox("show RTX", &showRTX);
         ImGui::Checkbox("RTX Reflections Mode", &rtxRenderModeReflections);
-
+        ImGui::Checkbox("Hybrid Rendering", &hybridRendering);
         ImGui::End();
 
 
@@ -769,18 +790,72 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage, Camera* c
         //    VK_CHECK_RESULT(swapChain.queuePresent(presentQueue, currentBuffer,  sync.renderComplete));
         base().finish_frame();
     }
-    else
+    else if (params.enableRTX && showRTX && !hybridRendering)
     {
+        // prepare the command buffers
+        setupForwardCommandBuffer(currentImage, cam);
+        if (rtxRenderModeReflections)
+            raytracerReflections.render(cam, lighting.firstSpotLight(), RTXCmdBuffers[currentImage],
+                                        swapChain.buffers[currentImage].image);
+        else
+        {
+            raytracer.render(cam, lighting.firstSpotLight(), RTXCmdBuffers[currentImage],
+                             swapChain.buffers[currentImage].image);
+        }
+
+        // RTX
+
+        // signal that rendering is complete etc
+        std::array<vk::Semaphore, 2> signalSemaphores{sync.renderComplete, sync.defragMayStart};
+        vk::PipelineStageFlags RTXsubmitPipelineStages = vk::PipelineStageFlagBits::eBottomOfPipe;
+
+        vk::SubmitInfo RTXsubmitInfo;
+        RTXsubmitInfo.pWaitDstStageMask    = &RTXsubmitPipelineStages;
+        RTXsubmitInfo.waitSemaphoreCount   = 1;
+        RTXsubmitInfo.pWaitSemaphores      = &sync.imageAvailable;  // wait for finished geometry pass
+        RTXsubmitInfo.signalSemaphoreCount = 1;
+        RTXsubmitInfo.pSignalSemaphores    = &RTXSemaphore;
+
+
+        //        VkCommandBufferBeginInfo cmdbegin2 = vks::initializers::commandBufferBeginInfo();
+        //        drawCmdBuffers[currentImage].begin(cmdbegin2);
+        //        drawCmdBuffers[currentImage].end();
+
+
+        RTXsubmitInfo.pCommandBuffers    = &RTXCmdBuffers[currentImage];
+        RTXsubmitInfo.commandBufferCount = 1;
+
+
+        base().mainQueue.submit(RTXsubmitInfo, nullptr);
+
+
+        vk::SubmitInfo fwdSubmitInfo;
+        //    submitInfo = vks::initializers::submitInfo();
+        fwdSubmitInfo.pWaitDstStageMask    = &RTXsubmitPipelineStages;
+        fwdSubmitInfo.waitSemaphoreCount   = 1;
+        fwdSubmitInfo.pWaitSemaphores      = &RTXSemaphore;  // wait for finished geometry pass
+        fwdSubmitInfo.signalSemaphoreCount = 2;
+        fwdSubmitInfo.pSignalSemaphores    = signalSemaphores.data();
+
+        fwdSubmitInfo.commandBufferCount = 1;
+        fwdSubmitInfo.pCommandBuffers    = &forwardCmdBuffers[currentImage];  // use correct cmd buffer
+        base().mainQueue.submit(fwdSubmitInfo, sync.frameFence);
+
+
+        timings.finishFrame(sync.defragMayStart);
+        base().finish_frame();
+    }
+    else if (params.enableRTX && showRTX && hybridRendering)
+    {
+        // combined rasterization and raytracing
         // prepare the command buffers
         setupGeometryCommandBuffer(currentImage, cam);
         setupDrawCommandBuffer(currentImage, cam);
         setupForwardCommandBuffer(currentImage, cam);
         lighting.renderDepthMaps(shadowCmdBuffers[currentImage], renderingInterface);
+        raytracerGB.render(cam, lighting.firstSpotLight(), RTXCmdBuffers[currentImage],
+                           swapChain.buffers[currentImage].image);
 
-        // TODO
-        // think about synchronization ...
-
-        // TODO dummy top of pipe
         vk::PipelineStageFlags gBufferSubmitPipelineStages =
             vk::PipelineStageFlagBits::eColorAttachmentOutput;  // TODO not right yet
 
@@ -804,7 +879,6 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage, Camera* c
         vk::PipelineStageFlags shadowSubmitPipelineStages = vk::PipelineStageFlagBits::eColorAttachmentOutput;
 
         vk::SubmitInfo shadowSubmitInfo;
-        //    submitInfo = vks::initializers::submitInfo();
         shadowSubmitInfo.pWaitDstStageMask    = &shadowSubmitPipelineStages;
         shadowSubmitInfo.waitSemaphoreCount   = 1;
         shadowSubmitInfo.pWaitSemaphores      = &geometrySemaphore;  // wait for finished geometry pass
@@ -813,17 +887,16 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage, Camera* c
 
         shadowSubmitInfo.commandBufferCount = 1;
         shadowSubmitInfo.pCommandBuffers    = &shadowCmdBuffers[currentImage];  // use correct cmd buffer
-        //    VK_CHECK_RESULT(vkQueueSubmit(graphicsQueue, 1, &submitInfo, sync.frameFence));
         base().mainQueue.submit(shadowSubmitInfo, nullptr);
 
 
 
-        vk::PipelineStageFlags submitPipelineStages = vk::PipelineStageFlagBits::eBottomOfPipe;  // TODO not right yet
+        vk::PipelineStageFlags submitPipelineStages =
+            vk::PipelineStageFlagBits::eColorAttachmentOutput;  // TODO not right yet
 
 
 
         vk::SubmitInfo submitInfo;
-        //    submitInfo = vks::initializers::submitInfo();
         submitInfo.pWaitDstStageMask    = &submitPipelineStages;
         submitInfo.waitSemaphoreCount   = 1;
         submitInfo.pWaitSemaphores      = &shadowSemaphore;  // wait for finished shadow pass
@@ -832,14 +905,9 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage, Camera* c
 
         submitInfo.commandBufferCount = 1;
         submitInfo.pCommandBuffers    = &drawCmdBuffers[currentImage];  // use correct cmd buffer
-        //    VK_CHECK_RESULT(vkQueueSubmit(graphicsQueue, 1, &submitInfo, sync.frameFence));
         base().mainQueue.submit(submitInfo, nullptr);
 
-
         // RTX
-
-        // signal that rendering is complete etc
-        std::array<vk::Semaphore, 2> signalSemaphores{sync.renderComplete, sync.defragMayStart};
         vk::PipelineStageFlags RTXsubmitPipelineStages = vk::PipelineStageFlagBits::eBottomOfPipe;
 
         vk::SubmitInfo RTXsubmitInfo;
@@ -849,19 +917,6 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage, Camera* c
         RTXsubmitInfo.signalSemaphoreCount = 1;
         RTXsubmitInfo.pSignalSemaphores    = &RTXSemaphore;
 
-        if (rtxRenderModeReflections)
-            raytracerReflections.render(cam, lighting.firstSpotLight(), RTXCmdBuffers[currentImage],
-                                        swapChain.buffers[currentImage].image);
-        else
-        {
-            raytracer.render(cam, lighting.firstSpotLight(), RTXCmdBuffers[currentImage],
-                             swapChain.buffers[currentImage].image);
-        }
-        //        VkCommandBufferBeginInfo cmdbegin2 = vks::initializers::commandBufferBeginInfo();
-        //        drawCmdBuffers[currentImage].begin(cmdbegin2);
-        //        drawCmdBuffers[currentImage].end();
-
-
         RTXsubmitInfo.pCommandBuffers    = &RTXCmdBuffers[currentImage];
         RTXsubmitInfo.commandBufferCount = 1;
 
@@ -869,8 +924,10 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage, Camera* c
         base().mainQueue.submit(RTXsubmitInfo, nullptr);
 
 
+        // signal that rendering is complete etc
+        std::array<vk::Semaphore, 2> signalSemaphores{sync.renderComplete, sync.defragMayStart};
+
         vk::SubmitInfo fwdSubmitInfo;
-        //    submitInfo = vks::initializers::submitInfo();
         fwdSubmitInfo.pWaitDstStageMask    = &submitPipelineStages;
         fwdSubmitInfo.waitSemaphoreCount   = 1;
         fwdSubmitInfo.pWaitSemaphores      = &RTXSemaphore;  // wait for finished geometry pass
@@ -881,8 +938,8 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage, Camera* c
         fwdSubmitInfo.pCommandBuffers    = &forwardCmdBuffers[currentImage];  // use correct cmd buffer
         base().mainQueue.submit(fwdSubmitInfo, sync.frameFence);
 
-
         timings.finishFrame(sync.defragMayStart);
+
         base().finish_frame();
     }
 }

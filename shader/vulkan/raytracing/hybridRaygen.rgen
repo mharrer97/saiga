@@ -18,6 +18,11 @@ layout(binding = 2, set = 0) uniform CameraProperties
         int time;
 } cam;
 
+layout(binding = 5) uniform sampler2D rasterTexture;
+layout(binding = 6) uniform sampler2D normalTexture;
+layout(binding = 7) uniform sampler2D dataTexture;
+layout(binding = 8) uniform sampler2D depthTexture;
+
 
 struct RayPayload {
 	vec3 color;

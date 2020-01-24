@@ -4,9 +4,9 @@
 /home/mharrer/Documents/libraries/VulkanSDK/1.1.106.0/x86_64/bin/glslangValidator -V miss.rmiss -o miss.rmiss.spv
 /home/mharrer/Documents/libraries/VulkanSDK/1.1.106.0/x86_64/bin/glslangValidator -V shadow.rmiss -o shadow.rmiss.spv
 /home/mharrer/Documents/libraries/VulkanSDK/1.1.106.0/x86_64/bin/glslangValidator -V shadow.rchit -o shadow.rchit.spv
-/home/mharrer/Documents/libraries/VulkanSDK/1.1.106.0/x86_64/bin/glslangValidator -V diffuseRaygen.rgen -o diffuseRaygen.rgen.spv
-/home/mharrer/Documents/libraries/VulkanSDK/1.1.106.0/x86_64/bin/glslangValidator -V diffuseMultiReflections.rgen -o diffuseMultiReflections.rgen.spv
-/home/mharrer/Documents/libraries/VulkanSDK/1.1.106.0/x86_64/bin/glslangValidator -V diffuseClosesthit.rchit -o diffuseClosesthit.rchit.spv
-/home/mharrer/Documents/libraries/VulkanSDK/1.1.106.0/x86_64/bin/glslangValidator -V diffuseMiss.rmiss -o diffuseMiss.rmiss.spv
-/home/mharrer/Documents/libraries/VulkanSDK/1.1.106.0/x86_64/bin/glslangValidator -V diffuseShadow.rmiss -o diffuseShadow.rmiss.spv
-/home/mharrer/Documents/libraries/VulkanSDK/1.1.106.0/x86_64/bin/glslangValidator -V diffuseShadow.rchit -o diffuseShadow.rchit.spv
+/home/mharrer/Documents/libraries/VulkanSDK/1.1.106.0/x86_64/bin/glslangValidator -V hybridRaygen.rgen -o hybridRaygen.rgen.spv
+/home/mharrer/Documents/libraries/VulkanSDK/1.1.106.0/x86_64/bin/glslangValidator -V hybridMultiReflections.rgen -o hybridMultiReflections.rgen.spv
+/home/mharrer/Documents/libraries/VulkanSDK/1.1.106.0/x86_64/bin/glslangValidator -V hybridClosesthit.rchit -o hybridClosesthit.rchit.spv
+/home/mharrer/Documents/libraries/VulkanSDK/1.1.106.0/x86_64/bin/glslangValidator -V hybridMiss.rmiss -o hybridMiss.rmiss.spv
+/home/mharrer/Documents/libraries/VulkanSDK/1.1.106.0/x86_64/bin/glslangValidator -V hybridShadow.rmiss -o hybridShadow.rmiss.spv
+/home/mharrer/Documents/libraries/VulkanSDK/1.1.106.0/x86_64/bin/glslangValidator -V hybridShadow.rchit -o hybridShadow.rchit.spv

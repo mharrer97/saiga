@@ -53,7 +53,10 @@ void RaytracerGB::destroy()
 }
 
 void RaytracerGB::init(VulkanBase& newBase, vk::Format SCColorFormat, uint32_t SCWidth, uint32_t SCHeight,
-                     RTXrenderMode renderMode)
+                       RTXrenderMode renderMode, Saiga::Vulkan::Memory::ImageMemoryLocation* raster,
+                       Saiga::Vulkan::Memory::ImageMemoryLocation* normal,
+                       Saiga::Vulkan::Memory::ImageMemoryLocation* data,
+                       Saiga::Vulkan::Memory::ImageMemoryLocation* depth)
 {
     if (prepared) destroy();
 
@@ -99,7 +102,7 @@ void RaytracerGB::init(VulkanBase& newBase, vk::Format SCColorFormat, uint32_t S
     createUniformBuffer();
     createRayTracingPipeline();
     createShaderBindingTable();
-    createDescriptorSets();
+    createDescriptorSets(raster, normal, data, depth);
     prepared = true;
 }
 
@@ -249,7 +252,7 @@ void RaytracerGB::createTLAS()
                                                        &topLevelAS.handle));
 }
 VkResult RaytracerGB::createBuffer(VkBufferUsageFlags usageFlags, vk::MemoryPropertyFlags memoryPropertyFlags,
-                                 vks::Buffer* buffer, VkDeviceSize size, void* data)
+                                   vks::Buffer* buffer, VkDeviceSize size, void* data)
 {
     buffer->device = base->device;
 
@@ -329,8 +332,8 @@ void RaytracerGB::flushCommandBuffer(vk::CommandBuffer commandBuffer, bool free)
 }
 
 void RaytracerGB::getVerticesFromAsset(std::vector<float>& vertices, std::vector<uint32_t>& indices,
-                                     uint32_t& vertexCount, uint32_t& indexCount,
-                                     Eigen::Matrix<float, 3, 4, Eigen::RowMajor>& transform)
+                                       uint32_t& vertexCount, uint32_t& indexCount,
+                                       Eigen::Matrix<float, 3, 4, Eigen::RowMajor>& transform)
 {
     for (VertexNC v : asset->vertices)
     {
@@ -373,7 +376,7 @@ void RaytracerGB::getVerticesFromAsset(std::vector<float>& vertices, std::vector
     }
     indices = asset->getIndexList();
 
-    if (renderMode == REFLECTIONS)
+    /*if (renderMode == REFLECTIONS)
     {
         // add a reflector to the side
         // pos,norm,col,uv,dummy
@@ -400,7 +403,7 @@ void RaytracerGB::getVerticesFromAsset(std::vector<float>& vertices, std::vector
         vertices.insert(vertices.end(), reflectionV.begin(), reflectionV.end());
         indices.insert(indices.end(), reflectionI.begin(), reflectionI.end());
         vertexCount += 4;
-    }
+    }*/
     indexCount = indices.size();
     // extract the transform matrix out of the mat4 model matrix
 
@@ -421,7 +424,12 @@ void RaytracerGB::createScene()
     // transform << 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f;
     transform << 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f;
     // transform << -1.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f;
-    getVerticesFromAsset(vertices, indices, vertexCount, indexCount, transform);
+    if (hasGeometry)
+        getVerticesFromAsset(vertices, indices, vertexCount, indexCount, transform);
+    else
+    {
+        std::cerr << "ERROR: Raytracer didn't get a Asset" << std::endl;
+    }
 
     uint32_t vBufferSize = static_cast<uint32_t>(vertices.size()) * sizeof(float);
     uint32_t iBufferSize = static_cast<uint32_t>(indices.size()) * sizeof(uint32_t);
@@ -697,12 +705,16 @@ VkPipelineShaderStageCreateInfo RaytracerGB::loadShader(std::string fileName, Vk
     return shaderStage;
 }
 
-void RaytracerGB::createDescriptorSets()
+void RaytracerGB::createDescriptorSets(Saiga::Vulkan::Memory::ImageMemoryLocation* raster,
+                                       Saiga::Vulkan::Memory::ImageMemoryLocation* normal,
+                                       Saiga::Vulkan::Memory::ImageMemoryLocation* data,
+                                       Saiga::Vulkan::Memory::ImageMemoryLocation* depth)
 {
     std::vector<VkDescriptorPoolSize> poolSizes         = {{VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NV, 1},
                                                    {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1},
                                                    {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1},
-                                                   {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 2}};
+                                                   {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 2},
+                                                   {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4}};
     VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, 1);
     VK_CHECK_RESULT(vkCreateDescriptorPool(base->device, &descriptorPoolCreateInfo, nullptr, &descriptorPool));
 
@@ -736,6 +748,26 @@ void RaytracerGB::createDescriptorSets()
     indexBufferDescriptor.buffer = indexBuffer.buffer;
     indexBufferDescriptor.range  = VK_WHOLE_SIZE;
 
+    vk::DescriptorImageInfo rasterDescriptorInfo = raster->data.get_descriptor_info();
+    rasterDescriptorInfo.setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
+    rasterDescriptorInfo.setImageView(raster->data.view);
+    rasterDescriptorInfo.setSampler(raster->data.sampler);
+
+    vk::DescriptorImageInfo normalDescriptorInfo = normal->data.get_descriptor_info();
+    normalDescriptorInfo.setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
+    normalDescriptorInfo.setImageView(normal->data.view);
+    normalDescriptorInfo.setSampler(normal->data.sampler);
+
+    vk::DescriptorImageInfo dataDescriptorInfo = data->data.get_descriptor_info();
+    dataDescriptorInfo.setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
+    dataDescriptorInfo.setImageView(data->data.view);
+    dataDescriptorInfo.setSampler(data->data.sampler);
+
+    vk::DescriptorImageInfo depthDescriptorInfo = depth->data.get_descriptor_info();
+    depthDescriptorInfo.setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
+    depthDescriptorInfo.setImageView(depth->data.view);
+    depthDescriptorInfo.setSampler(depth->data.sampler);
+
     VkWriteDescriptorSet resultImageWrite = vks::initializers::writeDescriptorSet(
         descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, &storageImageDescriptor);
     VkWriteDescriptorSet uniformBufferWrite =
@@ -745,8 +777,24 @@ void RaytracerGB::createDescriptorSets()
     VkWriteDescriptorSet indexBufferWrite = vks::initializers::writeDescriptorSet(
         descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 4, &indexBufferDescriptor);
 
-    std::vector<VkWriteDescriptorSet> writeDescriptorSets = {accelerationStructureWrite, resultImageWrite,
-                                                             uniformBufferWrite, vertexBufferWrite, indexBufferWrite};
+    // cast descriptor image infos to use as VkDes... instead of vk::Des...
+    VkDescriptorImageInfo rDI  = rasterDescriptorInfo;
+    VkDescriptorImageInfo nDI  = normalDescriptorInfo;
+    VkDescriptorImageInfo daDI = dataDescriptorInfo;
+    VkDescriptorImageInfo deDI = depthDescriptorInfo;
+    VkWriteDescriptorSet rasterImageWrite =
+        vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 5, &rDI);
+    VkWriteDescriptorSet normalImageWrite =
+        vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 6, &nDI);
+    VkWriteDescriptorSet dataImageWrite =
+        vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 7, &daDI);
+    VkWriteDescriptorSet depthImageWrite =
+        vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 8, &deDI);
+
+
+    std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
+        accelerationStructureWrite, resultImageWrite, uniformBufferWrite, vertexBufferWrite, indexBufferWrite,
+        rasterImageWrite,           normalImageWrite, dataImageWrite,     depthImageWrite};
     vkUpdateDescriptorSets(base->device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(),
                            0, VK_NULL_HANDLE);
 }
@@ -784,8 +832,33 @@ void RaytracerGB::createRayTracingPipeline()
     indexBufferBinding.descriptorCount = 1;
     indexBufferBinding.stageFlags      = VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV;
 
-    std::vector<VkDescriptorSetLayoutBinding> bindings({accelerationStructureLayoutBinding, resultImageLayoutBinding,
-                                                        uniformBufferBinding, vertexBufferBinding, indexBufferBinding});
+    VkDescriptorSetLayoutBinding rasterImageBinding{};
+    rasterImageBinding.binding         = 5;
+    rasterImageBinding.descriptorType  = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    rasterImageBinding.descriptorCount = 1;
+    rasterImageBinding.stageFlags      = VK_SHADER_STAGE_RAYGEN_BIT_NV | VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV;
+
+    VkDescriptorSetLayoutBinding normalImageBinding{};
+    normalImageBinding.binding         = 6;
+    normalImageBinding.descriptorType  = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    normalImageBinding.descriptorCount = 1;
+    normalImageBinding.stageFlags      = VK_SHADER_STAGE_RAYGEN_BIT_NV | VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV;
+
+    VkDescriptorSetLayoutBinding dataImageBinding{};
+    dataImageBinding.binding         = 7;
+    dataImageBinding.descriptorType  = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    dataImageBinding.descriptorCount = 1;
+    dataImageBinding.stageFlags      = VK_SHADER_STAGE_RAYGEN_BIT_NV | VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV;
+
+    VkDescriptorSetLayoutBinding depthImageBinding{};
+    depthImageBinding.binding         = 8;
+    depthImageBinding.descriptorType  = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    depthImageBinding.descriptorCount = 1;
+    depthImageBinding.stageFlags      = VK_SHADER_STAGE_RAYGEN_BIT_NV | VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV;
+
+    std::vector<VkDescriptorSetLayoutBinding> bindings(
+        {accelerationStructureLayoutBinding, resultImageLayoutBinding, uniformBufferBinding, vertexBufferBinding,
+         indexBufferBinding, rasterImageBinding, normalImageBinding, dataImageBinding, depthImageBinding});
 
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -818,19 +891,21 @@ void RaytracerGB::createRayTracingPipeline()
     //        VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV);
     if (renderMode == REFLECTIONS)
         shaderStages[shaderIndexRaygen] =
-            loadShader(SAIGA_PROJECT_SOURCE_DIR "/shader/vulkan/raytracing/multiReflections.rgen.spv",
+            loadShader(SAIGA_PROJECT_SOURCE_DIR "/shader/vulkan/raytracing/hybridMultiReflections.rgen.spv",
                        VK_SHADER_STAGE_RAYGEN_BIT_NV);
     else
         shaderStages[shaderIndexRaygen] = loadShader(
-            SAIGA_PROJECT_SOURCE_DIR "/shader/vulkan/raytracing/raygen.rgen.spv", VK_SHADER_STAGE_RAYGEN_BIT_NV);
-    shaderStages[shaderIndexMiss] =
-        loadShader(SAIGA_PROJECT_SOURCE_DIR "/shader/vulkan/raytracing/miss.rmiss.spv", VK_SHADER_STAGE_MISS_BIT_NV);
-    shaderStages[shaderIndexShadowMiss] =
-        loadShader(SAIGA_PROJECT_SOURCE_DIR "/shader/vulkan/raytracing/shadow.rmiss.spv", VK_SHADER_STAGE_MISS_BIT_NV);
-    shaderStages[shaderIndexClosestHit] = loadShader(
-        SAIGA_PROJECT_SOURCE_DIR "/shader/vulkan/raytracing/closesthit.rchit.spv", VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV);
-    shaderStages[shaderIndexShadowClosestHit] = loadShader(
-        SAIGA_PROJECT_SOURCE_DIR "/shader/vulkan/raytracing/shadow.rchit.spv", VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV);
+            SAIGA_PROJECT_SOURCE_DIR "/shader/vulkan/raytracing/hybridRaygen.rgen.spv", VK_SHADER_STAGE_RAYGEN_BIT_NV);
+    shaderStages[shaderIndexMiss] = loadShader(
+        SAIGA_PROJECT_SOURCE_DIR "/shader/vulkan/raytracing/hybridMiss.rmiss.spv", VK_SHADER_STAGE_MISS_BIT_NV);
+    shaderStages[shaderIndexShadowMiss] = loadShader(
+        SAIGA_PROJECT_SOURCE_DIR "/shader/vulkan/raytracing/hybridShadow.rmiss.spv", VK_SHADER_STAGE_MISS_BIT_NV);
+    shaderStages[shaderIndexClosestHit] =
+        loadShader(SAIGA_PROJECT_SOURCE_DIR "/shader/vulkan/raytracing/hybridClosesthit.rchit.spv",
+                   VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV);
+    shaderStages[shaderIndexShadowClosestHit] =
+        loadShader(SAIGA_PROJECT_SOURCE_DIR "/shader/vulkan/raytracing/hybridShadow.rchit.spv",
+                   VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV);
 
     // Pass recursion depth for reflections to ray generation shader via specialization constant
     std::array<VkSpecializationMapEntry, 2> specializationMapEntries = {
@@ -994,7 +1069,7 @@ void RaytracerGB::buildCommandBuffer(VkCommandBuffer cmd, VkImage targetImage)
 }
 
 void RaytracerGB::render(Camera* cam, std::shared_ptr<Lighting::SpotLight> spotLight, VkCommandBuffer cmd,
-                       VkImage targetImage)
+                         VkImage targetImage)
 {
     if (!prepared || !hasGeometry) return;
     updateUniformBuffers(cam, spotLight);

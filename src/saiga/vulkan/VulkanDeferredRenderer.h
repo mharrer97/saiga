@@ -22,6 +22,7 @@
 #include "saiga/vulkan/lighting/DeferredLighting.h"
 #include "saiga/vulkan/lighting/PointLight.h"
 #include "saiga/vulkan/raytracing/Raytracer.h"
+#include "saiga/vulkan/raytracing/RaytracerGB.h"
 #include "saiga/vulkan/renderModules/QuadRenderer.h"
 #include "saiga/vulkan/window/Window.h"
 
@@ -71,6 +72,7 @@ class SAIGA_VULKAN_API VulkanDeferredRenderer : public VulkanRenderer
     Saiga::Vulkan::Lighting::DeferredLighting lighting;
     Saiga::Vulkan::RTX::Raytracer raytracer;
     Saiga::Vulkan::RTX::Raytracer raytracerReflections;
+    Saiga::Vulkan::RTX::RaytracerGB raytracerGB;
 
 
     CommandPool renderCommandPool;
@@ -120,16 +122,19 @@ class SAIGA_VULKAN_API VulkanDeferredRenderer : public VulkanRenderer
 
     std::vector<Framebuffer> frameBuffers;
     Framebuffer gBuffer;
+    Framebuffer rasterFramebuffer;
 
     // FrameBufferAttachment diffuseAttachment, specularAttachment, normalAttachment, additionalAttachment;
-    ColorBuffer diffuseAttachment, specularAttachment, normalAttachment, additionalAttachment;
-    DepthBuffer gBufferDepthBuffer;
+    ColorBuffer diffuseAttachment, specularAttachment, normalAttachment, additionalAttachment, rasterAttachment,
+        RTXAttachment;
+    DepthBuffer gBufferDepthBuffer, rast;
 
     bool debug                    = false;
     bool lightDebug               = false;
     bool renderLights             = true;
     bool showRTX                  = true;
     bool rtxRenderModeReflections = false;
+    bool hybridRendering          = true;
 };
 
 
