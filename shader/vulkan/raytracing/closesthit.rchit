@@ -143,6 +143,6 @@ void main()
 	// Offset indices to match shadow hit/miss index
 	traceNV(topLevelAS, gl_RayFlagsTerminateOnFirstHitNV | gl_RayFlagsOpaqueNV|gl_RayFlagsSkipClosestHitShaderNV, 0xFF, 1, 0, 1, origin, tmin, lightVector, tmax, 2);
 	if (shadowed) {
-		rayPayload.color *= 0.1f;
+		rayPayload.color = vec3(0.f);
 	}
 }

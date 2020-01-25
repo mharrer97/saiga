@@ -964,8 +964,10 @@ void RaytracerGB::createRayTracingPipeline()
         vkCreateRayTracingPipelinesNV(base->device, VK_NULL_HANDLE, 1, &rayPipelineInfo, nullptr, &pipeline));
 }
 
-void RaytracerGB::updateUniformBuffers(Camera* cam, std::shared_ptr<Lighting::SpotLight> spotLight)
+void RaytracerGB::updateUniformBuffers(Camera* cam, std::shared_ptr<Lighting::SpotLight> spotLight, int maxRays)
 {
+    uniformData.view        = cam->view;
+    uniformData.proj        = cam->proj;
     uniformData.projInverse = inverse(cam->proj);
     uniformData.viewInverse = inverse(cam->view);
     //    uniformData.lightPos =
@@ -982,8 +984,9 @@ void RaytracerGB::updateUniformBuffers(Camera* cam, std::shared_ptr<Lighting::Sp
     uniformData.diffuseCol   = make_vec4(spotLight->getColorDiffuse(), spotLight->getIntensity());
 
     // calculate time for pseudo random numbers in shader
-    time             = std::chrono::system_clock::now();
-    uniformData.time = std::chrono::duration_cast<std::chrono::microseconds>(time - start).count();
+    time                = std::chrono::system_clock::now();
+    uniformData.time    = std::chrono::duration_cast<std::chrono::microseconds>(time - start).count();
+    uniformData.maxRays = maxRays;
 
     memcpy(ubo.mapped, &uniformData, sizeof(uniformData));
 }
@@ -1068,11 +1071,11 @@ void RaytracerGB::buildCommandBuffer(VkCommandBuffer cmd, VkImage targetImage)
     VK_CHECK_RESULT(vkEndCommandBuffer(cmd));
 }
 
-void RaytracerGB::render(Camera* cam, std::shared_ptr<Lighting::SpotLight> spotLight, VkCommandBuffer cmd,
+void RaytracerGB::render(Camera* cam, std::shared_ptr<Lighting::SpotLight> spotLight, int maxRays, VkCommandBuffer cmd,
                          VkImage targetImage)
 {
     if (!prepared || !hasGeometry) return;
-    updateUniformBuffers(cam, spotLight);
+    updateUniformBuffers(cam, spotLight, maxRays);
     buildCommandBuffer(cmd, targetImage);
 }
 

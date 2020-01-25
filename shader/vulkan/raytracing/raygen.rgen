@@ -16,6 +16,7 @@ layout(binding = 2, set = 0) uniform CameraProperties
         vec4 diffuseCol;
         float openingAngle;
         int time;
+        int maxRays;
 } cam;
 
 
@@ -145,9 +146,7 @@ void main()
     // store how much the reflection should be offsetted
     float diff = rayPayload.diff;
     
-    //data used for tracing secondary
-    vec4 secOrigin;
-    vec4 secDirection;
+   
     
     // reflect eye ray to get center of secondary reflection
     vec3 reflected = normalize(reflect(direction.xyz, rayPayload.normal)); 
@@ -158,8 +157,11 @@ void main()
     //set up one secondary ray
 	const vec4 hitPos = origin + direction * rayPayload.distance;
 		
-		
-		
+		 //data used for tracing secondary
+    vec4 secOrigin;
+    secOrigin.xyz =  hitPos.xyz + rayPayload.normal * 0.001f;
+    vec4 secDirection;
+				
 		
 	//calculate the quaternion, as it is always the same
 	
@@ -190,11 +192,10 @@ void main()
 	
 	//float tmp = float(MAX_SECONDARY);
 	//float tmp2 = tmp * rayPayload.diff;
-	int secRayCount = 3;//max(int(tmp2), 1);
+	int secRayCount = cam.maxRays;//max(int(tmp2), 1);
 	
     for (int i = 0; i < secRayCount; i++) {
 		
-		secOrigin.xyz = hitPos.xyz + rayPayload.normal * 0.001f;
 		secDirection.xyz = offsetVec3(diff, vec3(inUV, i), quat);
 			
 		//trace secondary ray

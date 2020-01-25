@@ -19,6 +19,8 @@ hitAttributeNV vec3 attribs;
 layout(binding = 0, set = 0) uniform accelerationStructureNV topLevelAS;
 layout(binding = 2, set = 0) uniform CameraProperties 
 {
+	mat4 view;
+	mat4 proj;
 	mat4 viewInverse;
 	mat4 projInverse;
 	vec4 lightPos;
@@ -28,9 +30,15 @@ layout(binding = 2, set = 0) uniform CameraProperties
         vec4 diffuseCol;
         float openingAngle;
         int time;
+        int maxRays;
 } cam;
 layout(binding = 3, set = 0) buffer Vertices { vec4 v[]; } vertices;
 layout(binding = 4, set = 0) buffer Indices { uint i[]; } indices;
+
+layout(binding = 5) uniform sampler2D rasterTexture;
+layout(binding = 6) uniform sampler2D normalTexture;
+layout(binding = 7) uniform sampler2D dataTexture;
+layout(binding = 8) uniform sampler2D depthTexture;
 
 struct Vertex
 {
@@ -56,6 +64,13 @@ Vertex unpack(uint index)
 	v.diff = d2.z;
 	v.data = 0.f;
 	return v;
+}
+
+vec3 reconstructPosition(float d, vec2 tc){
+	float z = d * 2.0 - 1.0;
+    vec4 p = vec4(tc.xy * 2.0f - 1.0f,d,1);
+    p = cam.projInverse * p;
+    return p.xyz/p.w;
 }
 
 vec3 interpolateVec3(vec3 p0, vec3 p1, vec3 p2){
@@ -86,63 +101,90 @@ void main()
 	Vertex v1 = unpack(index.y);
 	Vertex v2 = unpack(index.z);
 
-	// Interpolate normal
-	vec3 normal = normalize( gl_ObjectToWorldNV * vec4(normalize(interpolateVec3(v0.normal, v1.normal,v2.normal)), 0.f));
+	
 
 	// interpolate position
 	vec3 position = gl_ObjectToWorldNV * vec4(interpolateVec3(v0.pos,v1.pos,v2.pos), 1.f);
 
-	//interpolate color
-	vec3 color = interpolateVec3(v0.color, v1.color,v2.color);
-
-	// Basic lighting
-	vec3 lightVector = (cam.lightPos.xyz-position.xyz);
-
-	float intensity = getAttenuation(cam.attenuation, length(lightVector)) * cam.diffuseCol.w;
-
-	//normalize now -> was used for intensity
-	lightVector = normalize(lightVector);
-	//reflect
-	vec3 viewVec = normalize(position - vec3(cam.viewInverse[3][0], cam.viewInverse[3][1], cam.viewInverse[3][2]));
-	vec3 reflected = reflect(lightVector, normal);
+	//GBuffer test:
+	//get screenspace pos from position -> transfrom with view and proj matrix
+	vec4 screenPos =  cam.proj * cam.view * vec4(position.xyz,1);
+	screenPos = screenPos/screenPos.w;
+	//screenPos.xy should be tc
+	vec2 tc = screenPos.xy *0.5 + 0.5;
+	//get depth -> reconstruct position
+	float depth = texture(depthTexture, tc).r;
+	vec3 gbufPos = (cam.viewInverse * vec4(reconstructPosition(depth, tc),1.f)).xyz;
 	
-	vec3 diffuse = max(dot(normal, lightVector) * intensity, 0.f) * color * cam.diffuseCol.xyz;
+	if(length(gbufPos- position) < 0.01f){
+		
+		//take info from gbuffer
+		//rayPayload.color = vec3(1.0f,0.0f,1.0f);//texture(rasterTexture, tc).xyz;
+		rayPayload.color = texture(rasterTexture, tc).xyz;
+		rayPayload.distance = gl_RayTmaxNV;
+		rayPayload.normal = mat3(cam.viewInverse) * texture(normalTexture, tc).xyz;
 
-	//specular still broken
-	float roughness = 16.f;
-	vec3 specular = pow(max(dot(reflected,viewVec), 0.f), roughness) * vec3(0.75f) * intensity * cam.specularCol.xyz;
+		vec4 data = texture(dataTexture, tc);
+		rayPayload.reflector = data.x;
+		rayPayload.diff = data.y;
+		
+	} else{ 
+		//compute lighting and shoot shadow ray
+		// Interpolate normal
+		vec3 normal = normalize( gl_ObjectToWorldNV * vec4(normalize(interpolateVec3(v0.normal, v1.normal,v2.normal)), 0.f));
+		//interpolate color
+		vec3 color = interpolateVec3(v0.color, v1.color,v2.color);
 
-	
+		// Basic lighting
+		vec3 lightVector = (cam.lightPos.xyz-position.xyz);
 
-	rayPayload.color = specular+diffuse;
+		float intensity = getAttenuation(cam.attenuation, length(lightVector)) * cam.diffuseCol.w;
 
-	float angle = acos(dot(lightVector, normalize(-cam.dir.xyz)));
-	float alpha = (clamp((angle/6.26) * 180.f, (cam.openingAngle/4.f) - 5.f, (cam.openingAngle/4.f))- ((cam.openingAngle/4.f) - 5.f)) / 5.f;
-	rayPayload.color = mix(vec3(0.f), rayPayload.color,1.f- alpha);
+		//normalize now -> was used for intensity
+		lightVector = normalize(lightVector);
+		//reflect
+		vec3 viewVec = normalize(position - vec3(cam.viewInverse[3][0], cam.viewInverse[3][1], cam.viewInverse[3][2]));
+		vec3 reflected = reflect(lightVector, normal);
+		
+		vec3 diffuse = max(dot(normal, lightVector) * intensity, 0.f) * color * cam.diffuseCol.xyz;
 
-	//TODO delete: ambient term
-	//vec3 ambient = color * 0.1f; // TODO delete: currently the ambient term
-	//rayPayload.color += ambient;
-	//rayPayload.color = normal;
+		//specular still broken
+		float roughness = 16.f;
+		vec3 specular = pow(max(dot(reflected,viewVec), 0.f), roughness) * vec3(0.75f) * intensity * cam.specularCol.xyz;
 
-	rayPayload.distance = gl_RayTmaxNV;
-	rayPayload.normal = normal;
+		
 
-	// Objects with full white vertex color are treated as reflectors
-	rayPayload.reflector = interpolateFloat(v0.ior,v1.ior,v2.ior);//((v0.color.r == 1.0f) && (v0.color.g == 1.0f) && (v0.color.b == 1.0f)) ? 1.0f : 0.0f; 
-	rayPayload.diff = interpolateFloat(v0.diff, v1.diff, v2.diff);
-	
-	
-	// Shadow casting
-	vec3 origin = gl_WorldRayOriginNV + gl_WorldRayDirectionNV * gl_HitTNV;
-	float tmin = 0.001;
-	//get distance between origin and light pos
-	float dist = length(cam.lightPos.xyz - origin.xyz);
-	float tmax = min(100.0, dist);
-	shadowed = true;  
-	// Offset indices to match shadow hit/miss index
-	traceNV(topLevelAS, gl_RayFlagsTerminateOnFirstHitNV | gl_RayFlagsOpaqueNV|gl_RayFlagsSkipClosestHitShaderNV, 0xFF, 1, 0, 1, origin, tmin, lightVector, tmax, 2);
-	if (shadowed) {
-		rayPayload.color *= 0.1f;
+		rayPayload.color = specular+diffuse;
+
+		float angle = acos(dot(lightVector, normalize(-cam.dir.xyz)));
+		float alpha = (clamp((angle/6.26) * 180.f, (cam.openingAngle/4.f) - 5.f, (cam.openingAngle/4.f))- ((cam.openingAngle/4.f) - 5.f)) / 5.f;
+		rayPayload.color = mix(vec3(0.f), rayPayload.color,1.f- alpha);
+
+		//TODO delete: ambient term
+		//vec3 ambient = color * 0.1f; // TODO delete: currently the ambient term
+		//rayPayload.color += ambient;
+		//rayPayload.color = normal;
+
+		rayPayload.distance = gl_RayTmaxNV;
+		rayPayload.normal = normal;
+
+		// Objects with full white vertex color are treated as reflectors
+		rayPayload.reflector = interpolateFloat(v0.ior,v1.ior,v2.ior);//((v0.color.r == 1.0f) && (v0.color.g == 1.0f) && (v0.color.b == 1.0f)) ? 1.0f : 0.0f; 
+		rayPayload.diff = interpolateFloat(v0.diff, v1.diff, v2.diff);
+		
+		
+		// Shadow casting
+		vec3 origin = gl_WorldRayOriginNV + gl_WorldRayDirectionNV * gl_HitTNV;
+		float tmin = 0.001;
+		//get distance between origin and light pos
+		float dist = length(cam.lightPos.xyz - origin.xyz);
+		float tmax = min(100.0, dist);
+		shadowed = true;  
+		// Offset indices to match shadow hit/miss index
+		traceNV(topLevelAS, gl_RayFlagsTerminateOnFirstHitNV | gl_RayFlagsOpaqueNV|gl_RayFlagsSkipClosestHitShaderNV, 0xFF, 1, 0, 1, origin, tmin, lightVector, tmax, 2);
+		if (shadowed) {
+			rayPayload.color = vec3(0);
+		}
+		
 	}
 }

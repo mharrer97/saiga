@@ -25,8 +25,9 @@ void main()
     // vec3 specular = pow(max(dot(R, V), 0.0), 16.0) * vec3(0.75);
     // outFragColor = vec4(diffuse * inColor + specular, 1.0);
     // outFragColor = vec4(N, 1.0);
-    outDiffuse    = vec4(inColor, 1.0);
-    outSpecular   = vec4(vec3(0.75f), 16.f / 256.f);
-    outNormal     = vec4(N, 1.f);
-    outAdditional = vec4( 0.1f, 0.9f, 0.f, 0.f);  // additional data: vec4(IndexOfReflection, diffusitaet, unused, unused)
+    outDiffuse  = vec4(inColor, 1.0);
+    outSpecular = vec4(vec3(0.75f), 16.f / 256.f);
+    outNormal   = vec4(N, 1.f);
+    outAdditional =
+        vec4(0.1f, 0.9f, 0.f, 0.f);  // additional data: vec4(IndexOfReflection, diffusitaet, unused, unused)
 }

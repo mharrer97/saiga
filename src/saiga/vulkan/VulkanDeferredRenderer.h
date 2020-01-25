@@ -73,6 +73,7 @@ class SAIGA_VULKAN_API VulkanDeferredRenderer : public VulkanRenderer
     Saiga::Vulkan::RTX::Raytracer raytracer;
     Saiga::Vulkan::RTX::Raytracer raytracerReflections;
     Saiga::Vulkan::RTX::RaytracerGB raytracerGB;
+    Saiga::Vulkan::RTX::RaytracerGB raytracerGBRef;
 
 
     CommandPool renderCommandPool;
@@ -127,7 +128,7 @@ class SAIGA_VULKAN_API VulkanDeferredRenderer : public VulkanRenderer
     // FrameBufferAttachment diffuseAttachment, specularAttachment, normalAttachment, additionalAttachment;
     ColorBuffer diffuseAttachment, specularAttachment, normalAttachment, additionalAttachment, rasterAttachment,
         RTXAttachment;
-    DepthBuffer gBufferDepthBuffer, rast;
+    DepthBuffer gBufferDepthBuffer;
 
     bool debug                    = false;
     bool lightDebug               = false;
@@ -135,6 +136,7 @@ class SAIGA_VULKAN_API VulkanDeferredRenderer : public VulkanRenderer
     bool showRTX                  = true;
     bool rtxRenderModeReflections = false;
     bool hybridRendering          = true;
+    int maxRays                   = 2;
 };
 
 

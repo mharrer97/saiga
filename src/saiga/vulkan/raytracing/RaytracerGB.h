@@ -89,6 +89,8 @@ class SAIGA_VULKAN_API RaytracerGB
 
     struct UniformData
     {
+        mat4 view;
+        mat4 proj;
         mat4 viewInverse;
         mat4 projInverse;
         vec4 lightPos;
@@ -98,6 +100,7 @@ class SAIGA_VULKAN_API RaytracerGB
         vec4 diffuseCol;
         float openingAngle;
         int time;
+        int maxRays;
     } uniformData;
     vks::Buffer ubo;
 
@@ -226,7 +229,7 @@ class SAIGA_VULKAN_API RaytracerGB
     //! TODO adjust to own ubo handling
     //! \brief updateUniformBuffers
     //!
-    void updateUniformBuffers(Camera* cam, std::shared_ptr<Lighting::SpotLight> spotLight);
+    void updateUniformBuffers(Camera* cam, std::shared_ptr<Lighting::SpotLight> spotLight, int maxRays);
 
     //! TODO adjust to own ubo handling
     //! \brief createUniformBuffer Create the uniform buffer used to pass matrices to the ray tracing ray generation
@@ -239,7 +242,7 @@ class SAIGA_VULKAN_API RaytracerGB
     //!
     void buildCommandBuffer(VkCommandBuffer cmd, VkImage targetImage);
 
-    virtual void render(Camera* cam, std::shared_ptr<Lighting::SpotLight> spotLight, VkCommandBuffer cmd,
+    virtual void render(Camera* cam, std::shared_ptr<Lighting::SpotLight> spotLight, int maxRays, VkCommandBuffer cmd,
                         VkImage targetImage);
 };
 }  // namespace RTX

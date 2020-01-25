@@ -55,6 +55,7 @@ VulkanExample::VulkanExample()
     renderer->raytracer.setGeometry(&cornell, translate(vec3(0.f, -10.f, 0.f)) * scale(make_vec3(10.f)));
     renderer->raytracerReflections.setGeometry(&cornell, translate(vec3(0.f, -10.f, 0.f)) * scale(make_vec3(10.f)));
     renderer->raytracerGB.setGeometry(&cornell, translate(vec3(0.f, -10.f, 0.f)) * scale(make_vec3(10.f)));
+    renderer->raytracerGBRef.setGeometry(&cornell, translate(vec3(0.f, -10.f, 0.f)) * scale(make_vec3(10.f)));
 
     spotLight = renderer->lighting.createSpotLight();
     // spotLight->setColorDiffuse(Saiga::Vulkan::Lighting::LightColorPresets::Candle);
