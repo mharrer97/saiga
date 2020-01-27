@@ -40,6 +40,7 @@ VulkanDeferredRenderer::VulkanDeferredRenderer(VulkanWindow& window, VulkanParam
       raytracerReflections(),
       raytracerGB(),
       raytracerGBRef(),
+      denoiser(),
       params(rendererParameters)
 {
     std::cout << "VulkanDeferredRenderer Creation -- START" << std::endl;
@@ -51,7 +52,7 @@ VulkanDeferredRenderer::VulkanDeferredRenderer(VulkanWindow& window, VulkanParam
     // init deferred lighting
 
     lighting.init(base(), lightingPass);
-
+    denoiser.init(base(), forwardPass);
 
     /*directionalLight = lighting.createDirectionalLight();
     directionalLight->setColorDiffuse(Saiga::Vulkan::Lighting::LightColorPresets::MoonlightBlue);
@@ -126,7 +127,8 @@ void VulkanDeferredRenderer::createBuffers(int numImages, int w, int h)
     specularAttachment.init(base(), w, h, vk::ImageUsageFlagBits::eSampled);
     normalAttachment.init(base(), w, h, vk::ImageUsageFlagBits::eSampled);
     additionalAttachment.init(base(), w, h, vk::ImageUsageFlagBits::eSampled);
-    RTXAttachment.init(base(), w, h, vk::ImageUsageFlagBits::eSampled);
+    RTXAttachment.init(base(), w, h, vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst,
+                       vk::Format::eB8G8R8A8Unorm);
     rasterAttachment.init(base(), w, h, vk::ImageUsageFlagBits::eSampled, vk::Format::eB8G8R8A8Unorm);
 
 
@@ -203,6 +205,9 @@ void VulkanDeferredRenderer::createBuffers(int numImages, int w, int h)
         raytracerGBRef.init(base(), vk::Format::eB8G8R8A8Unorm, w, h, RTX::RTXrenderMode::REFLECTIONS,
                             rasterAttachment.location, normalAttachment.location, additionalAttachment.location,
                             gBufferDepthBuffer.location);
+
+        denoiser.createAndUpdateDescriptorSet(RTXAttachment.location, normalAttachment.location,
+                                              additionalAttachment.location);
         std::cout << "Raytracer Creation -- FINISHED" << std::endl;
     }
     std::cout << "Buffer Creation -- FINISHED" << std::endl;
@@ -407,16 +412,16 @@ void VulkanDeferredRenderer::setupRenderPass()
     // Color attachment
     forwardAttachments[0].format         = (vk::Format)swapChain.colorFormat;
     forwardAttachments[0].samples        = vk::SampleCountFlagBits::e1;
-    forwardAttachments[0].loadOp         = vk::AttachmentLoadOp::eLoad;
+    forwardAttachments[0].loadOp         = vk::AttachmentLoadOp::eDontCare;  // TODO load?
     forwardAttachments[0].storeOp        = vk::AttachmentStoreOp::eStore;
     forwardAttachments[0].stencilLoadOp  = vk::AttachmentLoadOp::eDontCare;
     forwardAttachments[0].stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
-    forwardAttachments[0].initialLayout  = vk::ImageLayout::eColorAttachmentOptimal;
+    forwardAttachments[0].initialLayout  = vk::ImageLayout::eUndefined;
     forwardAttachments[0].finalLayout    = vk::ImageLayout::ePresentSrcKHR;
     // Depth attachment
     forwardAttachments[1].format         = (vk::Format)depthBuffer.format;
     forwardAttachments[1].samples        = vk::SampleCountFlagBits::e1;
-    forwardAttachments[1].loadOp         = vk::AttachmentLoadOp::eDontCare;
+    forwardAttachments[1].loadOp         = vk::AttachmentLoadOp::eDontCare;  // TODO load?
     forwardAttachments[1].storeOp        = vk::AttachmentStoreOp::eStore;
     forwardAttachments[1].stencilLoadOp  = vk::AttachmentLoadOp::eLoad;
     forwardAttachments[1].stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
@@ -647,6 +652,9 @@ void VulkanDeferredRenderer::setupForwardCommandBuffer(int currentImage, Camera*
 
     renderingInterface->transferForward(fwdCmd, cam);
 
+    if (params.enableRTX && showRTX && hybridRendering && enableDenoising)
+        denoiser.updateUniformBuffers(fwdCmd, denoiserMaxKernelSize);
+
     timings.leaveSection("TRANSFER", fwdCmd);
 
 
@@ -665,6 +673,10 @@ void VulkanDeferredRenderer::setupForwardCommandBuffer(int currentImage, Camera*
         // Actual rendering
         timings.enterSection("MAIN", fwdCmd);
         if (!debug) renderingInterface->renderForward(fwdCmd, cam);  // dont render forward if in gbuffer debug mode
+
+        // denoise if neccessary
+        if (params.enableRTX && showRTX && hybridRendering && enableDenoising) denoiser.render(fwdCmd);
+
         timings.leaveSection("MAIN", fwdCmd);
         // add imgui rendering here -- end of forward rendering
         timings.enterSection("IMGUI", fwdCmd);
@@ -696,6 +708,8 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage, Camera* c
         ImGui::Checkbox("RTX Reflections Mode", &rtxRenderModeReflections);
         ImGui::Checkbox("Hybrid Rendering", &hybridRendering);
         ImGui::DragInt("MAX Rays", &maxRays, 1.0f, 0, 25);
+        ImGui::Checkbox("Enable Denoising", &enableDenoising);
+        ImGui::DragInt("Denoiser Kernel Size", &denoiserMaxKernelSize, 2.0f, 1, 11);
         ImGui::End();
 
 
@@ -862,9 +876,14 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage, Camera* c
             raytracerGBRef.render(cam, lighting.firstSpotLight(), maxRays, RTXCmdBuffers[currentImage],
                                   swapChain.buffers[currentImage].image);
         else
-            raytracerGB.render(cam, lighting.firstSpotLight(), maxRays, RTXCmdBuffers[currentImage],
-                               swapChain.buffers[currentImage].image);
-
+        {
+            if (enableDenoising)  // if denoising should be done, render to rtx attachment
+                raytracerGB.render(cam, lighting.firstSpotLight(), maxRays, RTXCmdBuffers[currentImage],
+                                   RTXAttachment.location->data.image);
+            else
+                raytracerGB.render(cam, lighting.firstSpotLight(), maxRays, RTXCmdBuffers[currentImage],
+                                   swapChain.buffers[currentImage].image);
+        }
         vk::PipelineStageFlags gBufferSubmitPipelineStages =
             vk::PipelineStageFlagBits::eColorAttachmentOutput;  // TODO not right yet
 

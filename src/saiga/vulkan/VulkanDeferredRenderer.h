@@ -21,6 +21,7 @@
 #include "saiga/vulkan/buffer/Framebuffer.h"
 #include "saiga/vulkan/lighting/DeferredLighting.h"
 #include "saiga/vulkan/lighting/PointLight.h"
+#include "saiga/vulkan/raytracing/Denoiser.h"
 #include "saiga/vulkan/raytracing/Raytracer.h"
 #include "saiga/vulkan/raytracing/RaytracerGB.h"
 #include "saiga/vulkan/renderModules/QuadRenderer.h"
@@ -74,6 +75,8 @@ class SAIGA_VULKAN_API VulkanDeferredRenderer : public VulkanRenderer
     Saiga::Vulkan::RTX::Raytracer raytracerReflections;
     Saiga::Vulkan::RTX::RaytracerGB raytracerGB;
     Saiga::Vulkan::RTX::RaytracerGB raytracerGBRef;
+
+    Saiga::Vulkan::RTX::Denoiser denoiser;
 
 
     CommandPool renderCommandPool;
@@ -137,6 +140,8 @@ class SAIGA_VULKAN_API VulkanDeferredRenderer : public VulkanRenderer
     bool rtxRenderModeReflections = false;
     bool hybridRendering          = true;
     int maxRays                   = 2;
+    bool enableDenoising          = true;
+    int denoiserMaxKernelSize     = 5;
 };
 
 
