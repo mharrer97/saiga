@@ -1001,7 +1001,7 @@ void RaytracerGB::createUniformBuffer()
     // updateUniformBuffers(cam);
 }
 
-void RaytracerGB::buildCommandBuffer(VkCommandBuffer cmd, VkImage targetImage)
+void RaytracerGB::buildCommandBuffer(VkCommandBuffer cmd, VkImage targetImage, bool denoise)
 {
     VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
 
@@ -1053,9 +1053,12 @@ void RaytracerGB::buildCommandBuffer(VkCommandBuffer cmd, VkImage targetImage)
     // vks::tools::setImageLayout(cmd, targetImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
     // VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
     //                           subresourceRange);
-    vks::tools::setImageLayout(cmd, targetImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                               VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, subresourceRange);
-
+    if (denoise)
+        vks::tools::setImageLayout(cmd, targetImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                   VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, subresourceRange);
+    else
+        vks::tools::setImageLayout(cmd, targetImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                   VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, subresourceRange);
     // Transition ray tracing output image back to general layout
     // vks::tools::setImageLayout(cmd, storageImageLocation->data.image,
     // VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
@@ -1072,11 +1075,11 @@ void RaytracerGB::buildCommandBuffer(VkCommandBuffer cmd, VkImage targetImage)
 }
 
 void RaytracerGB::render(Camera* cam, std::shared_ptr<Lighting::SpotLight> spotLight, int maxRays, VkCommandBuffer cmd,
-                         VkImage targetImage)
+                         VkImage targetImage, bool denoise)
 {
     if (!prepared || !hasGeometry) return;
     updateUniformBuffers(cam, spotLight, maxRays);
-    buildCommandBuffer(cmd, targetImage);
+    buildCommandBuffer(cmd, targetImage, denoise);
 }
 
 }  // namespace RTX

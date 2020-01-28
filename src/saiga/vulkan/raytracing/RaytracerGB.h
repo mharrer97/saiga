@@ -240,10 +240,10 @@ class SAIGA_VULKAN_API RaytracerGB
     //!
     //! \brief buildCommandBuffers Command Buffer Generation
     //!
-    void buildCommandBuffer(VkCommandBuffer cmd, VkImage targetImage);
+    void buildCommandBuffer(VkCommandBuffer cmd, VkImage targetImage, bool denoise);
 
     virtual void render(Camera* cam, std::shared_ptr<Lighting::SpotLight> spotLight, int maxRays, VkCommandBuffer cmd,
-                        VkImage targetImage);
+                        VkImage targetImage, bool denoise = false);
 };
 }  // namespace RTX
 }  // namespace Vulkan

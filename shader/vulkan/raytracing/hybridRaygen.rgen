@@ -102,7 +102,7 @@ vec3 offsetVec3(float offsetIntensity, vec3 seed, vec4 quaternionRot){ // offset
 	//get a random vector in the unitsphere and acale it to length=1
 	vec4 res = vec4((rand(vec3(seed.x, seed.y, cam.time+seed.z)))*2.f-1.f, rand(vec3(seed.x-1, seed.y+2, cam.time-seed.z+1)), (rand(vec3(seed.x+2, seed.y-1, cam.time-seed.z+2)))*2.f-1.f,0.f);
 	for(int i = 1; length(res) > 1.f; ++i){
-		res = vec4(rand(vec3(seed.x+i, seed.y, cam.time+seed.z)), rand(vec3(seed.x-1, seed.y+2+i, cam.time-seed.z+1)), rand(vec3(seed.x+2, seed.y-1, cam.time-seed.z+2+i)),0.f);
+		res = vec4(rand(vec3(seed.x+i*1000.f, seed.y, cam.time+seed.z))*2.f-1.f, rand(vec3(seed.x-1, seed.y+2+i*1000.f, cam.time-seed.z+1)), rand(vec3(seed.x+2, seed.y-1, cam.time-seed.z+2+i*1000.f))*2.f-1.f,0.f);
 	}
 	res= normalize(res);
 	
@@ -135,7 +135,7 @@ void main()
 
 	//use gbuffer
 	//color from rasterization
-	vec3 color = texture(rasterTexture, inUV.xy).rgb;;
+	vec3 color = vec3(0.f);//texture(rasterTexture, inUV.xy).rgb;;
 	//reconstruct pos from depth
 	vec4 origin = (cam.viewInverse * vec4(reconstructPosition(texture(depthTexture, inUV.xy).r, inUV.xy),1.f));
 	vec4 normal = vec4(mat3(cam.viewInverse) * texture(normalTexture, inUV.xy).rgb, 0.f);
@@ -225,7 +225,7 @@ void main()
 		
 		//origin.xyz = hitPos.xyz + rayPayload.normal * 0.001f;
 		//origin.xyz = hitPos.xyz + rayPayload.normal * 0.001f;
-		direction.xyz = offsetVec3(diff, vec3(inUV, i), quat);
+		direction.xyz = offsetVec3(diff, vec3(inUV, i*1000.f), quat);
 			
 		//trace secondary ray
 		traceNV(topLevelAS, rayFlags, cullMask, 0, 0, 0, origin.xyz, tmin, direction.xyz, tmax, 0);

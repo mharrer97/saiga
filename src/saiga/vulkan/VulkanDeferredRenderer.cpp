@@ -129,7 +129,8 @@ void VulkanDeferredRenderer::createBuffers(int numImages, int w, int h)
     additionalAttachment.init(base(), w, h, vk::ImageUsageFlagBits::eSampled);
     RTXAttachment.init(base(), w, h, vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst,
                        vk::Format::eB8G8R8A8Unorm);
-    rasterAttachment.init(base(), w, h, vk::ImageUsageFlagBits::eSampled, vk::Format::eB8G8R8A8Unorm);
+    rasterAttachment.init(base(), w, h, vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferSrc,
+                          vk::Format::eB8G8R8A8Unorm);
 
 
     std::cout << "  Attachment Creation -- FINISHED" << std::endl;
@@ -652,14 +653,18 @@ void VulkanDeferredRenderer::setupForwardCommandBuffer(int currentImage, Camera*
 
     renderingInterface->transferForward(fwdCmd, cam);
 
-    if (params.enableRTX && showRTX && hybridRendering && enableDenoising)
-        denoiser.updateUniformBuffers(fwdCmd, denoiserMaxKernelSize);
+    if (params.enableRTX && showRTX && hybridRendering && enableDenoising && !rtxRenderModeReflections)
+        denoiser.updateUniformBuffers(fwdCmd, denoiserMaxKernelSize, surfaceWidth, SurfaceHeight);
 
     timings.leaveSection("TRANSFER", fwdCmd);
 
 
     if (imGui && renderImgui) imGui->updateBuffers(fwdCmd, currentImage);
 
+
+    // copy raster image to swapchain if necessary
+    if (params.enableRTX && showRTX && hybridRendering && enableDenoising && !rtxRenderModeReflections)
+        copyRasterToSwapChain(fwdCmd, swapChain.buffers[currentImage].image);
     fwdCmd.beginRenderPass(&fwdRenderPassBeginInfo, vk::SubpassContents::eInline);
 
 
@@ -672,10 +677,18 @@ void VulkanDeferredRenderer::setupForwardCommandBuffer(int currentImage, Camera*
     {
         // Actual rendering
         timings.enterSection("MAIN", fwdCmd);
-        if (!debug) renderingInterface->renderForward(fwdCmd, cam);  // dont render forward if in gbuffer debug mode
+
 
         // denoise if neccessary
-        if (params.enableRTX && showRTX && hybridRendering && enableDenoising) denoiser.render(fwdCmd);
+        if (params.enableRTX && showRTX && hybridRendering && enableDenoising && !rtxRenderModeReflections)
+        {
+            if (denoiser.bind(fwdCmd))
+            {
+                denoiser.render(fwdCmd);
+            }
+        }
+
+        if (!debug) renderingInterface->renderForward(fwdCmd, cam);  // dont render forward if in gbuffer debug mode
 
         timings.leaveSection("MAIN", fwdCmd);
         // add imgui rendering here -- end of forward rendering
@@ -709,7 +722,7 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage, Camera* c
         ImGui::Checkbox("Hybrid Rendering", &hybridRendering);
         ImGui::DragInt("MAX Rays", &maxRays, 1.0f, 0, 25);
         ImGui::Checkbox("Enable Denoising", &enableDenoising);
-        ImGui::DragInt("Denoiser Kernel Size", &denoiserMaxKernelSize, 2.0f, 1, 11);
+        ImGui::SliderInt("Denoiser Kernel Size", &denoiserMaxKernelSize, 1, 7);
         ImGui::End();
 
 
@@ -879,7 +892,7 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage, Camera* c
         {
             if (enableDenoising)  // if denoising should be done, render to rtx attachment
                 raytracerGB.render(cam, lighting.firstSpotLight(), maxRays, RTXCmdBuffers[currentImage],
-                                   RTXAttachment.location->data.image);
+                                   RTXAttachment.location->data.image, true);
             else
                 raytracerGB.render(cam, lighting.firstSpotLight(), maxRays, RTXCmdBuffers[currentImage],
                                    swapChain.buffers[currentImage].image);
@@ -972,6 +985,33 @@ void VulkanDeferredRenderer::render(FrameSync& sync, int currentImage, Camera* c
     }
 }
 
+void VulkanDeferredRenderer::copyRasterToSwapChain(VkCommandBuffer cmd, VkImage image)
+{
+    /*
+            Copy rasterization output to swap chain image
+    */
+    VkImageSubresourceRange subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
+
+    // Prepare current swapchain image as transfer destination
+    vks::tools::setImageLayout(cmd, image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                               subresourceRange);
+
+    rasterAttachment.location->data.transitionImageLayout(cmd, vk::ImageLayout::eTransferSrcOptimal);
+
+    VkImageCopy copyRegion{};
+    copyRegion.srcSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1};
+    copyRegion.srcOffset      = {0, 0, 0};
+    copyRegion.dstSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1};
+    copyRegion.dstOffset      = {0, 0, 0};
+    copyRegion.extent         = {surfaceWidth, SurfaceHeight, 1};
+    vkCmdCopyImage(cmd, rasterAttachment.location->data.image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, image,
+                   VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copyRegion);
+
+
+    vks::tools::setImageLayout(cmd, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                               VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, subresourceRange);
+    rasterAttachment.location->data.transitionImageLayout(cmd, vk::ImageLayout::eColorAttachmentOptimal);
+}
 
 
 }  // namespace Vulkan

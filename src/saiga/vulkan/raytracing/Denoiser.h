@@ -31,7 +31,7 @@ class SAIGA_VULKAN_API Denoiser : public Pipeline
 
     void init(Saiga::Vulkan::VulkanBase& vulkanDevice, VkRenderPass renderPass);
 
-    void updateUniformBuffers(vk::CommandBuffer cmd, int maxKernelSize);
+    void updateUniformBuffers(vk::CommandBuffer cmd, int maxKernelSize, int width, int height);
 
 
     void createAndUpdateDescriptorSet(Saiga::Vulkan::Memory::ImageMemoryLocation* rtx,
@@ -42,7 +42,8 @@ class SAIGA_VULKAN_API Denoiser : public Pipeline
     struct UBOFS
     {
         int maxKernelSize;
-
+        int width;
+        int height;
     } uboFS;
 
     UniformBuffer uniformBufferFS;

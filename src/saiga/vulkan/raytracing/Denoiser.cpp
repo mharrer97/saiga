@@ -57,9 +57,11 @@ void Denoiser::init(Saiga::Vulkan::VulkanBase& vulkanDevice, VkRenderPass render
     blitMesh.init(vulkanDevice);
 }
 
-void Denoiser::updateUniformBuffers(vk::CommandBuffer cmd, int maxKernelSize)
+void Denoiser::updateUniformBuffers(vk::CommandBuffer cmd, int maxKernelSize, int width, int height)
 {
     uboFS.maxKernelSize = maxKernelSize;
+    uboFS.width         = width;
+    uboFS.height        = height;
     uniformBufferFS.update(cmd, sizeof(uboFS), &uboFS);
 }
 

@@ -107,6 +107,8 @@ class SAIGA_VULKAN_API VulkanDeferredRenderer : public VulkanRenderer
 
     void setupForwardCommandBuffer(int currentImage, Camera* cam);
 
+    void copyRasterToSwapChain(VkCommandBuffer cmd, VkImage image);
+
    protected:
     // std::shared_ptr<Lighting::DirectionalLight> directionalLight;
 
