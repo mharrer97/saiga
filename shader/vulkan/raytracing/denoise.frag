@@ -66,5 +66,5 @@ void main()
 		div += weights[i]*alpha;
 	}
 	col = col/div;
-	outColor = vec4(col, 1.f);
+        outColor = vec4(col, 1.f);
 }

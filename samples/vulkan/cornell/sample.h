@@ -50,7 +50,11 @@ class VulkanExample : public VulkanDeferredSDLExampleBase
     float lightRadius           = 45.f;
     float spotLightOpeningAngle = 134.75f;
     float lightHeight           = 18.f;
-    float ambientIntensity      = 0.1f;
+    float ambientIntensity      = 0.2f;
+
+    bool renderDirect = true;
+    bool renderSpot   = true;
+    bool renderPoint  = true;
 
     Saiga::Vulkan::UniversalShadowAssetRenderer assetRenderer;
     Saiga::Vulkan::UniversalShadowLineAssetRenderer lineAssetRenderer;
@@ -64,6 +68,7 @@ class VulkanExample : public VulkanDeferredSDLExampleBase
     std::shared_ptr<Saiga::Vulkan::Lighting::SpotLight> spotLight;
     // std::shared_ptr<Saiga::Vulkan::Lighting::BoxLight> boxLight;
     std::shared_ptr<Saiga::Vulkan::Lighting::DirectionalLight> directionalLight;
+    std::shared_ptr<Saiga::Vulkan::Lighting::PointLight> pointLight;
 
 
     bool displayModels = true;

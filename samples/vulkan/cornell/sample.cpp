@@ -68,7 +68,18 @@ VulkanExample::VulkanExample()
     directionalLight = renderer->lighting.createDirectionalLight();
     directionalLight->setColorDiffuse(make_vec3(1));
     directionalLight->setAmbientIntensity(0.1f);
-    directionalLight->setIntensity(0.f);
+    directionalLight->setIntensity(0);
+
+
+
+    pointLight = renderer->lighting.createPointLight();
+    pointLight->setColorDiffuse(Saiga::Vulkan::Lighting::LightColorPresets::Candle);
+    pointLight->setColorSpecular(Saiga::Vulkan::Lighting::LightColorPresets::Candle);
+    pointLight->setIntensity(1);
+    pointLight->setRadius(10.f);
+    pointLight->setPosition(vec3(5.f, 5.f, -5.f));
+    pointLight->calculateModel();
+
 
     float aspect = window->getAspectRatio();
     camera.setProj(60.0f, aspect, 0.1f, 150.0f, true);
@@ -95,6 +106,10 @@ void VulkanExample::update(float dt)
     spotLight->calculateModel();
 
     directionalLight->setAmbientIntensity(ambientIntensity);
+
+    spotLight->setActive(renderSpot);
+    pointLight->setActive(renderPoint);
+    directionalLight->setActive(renderDirect);
 }
 
 void VulkanExample::transfer(vk::CommandBuffer cmd, Camera* cam)
@@ -151,8 +166,16 @@ void VulkanExample::renderForward(vk::CommandBuffer cmd, Camera* cam)
     {
         if (assetRenderer.forward.bind(cmd))
         {
-            assetRenderer.shadow.pushModel(cmd, translate(spotLight->getPosition()) * scale(make_vec3(0.1f)));
-            sphere.render(cmd);
+            if (renderSpot)
+            {
+                assetRenderer.shadow.pushModel(cmd, translate(spotLight->getPosition()) * scale(make_vec3(0.1f)));
+                sphere.render(cmd);
+            }
+            if (renderPoint)
+            {
+                assetRenderer.shadow.pushModel(cmd, translate(pointLight->getPosition()) * scale(make_vec3(0.1f)));
+                sphere.render(cmd);
+            }
         }
     }
 }
@@ -177,6 +200,9 @@ void VulkanExample::renderGUI()
     ImGui::DragFloat("Opening Angle", &spotLightOpeningAngle, 0.25f, 0.f, 360.f);
     ImGui::DragFloat("Light Height", &lightHeight, 0.05f, 0.f, 20.f);
     ImGui::DragFloat("Ambient Intensity", &ambientIntensity, 0.005f, 0.f, 1.f);
+    ImGui::Checkbox("Render Directional", &renderDirect);
+    ImGui::Checkbox("Render Spot", &renderSpot);
+    ImGui::Checkbox("Render Point", &renderPoint);
     ImGui::End();
     //    return;
 

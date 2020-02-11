@@ -237,7 +237,7 @@ void main()
 			
 
 	}
-	color += secColor/M_PI; //lambertian reflection -> divide by pi for energy conversation
+	color += secColor; //lambertian reflection -> divide by pi for energy conversation
 
 	//color = secDirection.xyz;
 	

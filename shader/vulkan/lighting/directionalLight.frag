@@ -103,4 +103,5 @@ void main()
         else  // rechter oberer
             outColor = vec4(texture(normalTexture, tc2 - vec2(1, 0)).rgb, 1);
     }
+
 }
